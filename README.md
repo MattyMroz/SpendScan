@@ -10,7 +10,7 @@
 
 SpendScan automatyzuje kontrolę wydatków — robisz zdjęcie paragonu, a aplikacja:
 
-1. **Rozpoznaje tekst** (OCR — Tesseract)
+1. **Rozpoznaje tekst** (OCR)
 2. **Wyodrębnia produkty i ceny**
 3. **Przypisuje kategorie** (Żywność, Chemia, Elektronika itp.)
 4. **Generuje analizy** — dashboard miesięczny, trendy, alerty budżetowe
@@ -19,7 +19,7 @@ SpendScan automatyzuje kontrolę wydatków — robisz zdjęcie paragonu, a aplik
 
 | Warstwa | Technologia |
 |---------|-------------|
-| **Backend** | Python 3.13+, FastAPI, Tesseract OCR |
+| **Backend** | Python 3.13+, FastAPI |
 | **Mobile** | React Native (Expo) |
 | **Baza danych** | SQLite (dev) |
 | **Tooling** | uv, ruff, mypy, pytest, pre-commit |
@@ -29,7 +29,7 @@ SpendScan automatyzuje kontrolę wydatków — robisz zdjęcie paragonu, a aplik
 
 ```
 SpendScan/
-├── backend/spendscan/    # Backend Python (FastAPI + OCR)
+├── backend/spendscan/    # Backend Python
 │   ├── api/              # FastAPI endpoints
 │   ├── ocr/              # Przetwarzanie obrazu + OCR
 │   ├── analysis/         # Analityka wydatków
@@ -48,7 +48,6 @@ SpendScan/
 
 - Python ≥3.13
 - [uv](https://docs.astral.sh/uv/getting-started/installation/)
-- Tesseract OCR (`apt install tesseract-ocr tesseract-ocr-pol` / `brew install tesseract`)
 
 ### Setup
 

@@ -72,7 +72,7 @@ git push -u origin feature/<twoj-nick>-<opis>
 # ✅ Dobrze
 feat(ocr): add grayscale preprocessing for receipts
 fix(api): return 404 for missing receipt
-chore(deps): add pytesseract dependency
+chore(deps): add ocr dependency
 test(analysis): add categorization unit tests
 docs(readme): update setup instructions
 
