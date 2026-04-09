@@ -20,7 +20,7 @@ SpendScan automatyzuje kontrolę wydatków — robisz zdjęcie paragonu, a aplik
 | Warstwa | Technologia |
 |---------|-------------|
 | **Backend** | Python 3.13+, FastAPI |
-| **Mobile** | React Native (Expo) |
+| **Frontend** | TBD |
 | **Baza danych** | SQLite (dev) |
 | **Tooling** | uv, ruff, mypy, pytest, pre-commit |
 | **CI/CD** | GitHub Actions |
@@ -35,7 +35,7 @@ SpendScan/
 │   ├── analysis/         # Analityka wydatków
 │   ├── models/           # Pydantic models + DB schema
 │   └── db/               # Database layer
-├── frontend/             # Expo React Native (thin client)
+├── frontend/             # Frontend (TBD)
 ├── tests/                # Testy (unit + integration)
 ├── assets/               # Brand assets (logo, ikona)
 ├── doc/                  # Dokumentacja projektu
@@ -81,11 +81,11 @@ Szczegóły w [CONTRIBUTING.md](CONTRIBUTING.md).
 
 | Osoba | Specjalizacja | Obszar |
 |-------|--------------|--------|
-| Piotr Marczak | EAIBD | DB + analityka |
-| Jakub Bryła | EAIBD | OCR pipeline |
-| Mateusz Mróz | EAIBD | API + infra/CI |
-| Igor Typiński | Inżynieria Oprogramowania | Testy + QA |
-| Mateusz Słoń | Technologie Internetowe | Mobile (Expo) |
+| Mateusz Mróz | EAIBD | OCR + koordynacja |
+| Piotr Marczak | EAIBD | Baza danych |
+| Jakub Bryła | EAIBD | Architektura + analiza danych |
+| Igor Typiński | Inżynieria Oprogramowania | API + frontend |
+| Mateusz Słoń | Technologie Internetowe | Frontend + API |
 
 ## Licencja
 
