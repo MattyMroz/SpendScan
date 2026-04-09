@@ -1,0 +1,38 @@
+name: "🐛 Bug Report"
+description: Zgłoś buga
+labels: ["bug", "triage"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: "Opis buga"
+      description: "Jasny opis co nie działa"
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: "Kroki do odtworzenia"
+      value: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: "Oczekiwane zachowanie"
+    validations:
+      required: true
+  - type: dropdown
+    id: severity
+    attributes:
+      label: "Priorytet"
+      options:
+        - "Critical"
+        - "Major"
+        - "Minor"
+        - "Cosmetic"
+    validations:
+      required: true
