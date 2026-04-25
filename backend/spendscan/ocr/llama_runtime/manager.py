@@ -5,7 +5,6 @@ from __future__ import annotations
 import atexit
 import socket
 import subprocess
-import sys
 import time
 from collections.abc import Generator
 from contextlib import contextmanager
@@ -72,7 +71,7 @@ class LlamaServerManager:
                 stdout=subprocess.PIPE if not self.config.verbose else None,
                 stderr=subprocess.PIPE if not self.config.verbose else None,
                 text=True,
-                creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0,
+                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
             )
         except OSError as exc:
             msg = f"Failed to start llama-server: {exc}"
