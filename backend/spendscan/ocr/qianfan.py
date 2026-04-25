@@ -23,6 +23,7 @@ from .llama_runtime import (
     LlamaRuntimeConfig,
     LlamaRuntimeError,
     LlamaServerManager,
+    prepare_llama_binary,
 )
 from .llama_runtime.client import LlamaClient
 from .types import ImageInput, OcrLine, OcrResult
@@ -32,11 +33,11 @@ QIANFAN_HF_REPO: Final[str] = "Reza2kn/Qianfan-OCR-GGUF"
 """Hugging Face repository used for Qianfan OCR models."""
 
 GGUF_VARIANTS: Final[dict[str, str]] = {
-    "bf16": "qianfan-ocr-bf16.gguf",
-    "q8_0": "qianfan-ocr-q8-0.gguf",
-    "q4_k_m": "qianfan-ocr-q4-k-m.gguf",
+    "bf16": "Qianfan-OCR-bf16.gguf",
+    "q8_0": "Qianfan-OCR-q8_0.gguf",
+    "q4_k_m": "Qianfan-OCR-q4_k_m.gguf",
 }
-MMPROJ_FILENAME: Final[str] = "qianfan-ocr-mmproj-f16.gguf"
+MMPROJ_FILENAME: Final[str] = "Qianfan-OCR-mmproj-f16.gguf"
 DEFAULT_VARIANT: Final[str] = "q4_k_m"
 DEFAULT_PROMPT: Final[str] = (
     "OCR all text in the receipt image. Return plain text with line breaks. "
@@ -200,10 +201,6 @@ class QianfanOcrEngine:
         if self._model_dir is None:
             msg = "Qianfan model directory was not resolved"
             raise OcrEngineError(msg)
-        if not self.config.llama_build_tag:
-            msg = "SPENDSCAN_LLAMA_BUILD_TAG is missing. Prepare llama.cpp runtime before OCR startup."
-            raise OcrConfigError(msg)
-
         model_file = self._model_dir / GGUF_VARIANTS[self.config.variant]
         mmproj_file = self._model_dir / MMPROJ_FILENAME
         if not model_file.exists():
@@ -213,6 +210,7 @@ class QianfanOcrEngine:
             msg = f"Vision encoder not found: {mmproj_file}"
             raise OcrConfigError(msg)
 
+        build_tag = self._ensure_llama_binary()
         runtime_config = LlamaRuntimeConfig(n_gpu_layers=self.config.n_gpu_layers, n_ctx=self.config.n_ctx)
         resolver = BinaryResolver(self.config.llama_cache_dir)
         self._server = LlamaServerManager(runtime_config, binary_resolver=resolver)
@@ -220,12 +218,19 @@ class QianfanOcrEngine:
             self._client = self._server.start(
                 model_path=model_file,
                 mmproj_path=mmproj_file,
-                build_tag=self.config.llama_build_tag,
+                build_tag=build_tag,
             )
         except LlamaRuntimeError as exc:
             self._server = None
             msg = f"Failed to start Qianfan llama-server: {exc}"
             raise OcrEngineError(msg) from exc
+
+    def _ensure_llama_binary(self) -> str:
+        cache_dir = self.config.llama_cache_dir or get_settings().resolved_llama_cache_dir
+        preparation = prepare_llama_binary(cache_dir, build_tag=self.config.llama_build_tag)
+        self.config.llama_cache_dir = cache_dir
+        self.config.llama_build_tag = preparation.build_tag
+        return preparation.build_tag
 
     def _recognize_with_oom_retry(
         self,

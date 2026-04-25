@@ -17,7 +17,18 @@ class ReceiptItem(BaseModel):
     quantity: Decimal | None = None
     unit_price: Decimal | None = None
     total_price: Decimal = Field(ge=Decimal("0"))
+    discount_amount: Decimal | None = Field(default=None, ge=Decimal("0"))
     category: str | None = None
+
+
+class ReceiptDiscount(BaseModel):
+    """Discount extracted from a receipt."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    description: str = Field(min_length=1)
+    amount: Decimal = Field(ge=Decimal("0"))
+    item_name: str | None = None
 
 
 class ReceiptAnalysisResult(BaseModel):
@@ -31,8 +42,10 @@ class ReceiptAnalysisResult(BaseModel):
     subtotal_amount: Decimal | None = Field(default=None, ge=Decimal("0"))
     tax_amount: Decimal | None = Field(default=None, ge=Decimal("0"))
     total_amount: Decimal = Field(ge=Decimal("0"))
+    total_discount_amount: Decimal | None = Field(default=None, ge=Decimal("0"))
     payment_method: str | None = None
     items: list[ReceiptItem] = Field(default_factory=list)
+    discounts: list[ReceiptDiscount] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
     raw_ocr_text: str = ""
 

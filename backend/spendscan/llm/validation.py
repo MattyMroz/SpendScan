@@ -15,6 +15,7 @@ from .schemas import ReceiptAnalysisResult
 
 _JSON_FENCE_PATTERN: Final[re.Pattern[str]] = re.compile(r"```(?:json)?\s*(.*?)\s*```", re.DOTALL)
 _TOTAL_MISMATCH_TOLERANCE: Final[Decimal] = Decimal("0.05")
+_DISCOUNT_MISMATCH_TOLERANCE: Final[Decimal] = Decimal("0.05")
 
 
 class ReceiptOutputValidator:
@@ -39,7 +40,7 @@ class ReceiptOutputValidator:
             msg = "Gemini JSON does not match receipt schema"
             raise OutputValidationError(msg) from exc
 
-        return self._with_total_warning(result)
+        return self._with_discount_warning(self._with_total_warning(result))
 
     def _with_total_warning(self, result: ReceiptAnalysisResult) -> ReceiptAnalysisResult:
         item_total = sum((item.total_price for item in result.items), Decimal("0"))
@@ -48,6 +49,37 @@ class ReceiptOutputValidator:
 
         warning = f"items total {item_total} does not match receipt total {result.total_amount}"
         return result.model_copy(update={"warnings": [*result.warnings, warning]})
+
+    def _with_discount_warning(self, result: ReceiptAnalysisResult) -> ReceiptAnalysisResult:
+        if result.total_discount_amount is None or not result.discounts:
+            return result
+
+        discount_total = _discount_total_for_comparison(result)
+        if abs(discount_total - result.total_discount_amount) <= _DISCOUNT_MISMATCH_TOLERANCE:
+            return result
+
+        warning = (
+            f"discounts total {discount_total} does not match receipt discount total {result.total_discount_amount}"
+        )
+        return result.model_copy(update={"warnings": [*result.warnings, warning]})
+
+
+def _discount_total_for_comparison(result: ReceiptAnalysisResult) -> Decimal:
+    item_level_discount_total = sum(
+        (discount.amount for discount in result.discounts if discount.item_name),
+        Decimal("0"),
+    )
+    if item_level_discount_total > Decimal("0"):
+        return item_level_discount_total
+
+    item_field_discount_total = sum(
+        (item.discount_amount for item in result.items if item.discount_amount is not None),
+        Decimal("0"),
+    )
+    if item_field_discount_total > Decimal("0"):
+        return item_field_discount_total
+
+    return sum((discount.amount for discount in result.discounts), Decimal("0"))
 
 
 def _extract_json(raw_text: str) -> str:

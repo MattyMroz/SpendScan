@@ -46,13 +46,17 @@ class GeminiReceiptClient:
 
         models = _unique_models(self._settings.gemini_model, self._settings.gemini_fallback_model)
         last_error: Exception | None = None
-        for model_name in models:
-            try:
-                raw_text = await self._call_api(model_name=model_name, ocr_text=ocr_text, image_path=image_path)
-                return self._validator.validate(raw_text, raw_ocr_text=ocr_text)
-            except (ExternalServiceError, OutputValidationError) as exc:
-                last_error = exc
-                logger.warning("Gemini model {} failed: {}", model_name, exc)
+        for attempt in range(1, self._settings.gemini_retry_attempts + 1):
+            for model_name in models:
+                try:
+                    raw_text = await self._call_api(model_name=model_name, ocr_text=ocr_text, image_path=image_path)
+                    return self._validator.validate(raw_text, raw_ocr_text=ocr_text)
+                except (ExternalServiceError, OutputValidationError) as exc:
+                    last_error = exc
+                    logger.warning("Gemini model {} failed on attempt {}: {}", model_name, attempt, exc)
+
+            if attempt < self._settings.gemini_retry_attempts:
+                await asyncio.sleep(self._settings.gemini_retry_delay_seconds)
 
         msg = "Gemini receipt analysis failed for all configured models"
         raise ExternalServiceError(msg) from last_error
@@ -88,10 +92,9 @@ class GeminiReceiptClient:
             max_output_tokens=self._settings.gemini_max_output_tokens,
             response_mime_type="application/json",
         )
-        contents: list[Any] = []
+        contents: list[Any] = [build_receipt_prompt(ocr_text)]
         if image_path is not None and image_path.exists():
             contents.append(types.Part.from_bytes(data=image_path.read_bytes(), mime_type=_mime_type(image_path)))
-        contents.append(build_receipt_prompt(ocr_text))
         return client.models.generate_content(model=model_name, contents=contents, config=config)
 
 

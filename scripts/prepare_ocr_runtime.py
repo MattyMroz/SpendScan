@@ -2,13 +2,19 @@
 
 from __future__ import annotations
 
+import sys
 from pathlib import Path
 
-from spendscan.config import get_settings
-from spendscan.ocr.llama_runtime import prepare_llama_binary
-from spendscan.ocr.qianfan import QianfanModelResolver
+_PROJECT_ROOT = Path(__file__).resolve().parents[1]
+_BACKEND_DIR = _PROJECT_ROOT / "backend"
+if str(_BACKEND_DIR) not in sys.path:
+    sys.path.insert(0, str(_BACKEND_DIR))
 
-_ENV_FILE = Path(".env")
+from spendscan.config import get_settings  # noqa: E402
+from spendscan.ocr.llama_runtime import prepare_llama_binary  # noqa: E402
+from spendscan.ocr.qianfan import QianfanModelResolver  # noqa: E402
+
+_ENV_FILE = _PROJECT_ROOT / ".env"
 
 
 def main() -> None:

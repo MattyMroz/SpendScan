@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import inspect
 from decimal import Decimal
 from pathlib import Path
 from typing import Protocol
@@ -57,3 +58,12 @@ class ReceiptPipeline:
             ocr_processing_time_ms=ocr_result.processing_time_ms,
             analysis=analysis,
         )
+
+    async def cleanup(self) -> None:
+        """Release pipeline resources when the OCR service supports cleanup."""
+        cleanup = getattr(self._ocr, "cleanup", None)
+        if not callable(cleanup):
+            return
+        result = cleanup()
+        if inspect.isawaitable(result):
+            await result

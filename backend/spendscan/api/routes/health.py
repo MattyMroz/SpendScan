@@ -24,7 +24,6 @@ def ready(settings: SettingsDep) -> ReadinessResponse | JSONResponse:
         "gemini_api_key": bool(settings.gemini_api_key_value),
         "qianfan_model_dir_parent": settings.resolved_qianfan_model_dir.parent.exists(),
         "llama_cache_dir_parent": settings.resolved_llama_cache_dir.parent.exists(),
-        "llama_build_tag": bool(settings.llama_build_tag),
     }
     response = ReadinessResponse(ready=all(checks.values()), checks=checks)
     if response.ready:

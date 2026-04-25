@@ -37,6 +37,8 @@ class Settings(BaseSettings):
     gemini_fallback_model: str = DEFAULT_GEMINI_FALLBACK_MODEL
     gemini_temperature: float = 0.0
     gemini_max_output_tokens: int = 8192
+    gemini_retry_attempts: int = Field(default=3, ge=1)
+    gemini_retry_delay_seconds: float = Field(default=5.0, ge=0)
     qianfan_model_dir: Path = Field(default=Path("external/models/ocr/qianfan-ocr"))
     llama_cache_dir: Path = Field(default=Path("external/bin/llama"))
     llama_build_tag: str | None = None
