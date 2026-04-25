@@ -12,7 +12,19 @@ authors = [
     { name = "Igor Typiński" },
     { name = "Mateusz Słoń" },
 ]
-dependencies = []
+dependencies = [
+    "fastapi>=0.136.1",
+    "google-genai>=1.73.1",
+    "httpx>=0.28.1",
+    "loguru>=0.7.3",
+    "numpy>=2.4.4",
+    "pillow>=12.2.0",
+    "platformdirs>=4.9.6",
+    "pydantic>=2.13.3",
+    "pydantic-settings>=2.14.0",
+    "python-multipart>=0.0.26",
+    "tenacity>=9.1.4",
+]
 
 [dependency-groups]
 dev = [
@@ -70,16 +82,13 @@ docstring-code-format = true
 
 [tool.mypy]
 strict = true
+mypy_path = "backend"
 warn_unreachable = true
 pretty = true
 show_error_codes = true
 show_error_code_links = true
 python_version = "3.13"
 enable_error_code = ["deprecated"]
-
-[[tool.mypy.overrides]]
-module = ["tests.*"]
-disallow_untyped_defs = false
 
 # ── pytest ────────────────────────────────────────────
 

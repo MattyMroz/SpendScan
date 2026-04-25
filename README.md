@@ -68,6 +68,58 @@ uv run mypy backend/
 uv run pytest
 ```
 
+### Lokalny test OCR + Gemini
+
+Runtime OCR i modele nie są commitowane. Lokalnie trafiają do `external/`, a robocze paragony i wyniki do
+`workspace/`.
+
+Szczegółowy runbook, fallback Gemma i lista kategorii są w [doc/RECEIPT_PIPELINE_RUNBOOK.md](doc/RECEIPT_PIPELINE_RUNBOOK.md).
+
+1. Skopiuj env i uzupełnij `SPENDSCAN_GEMINI_API_KEY`:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+2. Przygotuj OCR runtime. Komenda automatycznie pobiera Qianfan OCR z Hugging Face oraz pasującą binarkę
+	`llama.cpp`:
+
+```powershell
+uv run python scripts/prepare_ocr_runtime.py
+```
+
+3. Wrzuć paragony PNG do `workspace/input/`. Lokalny zestaw testowy używa nazw:
+
+```text
+workspace/input/receipt_001.png
+workspace/input/receipt_002.png
+workspace/input/receipt_003.png
+```
+
+4. Uruchom pełny pipeline OCR -> Gemini -> JSON:
+
+```powershell
+uv run python scripts/run_receipt_e2e.py
+```
+
+Wyniki zapisują się do `workspace/output/*.json`.
+
+5. Wygeneruj debug PNG: po lewej paragon, po prawej OCR, JSON LLM i podsumowanie:
+
+```powershell
+uv run python scripts/render_receipt_debug.py
+```
+
+PNG zapisują się do `workspace/output/debug/*_debug.png` i rosną pionowo pod długość OCR/JSON.
+
+6. Opcjonalnie odpal realny test integracyjny:
+
+```powershell
+$env:SPENDSCAN_RUN_E2E="1"; uv run pytest tests/integration/test_receipt_e2e.py -m integration
+```
+
+Bez `SPENDSCAN_RUN_E2E=1` test integracyjny jest pomijany, żeby CI i zwykłe `uv run pytest` nie pobierały modeli.
+
 ## Workflow
 
 Szczegóły w [CONTRIBUTING.md](CONTRIBUTING.md).
