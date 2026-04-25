@@ -1,0 +1,8 @@
+{
+  "include": ["backend", "tests"],
+  "extraPaths": ["backend"],
+  "venvPath": ".",
+  "venv": ".venv",
+  "typeCheckingMode": "standard",
+  "reportMissingTypeStubs": "none"
+}
