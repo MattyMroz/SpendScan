@@ -27,8 +27,6 @@ class OcrService:
 
     async def initialize(self, **kwargs: Any) -> None:
         """Initialize OCR engine in a worker thread."""
-        if self._engine is not None:
-            return
         async with self._init_lock:
             if self._engine is not None:
                 return
