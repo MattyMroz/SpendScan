@@ -33,7 +33,7 @@ class ReceiptOutputValidator:
             msg = "Gemini JSON must be an object"
             raise OutputValidationError(msg)
 
-        payload.setdefault("raw_ocr_text", raw_ocr_text)
+        payload["raw_ocr_text"] = raw_ocr_text
         try:
             result = ReceiptAnalysisResult.model_validate(payload)
         except ValidationError as exc:
