@@ -10,7 +10,13 @@ from google import genai
 from google.genai import types
 from loguru import logger
 
-from spendscan.config import DEFAULT_GEMINI_FALLBACK_MODEL, DEFAULT_GEMINI_MODEL, Settings, get_settings
+from spendscan.config import (
+    DEFAULT_GEMINI_FALLBACK_MODEL,
+    DEFAULT_GEMINI_GEMMA_FALLBACK_MODEL,
+    DEFAULT_GEMINI_MODEL,
+    Settings,
+    get_settings,
+)
 from spendscan.errors import ConfigurationError, ExternalServiceError, OutputValidationError
 
 from .prompt import SYSTEM_PROMPT, build_receipt_prompt
@@ -44,7 +50,11 @@ class GeminiReceiptClient:
             msg = "SPENDSCAN_GEMINI_API_KEY is missing"
             raise ConfigurationError(msg)
 
-        models = _unique_models(self._settings.gemini_model, self._settings.gemini_fallback_model)
+        models = _unique_models(
+            self._settings.gemini_model,
+            self._settings.gemini_fallback_model,
+            self._settings.gemini_gemma_fallback_model,
+        )
         last_error: Exception | None = None
         for attempt in range(1, self._settings.gemini_retry_attempts + 1):
             for model_name in models:
@@ -98,8 +108,12 @@ class GeminiReceiptClient:
         return client.models.generate_content(model=model_name, contents=contents, config=config)
 
 
-def _unique_models(primary: str, fallback: str) -> tuple[str, ...]:
-    models = [primary or DEFAULT_GEMINI_MODEL, fallback or DEFAULT_GEMINI_FALLBACK_MODEL]
+def _unique_models(primary: str, fallback: str, gemma_fallback: str) -> tuple[str, ...]:
+    models = [
+        primary or DEFAULT_GEMINI_MODEL,
+        fallback or DEFAULT_GEMINI_FALLBACK_MODEL,
+        gemma_fallback or DEFAULT_GEMINI_GEMMA_FALLBACK_MODEL,
+    ]
     return tuple(dict.fromkeys(model for model in models if model))
 
 

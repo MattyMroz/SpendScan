@@ -73,6 +73,8 @@ uv run pytest
 Runtime OCR i modele nie są commitowane. Lokalnie trafiają do `external/`, a robocze paragony i wyniki do
 `workspace/`.
 
+Szczegółowy runbook, fallback Gemma i lista kategorii są w [doc/RECEIPT_PIPELINE_RUNBOOK.md](doc/RECEIPT_PIPELINE_RUNBOOK.md).
+
 1. Skopiuj env i uzupełnij `SPENDSCAN_GEMINI_API_KEY`:
 
 ```powershell

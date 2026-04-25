@@ -61,7 +61,8 @@ Rules:
 - If item-level discounts are visible, do not duplicate the aggregate total discount inside discounts[].
 - If only an aggregate discount is visible, add one discounts[] entry for that aggregate discount.
 - Keep item names in Polish when the receipt is Polish.
-- Normalize categories to short English labels such as food, drinks, cosmetics, household, electronics, other.
+- Use only these category labels: food, drinks, household, cosmetics, electronics, clothing, health, transport,
+  services, other.
 - raw_ocr_text must equal the OCR transcript from the user prompt exactly.
 """.strip()
 

@@ -15,6 +15,9 @@ DEFAULT_GEMINI_MODEL: Final[str] = "gemini-3.1-flash-lite-preview"
 DEFAULT_GEMINI_FALLBACK_MODEL: Final[str] = "gemini-flash-lite-latest"
 """Fallback Gemini model used when the primary model is unavailable."""
 
+DEFAULT_GEMINI_GEMMA_FALLBACK_MODEL: Final[str] = "gemma-4-31b-it"
+"""Last-resort Gemma model used when Gemini Flash Lite models are unavailable."""
+
 
 def project_root() -> Path:
     """Return the SpendScan repository root."""
@@ -35,6 +38,7 @@ class Settings(BaseSettings):
     gemini_api_key: SecretStr | None = None
     gemini_model: str = DEFAULT_GEMINI_MODEL
     gemini_fallback_model: str = DEFAULT_GEMINI_FALLBACK_MODEL
+    gemini_gemma_fallback_model: str = DEFAULT_GEMINI_GEMMA_FALLBACK_MODEL
     gemini_temperature: float = 0.0
     gemini_max_output_tokens: int = 8192
     gemini_retry_attempts: int = Field(default=3, ge=1)

@@ -2,5 +2,6 @@
 !.gitignore
 !input/
 !input/.gitkeep
+!input/receipt_*.png
 !output/
 !output/.gitkeep
