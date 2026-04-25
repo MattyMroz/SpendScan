@@ -30,6 +30,8 @@ class OcrService:
         if self._engine is not None:
             return
         async with self._init_lock:
+            if self._engine is not None:
+                return
             engine = QianfanOcrEngine(self.config)
             await asyncio.to_thread(engine.initialize, **kwargs)
             self._engine = engine
