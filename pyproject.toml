@@ -90,10 +90,6 @@ show_error_code_links = true
 python_version = "3.13"
 enable_error_code = ["deprecated"]
 
-[[tool.mypy.overrides]]
-module = ["tests.*"]
-disallow_untyped_defs = false
-
 # ── pytest ────────────────────────────────────────────
 
 [tool.pytest.ini_options]
