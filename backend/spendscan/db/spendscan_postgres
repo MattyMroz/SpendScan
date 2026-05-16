@@ -1,0 +1,572 @@
+--
+-- PostgreSQL database dump
+--
+
+\restrict DtSDjoNwBebUZePMN2k46atY6gzBeRBybXj6qy4zRvGfbx9niQlzjqejNurPArT
+
+-- Dumped from database version 18.4
+-- Dumped by pg_dump version 18.4
+
+-- Started on 2026-05-16 13:00:06
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET transaction_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
+
+SET default_tablespace = '';
+
+SET default_table_access_method = heap;
+
+--
+-- TOC entry 236 (class 1259 OID 16757)
+-- Name: budget_receipts; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.budget_receipts (
+    id integer NOT NULL,
+    budget_id integer NOT NULL,
+    receipt_id integer NOT NULL,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+ALTER TABLE public.budget_receipts OWNER TO postgres;
+
+--
+-- TOC entry 235 (class 1259 OID 16756)
+-- Name: budget_receipts_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+ALTER TABLE public.budget_receipts ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.budget_receipts_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- TOC entry 234 (class 1259 OID 16726)
+-- Name: budgets; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.budgets (
+    id integer NOT NULL,
+    user_id integer NOT NULL,
+    name text NOT NULL,
+    description text,
+    category_id integer,
+    amount_limit numeric(10,2) NOT NULL,
+    period_type text NOT NULL,
+    alert_threshold_percent integer DEFAULT 80 NOT NULL,
+    is_active integer DEFAULT 1,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT budgets_alert_threshold_percent_check CHECK (((alert_threshold_percent >= 1) AND (alert_threshold_percent <= 100))),
+    CONSTRAINT budgets_amount_limit_check CHECK ((amount_limit >= (0)::numeric)),
+    CONSTRAINT budgets_is_active_check CHECK ((is_active = ANY (ARRAY[0, 1]))),
+    CONSTRAINT budgets_period_type_check CHECK ((period_type = ANY (ARRAY['weekly'::text, 'monthly'::text, 'quarterly'::text, 'yearly'::text])))
+);
+
+
+ALTER TABLE public.budgets OWNER TO postgres;
+
+--
+-- TOC entry 233 (class 1259 OID 16725)
+-- Name: budgets_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+ALTER TABLE public.budgets ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.budgets_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- TOC entry 222 (class 1259 OID 16601)
+-- Name: categories; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.categories (
+    id integer NOT NULL,
+    name text NOT NULL
+);
+
+
+ALTER TABLE public.categories OWNER TO postgres;
+
+--
+-- TOC entry 221 (class 1259 OID 16600)
+-- Name: categories_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+ALTER TABLE public.categories ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.categories_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- TOC entry 232 (class 1259 OID 16706)
+-- Name: folder_receipts; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.folder_receipts (
+    id integer NOT NULL,
+    folder_id integer NOT NULL,
+    receipt_id integer NOT NULL,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+ALTER TABLE public.folder_receipts OWNER TO postgres;
+
+--
+-- TOC entry 231 (class 1259 OID 16705)
+-- Name: folder_receipts_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+ALTER TABLE public.folder_receipts ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.folder_receipts_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- TOC entry 224 (class 1259 OID 16613)
+-- Name: folders; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.folders (
+    id integer NOT NULL,
+    user_id integer NOT NULL,
+    name text NOT NULL,
+    description text,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+ALTER TABLE public.folders OWNER TO postgres;
+
+--
+-- TOC entry 223 (class 1259 OID 16612)
+-- Name: folders_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+ALTER TABLE public.folders ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.folders_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- TOC entry 228 (class 1259 OID 16651)
+-- Name: receipt_items; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.receipt_items (
+    id integer NOT NULL,
+    receipt_id integer NOT NULL,
+    product_name text NOT NULL,
+    price numeric(10,2) NOT NULL,
+    quantity numeric(10,2) DEFAULT 1 NOT NULL,
+    category_id integer,
+    CONSTRAINT receipt_items_price_check CHECK ((price >= (0)::numeric)),
+    CONSTRAINT receipt_items_quantity_check CHECK ((quantity > (0)::numeric))
+);
+
+
+ALTER TABLE public.receipt_items OWNER TO postgres;
+
+--
+-- TOC entry 227 (class 1259 OID 16650)
+-- Name: receipt_items_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+ALTER TABLE public.receipt_items ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.receipt_items_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- TOC entry 226 (class 1259 OID 16630)
+-- Name: receipts; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.receipts (
+    id integer NOT NULL,
+    user_id integer NOT NULL,
+    image_path text,
+    shop_name text NOT NULL,
+    purchase_date date NOT NULL,
+    total_amount numeric(10,2) NOT NULL,
+    description text,
+    importance_level integer,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT receipts_importance_level_check CHECK (((importance_level >= 1) AND (importance_level <= 3))),
+    CONSTRAINT receipts_total_amount_check CHECK ((total_amount >= (0)::numeric))
+);
+
+
+ALTER TABLE public.receipts OWNER TO postgres;
+
+--
+-- TOC entry 225 (class 1259 OID 16629)
+-- Name: receipts_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+ALTER TABLE public.receipts ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.receipts_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- TOC entry 230 (class 1259 OID 16677)
+-- Name: subscriptions; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.subscriptions (
+    id integer NOT NULL,
+    user_id integer NOT NULL,
+    name text NOT NULL,
+    amount numeric(10,2) NOT NULL,
+    billing_cycle text NOT NULL,
+    next_payment_date date NOT NULL,
+    category_id integer,
+    is_active integer DEFAULT 1,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT subscriptions_amount_check CHECK ((amount >= (0)::numeric)),
+    CONSTRAINT subscriptions_billing_cycle_check CHECK ((billing_cycle = ANY (ARRAY['weekly'::text, 'monthly'::text, 'quarterly'::text, 'yearly'::text]))),
+    CONSTRAINT subscriptions_is_active_check CHECK ((is_active = ANY (ARRAY[0, 1])))
+);
+
+
+ALTER TABLE public.subscriptions OWNER TO postgres;
+
+--
+-- TOC entry 229 (class 1259 OID 16676)
+-- Name: subscriptions_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+ALTER TABLE public.subscriptions ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.subscriptions_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- TOC entry 220 (class 1259 OID 16586)
+-- Name: users; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.users (
+    id integer NOT NULL,
+    username text NOT NULL,
+    email text NOT NULL,
+    password_hash text NOT NULL,
+    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+);
+
+
+ALTER TABLE public.users OWNER TO postgres;
+
+--
+-- TOC entry 219 (class 1259 OID 16585)
+-- Name: users_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+ALTER TABLE public.users ALTER COLUMN id ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME public.users_id_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1
+);
+
+
+--
+-- TOC entry 4942 (class 2606 OID 16765)
+-- Name: budget_receipts budget_receipts_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.budget_receipts
+    ADD CONSTRAINT budget_receipts_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 4939 (class 2606 OID 16745)
+-- Name: budgets budgets_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.budgets
+    ADD CONSTRAINT budgets_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 4923 (class 2606 OID 16611)
+-- Name: categories categories_name_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.categories
+    ADD CONSTRAINT categories_name_key UNIQUE (name);
+
+
+--
+-- TOC entry 4925 (class 2606 OID 16609)
+-- Name: categories categories_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.categories
+    ADD CONSTRAINT categories_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 4936 (class 2606 OID 16714)
+-- Name: folder_receipts folder_receipts_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.folder_receipts
+    ADD CONSTRAINT folder_receipts_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 4927 (class 2606 OID 16623)
+-- Name: folders folders_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.folders
+    ADD CONSTRAINT folders_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 4932 (class 2606 OID 16665)
+-- Name: receipt_items receipt_items_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.receipt_items
+    ADD CONSTRAINT receipt_items_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 4930 (class 2606 OID 16644)
+-- Name: receipts receipts_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.receipts
+    ADD CONSTRAINT receipts_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 4934 (class 2606 OID 16694)
+-- Name: subscriptions subscriptions_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.subscriptions
+    ADD CONSTRAINT subscriptions_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 4919 (class 2606 OID 16599)
+-- Name: users users_email_key; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.users
+    ADD CONSTRAINT users_email_key UNIQUE (email);
+
+
+--
+-- TOC entry 4921 (class 2606 OID 16597)
+-- Name: users users_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.users
+    ADD CONSTRAINT users_pkey PRIMARY KEY (id);
+
+
+--
+-- TOC entry 4943 (class 1259 OID 16779)
+-- Name: idx_budget_receipts_unique; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX idx_budget_receipts_unique ON public.budget_receipts USING btree (budget_id, receipt_id);
+
+
+--
+-- TOC entry 4940 (class 1259 OID 16778)
+-- Name: idx_budgets_user_name_unique; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX idx_budgets_user_name_unique ON public.budgets USING btree (user_id, name);
+
+
+--
+-- TOC entry 4937 (class 1259 OID 16777)
+-- Name: idx_folder_receipts_unique; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX idx_folder_receipts_unique ON public.folder_receipts USING btree (folder_id, receipt_id);
+
+
+--
+-- TOC entry 4928 (class 1259 OID 16776)
+-- Name: idx_folders_user_name_unique; Type: INDEX; Schema: public; Owner: postgres
+--
+
+CREATE UNIQUE INDEX idx_folders_user_name_unique ON public.folders USING btree (user_id, name);
+
+
+--
+-- TOC entry 4954 (class 2606 OID 16766)
+-- Name: budget_receipts budget_receipts_budget_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.budget_receipts
+    ADD CONSTRAINT budget_receipts_budget_id_fkey FOREIGN KEY (budget_id) REFERENCES public.budgets(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- TOC entry 4955 (class 2606 OID 16771)
+-- Name: budget_receipts budget_receipts_receipt_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.budget_receipts
+    ADD CONSTRAINT budget_receipts_receipt_id_fkey FOREIGN KEY (receipt_id) REFERENCES public.receipts(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- TOC entry 4952 (class 2606 OID 16751)
+-- Name: budgets budgets_category_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.budgets
+    ADD CONSTRAINT budgets_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+--
+-- TOC entry 4953 (class 2606 OID 16746)
+-- Name: budgets budgets_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.budgets
+    ADD CONSTRAINT budgets_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- TOC entry 4950 (class 2606 OID 16715)
+-- Name: folder_receipts folder_receipts_folder_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.folder_receipts
+    ADD CONSTRAINT folder_receipts_folder_id_fkey FOREIGN KEY (folder_id) REFERENCES public.folders(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- TOC entry 4951 (class 2606 OID 16720)
+-- Name: folder_receipts folder_receipts_receipt_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.folder_receipts
+    ADD CONSTRAINT folder_receipts_receipt_id_fkey FOREIGN KEY (receipt_id) REFERENCES public.receipts(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- TOC entry 4944 (class 2606 OID 16624)
+-- Name: folders folders_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.folders
+    ADD CONSTRAINT folders_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- TOC entry 4946 (class 2606 OID 16671)
+-- Name: receipt_items receipt_items_category_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.receipt_items
+    ADD CONSTRAINT receipt_items_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+--
+-- TOC entry 4947 (class 2606 OID 16666)
+-- Name: receipt_items receipt_items_receipt_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.receipt_items
+    ADD CONSTRAINT receipt_items_receipt_id_fkey FOREIGN KEY (receipt_id) REFERENCES public.receipts(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- TOC entry 4945 (class 2606 OID 16645)
+-- Name: receipts receipts_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.receipts
+    ADD CONSTRAINT receipts_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- TOC entry 4948 (class 2606 OID 16700)
+-- Name: subscriptions subscriptions_category_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.subscriptions
+    ADD CONSTRAINT subscriptions_category_id_fkey FOREIGN KEY (category_id) REFERENCES public.categories(id) ON UPDATE CASCADE ON DELETE SET NULL;
+
+
+--
+-- TOC entry 4949 (class 2606 OID 16695)
+-- Name: subscriptions subscriptions_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.subscriptions
+    ADD CONSTRAINT subscriptions_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+-- Completed on 2026-05-16 13:00:06
+
+--
+-- PostgreSQL database dump complete
+--
+
+\unrestrict DtSDjoNwBebUZePMN2k46atY6gzBeRBybXj6qy4zRvGfbx9niQlzjqejNurPArT
