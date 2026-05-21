@@ -18,6 +18,9 @@ DEFAULT_GEMINI_FALLBACK_MODEL: Final[str] = "gemini-flash-lite-latest"
 DEFAULT_GEMINI_GEMMA_FALLBACK_MODEL: Final[str] = "gemma-4-31b-it"
 """Last-resort Gemma model used when Gemini Flash Lite models are unavailable."""
 
+DEFAULT_DATABASE_URL: Final[str] = "postgresql+psycopg://postgres:postgres@localhost:5432/spendscan"
+"""Default local PostgreSQL database URL for the demo environment."""
+
 
 def project_root() -> Path:
     """Return the SpendScan repository root."""
@@ -46,6 +49,8 @@ class Settings(BaseSettings):
     qianfan_model_dir: Path = Field(default=Path("external/models/ocr/qianfan-ocr"))
     llama_cache_dir: Path = Field(default=Path("external/bin/llama"))
     llama_build_tag: str | None = None
+    database_url: SecretStr = SecretStr(DEFAULT_DATABASE_URL)
+    upload_dir: Path = Field(default=Path("workspace/uploads/receipts"))
 
     @property
     def resolved_qianfan_model_dir(self) -> Path:
@@ -63,6 +68,16 @@ class Settings(BaseSettings):
         if self.gemini_api_key is None:
             return ""
         return self.gemini_api_key.get_secret_value().strip()
+
+    @property
+    def database_url_value(self) -> str:
+        """Return the raw database URL."""
+        return self.database_url.get_secret_value().strip()
+
+    @property
+    def resolved_upload_dir(self) -> Path:
+        """Return an absolute upload directory path."""
+        return self._resolve_repo_path(self.upload_dir)
 
     def _resolve_repo_path(self, path: Path) -> Path:
         """Resolve repository-relative paths against the project root."""
