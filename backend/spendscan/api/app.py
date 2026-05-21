@@ -11,6 +11,7 @@ from spendscan import __version__
 from spendscan.config import Settings, get_settings
 from spendscan.db.database import get_session
 
+from .routes.analytics import router as analytics_router
 from .routes.health import router as health_router
 from .routes.receipts import router as receipts_router
 
@@ -22,6 +23,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     app.include_router(health_router)
     app.include_router(receipts_router, prefix=resolved_settings.api_prefix)
+    app.include_router(analytics_router, prefix=resolved_settings.api_prefix)
 
     @app.get("/health/db", tags=["health"])
     def database_health_check(
