@@ -11,7 +11,7 @@ from pydantic import ValidationError
 
 from spendscan.errors import OutputValidationError
 
-from .schemas import ReceiptAnalysisResult
+from .schemas import ReceiptAnalysisResult, ReceiptDiscount, ReceiptItem
 
 _JSON_FENCE_PATTERN: Final[re.Pattern[str]] = re.compile(r"```(?:json)?\s*(.*?)\s*```", re.DOTALL)
 _TOTAL_MISMATCH_TOLERANCE: Final[Decimal] = Decimal("0.05")
@@ -40,7 +40,7 @@ class ReceiptOutputValidator:
             msg = "Gemini JSON does not match receipt schema"
             raise OutputValidationError(msg) from exc
 
-        return self._with_discount_warning(self._with_total_warning(result))
+        return self._with_discount_warning(self._with_total_warning(_deduplicated_result(result)))
 
     def _with_total_warning(self, result: ReceiptAnalysisResult) -> ReceiptAnalysisResult:
         item_total = sum((item.total_price for item in result.items), Decimal("0"))
@@ -80,6 +80,76 @@ def _discount_total_for_comparison(result: ReceiptAnalysisResult) -> Decimal:
         return item_field_discount_total
 
     return sum((discount.amount for discount in result.discounts), Decimal("0"))
+
+
+def _deduplicated_result(result: ReceiptAnalysisResult) -> ReceiptAnalysisResult:
+    item_level_discounts = [discount for discount in result.discounts if discount.item_name]
+    discounts = _deduplicated_discounts(result)
+    if item_level_discounts and result.total_discount_amount is not None:
+        discounts = [
+            discount
+            for discount in discounts
+            if discount.item_name or abs(discount.amount - result.total_discount_amount) > _DISCOUNT_MISMATCH_TOLERANCE
+        ]
+
+    return result.model_copy(
+        update={
+            "items": _deduplicated_items(result),
+            "discounts": discounts,
+            "warnings": _deduplicated_strings(result.warnings),
+        }
+    )
+
+
+def _deduplicated_items(result: ReceiptAnalysisResult) -> list[ReceiptItem]:
+    seen: set[tuple[object, ...]] = set()
+    items = []
+    for item in result.items:
+        key = (
+            _normalized_text(item.name),
+            item.quantity,
+            item.unit_price,
+            item.total_price,
+            item.discount_amount,
+            _normalized_text(item.category),
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        items.append(item)
+    return items
+
+
+def _deduplicated_discounts(result: ReceiptAnalysisResult) -> list[ReceiptDiscount]:
+    seen: set[tuple[object, ...]] = set()
+    discounts = []
+    for discount in result.discounts:
+        key = (
+            _normalized_text(discount.description),
+            discount.amount,
+            _normalized_text(discount.item_name),
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        discounts.append(discount)
+    return discounts
+
+
+def _deduplicated_strings(values: list[str]) -> list[str]:
+    seen: set[str] = set()
+    results: list[str] = []
+    for value in values:
+        key = _normalized_text(value)
+        if key in seen:
+            continue
+        seen.add(key)
+        results.append(value)
+    return results
+
+
+def _normalized_text(value: object) -> str:
+    return " ".join(str(value or "").casefold().split())
 
 
 def _extract_json(raw_text: str) -> str:

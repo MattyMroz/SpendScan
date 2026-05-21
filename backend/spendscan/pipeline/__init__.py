@@ -2,6 +2,6 @@
 
 from __future__ import annotations
 
-from .receipts import ReceiptPipeline
+from .receipts import MultiImageReceiptPipelineResult, ReceiptImagePipelineResult, ReceiptPipeline
 
-__all__ = ["ReceiptPipeline"]
+__all__ = ["MultiImageReceiptPipelineResult", "ReceiptImagePipelineResult", "ReceiptPipeline"]
