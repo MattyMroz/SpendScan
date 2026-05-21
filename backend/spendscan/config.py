@@ -21,6 +21,9 @@ DEFAULT_GEMINI_GEMMA_FALLBACK_MODEL: Final[str] = "gemma-4-31b-it"
 DEFAULT_DATABASE_URL: Final[str] = "postgresql+psycopg://postgres:postgres@localhost:5432/spendscan"
 """Default local PostgreSQL database URL for the demo environment."""
 
+DEFAULT_LLAMA_BUILD_TAG: Final[str] = "b9271"
+"""Pinned llama.cpp build used for the local Qianfan OCR runtime."""
+
 
 def project_root() -> Path:
     """Return the SpendScan repository root."""
@@ -49,7 +52,7 @@ class Settings(BaseSettings):
     gemini_retry_delay_seconds: float = Field(default=5.0, ge=0)
     qianfan_model_dir: Path = Field(default=Path("external/models/ocr/qianfan-ocr"))
     llama_cache_dir: Path = Field(default=Path("external/bin/llama"))
-    llama_build_tag: str | None = None
+    llama_build_tag: str | None = DEFAULT_LLAMA_BUILD_TAG
     database_url: SecretStr = SecretStr(DEFAULT_DATABASE_URL)
     upload_dir: Path = Field(default=Path("workspace/uploads/receipts"))
 
