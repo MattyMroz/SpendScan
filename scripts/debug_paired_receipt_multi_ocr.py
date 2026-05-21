@@ -9,7 +9,7 @@ import re
 import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Final
+from typing import Any, Final
 
 from PIL import Image, ImageDraw
 from render_receipt_debug import (
@@ -26,8 +26,7 @@ _BACKEND_DIR: Final[Path] = _PROJECT_ROOT / "backend"
 if str(_BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(_BACKEND_DIR))
 
-if TYPE_CHECKING:
-    from spendscan.pipeline import ReceiptImagePipelineResult, ReceiptPipeline
+from spendscan.pipeline import ReceiptImagePipelineResult, ReceiptPipeline  # noqa: E402
 
 _DEFAULT_INPUT_DIR: Final[Path] = _PROJECT_ROOT / "workspace" / "input" / "paired_receipts"
 _DEFAULT_OUTPUT_DIR: Final[Path] = _PROJECT_ROOT / "workspace" / "output" / "debug"
@@ -55,8 +54,6 @@ async def _main() -> None:
         raise SystemExit(msg)
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    from spendscan.pipeline import ReceiptPipeline
-
     pipeline = ReceiptPipeline()
     try:
         for group in groups:
@@ -90,8 +87,6 @@ async def _recognize_pages(
     image_paths: tuple[Path, ...],
 ) -> tuple[ReceiptImagePipelineResult, ...]:
     """Run OCR for each page and keep page metadata for rendering."""
-    from spendscan.pipeline import ReceiptImagePipelineResult
-
     page_results: list[ReceiptImagePipelineResult] = []
     for index, image_path in enumerate(image_paths, start=1):
         page_results.append(
