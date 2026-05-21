@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
@@ -44,12 +45,19 @@ class GeminiReceiptClient:
         """Return whether Gemini API key and SDK are available."""
         return bool(self._settings.gemini_api_key_value)
 
-    async def analyze_receipt(self, *, ocr_text: str, image_path: Path | None = None) -> ReceiptAnalysisResult:
+    async def analyze_receipt(
+        self,
+        *,
+        ocr_text: str,
+        image_path: Path | None = None,
+        image_paths: Sequence[Path] | None = None,
+    ) -> ReceiptAnalysisResult:
         """Analyze OCR text and optional image through Gemini."""
         if not self._settings.gemini_api_key_value:
             msg = "SPENDSCAN_GEMINI_API_KEY is missing"
             raise ConfigurationError(msg)
 
+        resolved_image_paths = _resolved_image_paths(image_path=image_path, image_paths=image_paths)
         models = _unique_models(
             self._settings.gemini_model,
             self._settings.gemini_fallback_model,
@@ -59,7 +67,11 @@ class GeminiReceiptClient:
         for attempt in range(1, self._settings.gemini_retry_attempts + 1):
             for model_name in models:
                 try:
-                    raw_text = await self._call_api(model_name=model_name, ocr_text=ocr_text, image_path=image_path)
+                    raw_text = await self._call_api(
+                        model_name=model_name,
+                        ocr_text=ocr_text,
+                        image_paths=resolved_image_paths,
+                    )
                     return self._validator.validate(raw_text, raw_ocr_text=ocr_text)
                 except (ExternalServiceError, OutputValidationError) as exc:
                     last_error = exc
@@ -76,13 +88,13 @@ class GeminiReceiptClient:
             self._client = genai.Client(api_key=self._settings.gemini_api_key_value)
         return self._client
 
-    async def _call_api(self, *, model_name: str, ocr_text: str, image_path: Path | None) -> str:
+    async def _call_api(self, *, model_name: str, ocr_text: str, image_paths: tuple[Path, ...]) -> str:
         try:
             response = await asyncio.to_thread(
                 self._generate_content,
                 model_name,
                 ocr_text,
-                image_path,
+                image_paths,
             )
         except Exception as exc:
             msg = f"Gemini API call failed for {model_name}: {exc}"
@@ -94,7 +106,7 @@ class GeminiReceiptClient:
             raise ExternalServiceError(msg)
         return text
 
-    def _generate_content(self, model_name: str, ocr_text: str, image_path: Path | None) -> Any:
+    def _generate_content(self, model_name: str, ocr_text: str, image_paths: tuple[Path, ...]) -> Any:
         client = self._get_client()
         config = types.GenerateContentConfig(
             system_instruction=SYSTEM_PROMPT,
@@ -103,8 +115,10 @@ class GeminiReceiptClient:
             response_mime_type="application/json",
         )
         contents: list[Any] = [build_receipt_prompt(ocr_text)]
-        if image_path is not None and image_path.exists():
-            contents.append(types.Part.from_bytes(data=image_path.read_bytes(), mime_type=_mime_type(image_path)))
+        contents.extend(
+            types.Part.from_bytes(data=image_path.read_bytes(), mime_type=_mime_type(image_path))
+            for image_path in image_paths
+        )
         return client.models.generate_content(model=model_name, contents=contents, config=config)
 
 
@@ -115,6 +129,14 @@ def _unique_models(primary: str, fallback: str, gemma_fallback: str) -> tuple[st
         gemma_fallback or DEFAULT_GEMINI_GEMMA_FALLBACK_MODEL,
     ]
     return tuple(dict.fromkeys(model for model in models if model))
+
+
+def _resolved_image_paths(*, image_path: Path | None, image_paths: Sequence[Path] | None) -> tuple[Path, ...]:
+    if image_paths is not None:
+        return tuple(path for path in image_paths if path.exists())
+    if image_path is not None and image_path.exists():
+        return (image_path,)
+    return ()
 
 
 def _mime_type(path: Path) -> str:

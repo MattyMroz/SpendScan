@@ -48,6 +48,7 @@ SpendScan/
 
 - Python ≥3.13
 - [uv](https://docs.astral.sh/uv/getting-started/installation/)
+- Docker Desktop (dla lokalnego PostgreSQL)
 
 ### Setup
 
@@ -67,6 +68,11 @@ uv run ruff check .
 uv run mypy backend/
 uv run pytest
 ```
+
+### Lokalny PostgreSQL + API
+
+Instrukcja startu/resetu Postgresa w Dockerze, importu schemy i wejscia z telefonu po LAN jest w
+[doc/POSTGRES_DOCKER_RUNBOOK.md](doc/POSTGRES_DOCKER_RUNBOOK.md).
 
 ### Lokalny test OCR + Gemini
 

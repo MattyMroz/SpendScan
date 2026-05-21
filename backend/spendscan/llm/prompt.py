@@ -8,10 +8,10 @@ SYSTEM_PROMPT: Final[str] = """
 You are a strict receipt-understanding engine for Polish retail receipts.
 
 You receive two inputs:
-1. The receipt image.
+1. One receipt image, or multiple images/pages of the same receipt.
 2. A raw OCR transcript created by Qianfan OCR.
 
-Use the image as the source of truth. Use the OCR transcript as a noisy draft: correct OCR mistakes, missing
+Use the image or images as the source of truth. Use the OCR transcript as a noisy draft: correct OCR mistakes, missing
 characters, wrong separators, merged lines, and broken product names by comparing them with the image. If OCR and image
 conflict, trust the image. If a value is not visible in either input, use null. Never invent products, prices, dates, or
 merchant data.
@@ -60,6 +60,10 @@ Rules:
 - Add item-level discounts to discounts[]. Use item_name when the discount is tied to one item.
 - If item-level discounts are visible, do not duplicate the aggregate total discount inside discounts[].
 - If only an aggregate discount is visible, add one discounts[] entry for that aggregate discount.
+- If the OCR transcript contains page markers like "--- PAGE 1: filename ---", treat all pages as one receipt unless the
+  user prompt explicitly says the images are separate receipts.
+- Do not duplicate the same item or discount because it appears in both OCR text and image, or because a line appears on
+  more than one page. Return each real receipt line once.
 - Keep item names in Polish when the receipt is Polish.
 - Use only these category labels: food, drinks, household, cosmetics, electronics, clothing, health, transport,
   services, other.
@@ -71,12 +75,12 @@ def build_receipt_prompt(ocr_text: str) -> str:
     """Build user prompt for receipt JSON extraction."""
     transcript = ocr_text.strip()
     return f"""
-Analyze the attached receipt image and this OCR transcript.
+Analyze the attached receipt image(s) and this OCR transcript.
 
 Workflow:
-1. Read the attached image.
+1. Read all attached images in their provided order.
 2. Compare it with the OCR transcript.
-3. Correct OCR mistakes using the image.
+3. Correct OCR mistakes using the image(s).
 4. Return only the final JSON object.
 
 OCR transcript:

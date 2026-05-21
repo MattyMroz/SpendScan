@@ -1,21 +1,51 @@
-"""Receipt OCR and analysis endpoints."""
+"""Receipt OCR, analysis, and persistence endpoints."""
 
 from __future__ import annotations
 
 import contextlib
+import re
+import shutil
 import tempfile
+from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
 from typing import Annotated, Final
+from uuid import uuid4
 
-from fastapi import APIRouter, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, File, HTTPException, Query, UploadFile, status
+from sqlmodel import Session
 
-from spendscan.api.dependencies import ReceiptPipelineDep
-from spendscan.api.schemas import OcrLineResponse, OcrResponse, ReceiptAnalyzeResponse
+from spendscan.api.dependencies import ReceiptPipelineDep, SessionDep, SettingsDep
+from spendscan.api.schemas import (
+    OcrLineResponse,
+    OcrResponse,
+    ReceiptAnalyzeResponse,
+    ReceiptBatchCreateResponse,
+    ReceiptDetailResponse,
+    ReceiptListItemResponse,
+    StoredReceiptImageResponse,
+    StoredReceiptItemResponse,
+)
+from spendscan.config import project_root
+from spendscan.db.repositories import ReceiptDetailRecord, ReceiptImageCreate, ReceiptRepository
 from spendscan.errors import ConfigurationError, ExternalServiceError, OutputValidationError
+from spendscan.pipeline import MultiImageReceiptPipelineResult
 
 router = APIRouter(prefix="/receipts", tags=["receipts"])
 _UPLOAD_CHUNK_BYTES: Final[int] = 1024 * 1024
+_PAIRED_RECEIPT_NAME_RE: Final[re.Pattern[str]] = re.compile(r"^(?P<receipt>.+_\d+)_(?P<page>\d+)$")
 ReceiptUpload = Annotated[UploadFile, File(...)]
+ReceiptUploads = Annotated[list[UploadFile], File(...)]
+
+
+@dataclass(frozen=True, slots=True)
+class StoredUpload:
+    """File saved from an API upload."""
+
+    original_filename: str
+    path: Path
+    relative_path: Path
+    content_type: str | None
 
 
 @router.post("/ocr", response_model=OcrResponse)
@@ -23,8 +53,8 @@ async def ocr_receipt(
     pipeline: ReceiptPipelineDep,
     file: ReceiptUpload,
 ) -> OcrResponse:
-    """Run OCR against an uploaded receipt image."""
-    image_path = await _save_upload(file)
+    """Run OCR against an uploaded receipt image without saving it."""
+    image_path = await _save_temp_upload(file)
     try:
         result = await pipeline.recognize_image(image_path)
         return OcrResponse(
@@ -51,11 +81,11 @@ async def analyze_receipt(
     pipeline: ReceiptPipelineDep,
     file: ReceiptUpload,
 ) -> ReceiptAnalyzeResponse:
-    """Run OCR and Gemini JSON extraction against an uploaded receipt image."""
-    image_path = await _save_upload(file)
+    """Run OCR and Gemini extraction against one uploaded image without saving it."""
+    image_path = await _save_temp_upload(file)
     try:
         result = await pipeline.analyze_image(image_path)
-        return ReceiptAnalyzeResponse.model_validate(result)
+        return ReceiptAnalyzeResponse.model_validate(result.model_dump())
     except ConfigurationError as exc:
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
     except OutputValidationError as exc:
@@ -67,7 +97,148 @@ async def analyze_receipt(
         await file.close()
 
 
-async def _save_upload(file: UploadFile) -> Path:
+@router.post("/analyze/pages", response_model=ReceiptAnalyzeResponse)
+async def analyze_receipt_pages(
+    pipeline: ReceiptPipelineDep,
+    files: ReceiptUploads,
+) -> ReceiptAnalyzeResponse:
+    """Run OCR and Gemini extraction against one multi-image receipt without saving it."""
+    if not files:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="At least one file is required")
+
+    image_paths: list[Path] = []
+    try:
+        image_paths = [await _save_temp_upload(file) for file in files]
+        result = await pipeline.analyze_images(tuple(image_paths))
+        return ReceiptAnalyzeResponse.model_validate(result.receipt.model_dump())
+    except ConfigurationError as exc:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
+    except OutputValidationError as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
+    except ExternalServiceError as exc:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
+    finally:
+        for image_path in image_paths:
+            _cleanup_temp_file(image_path)
+        for file in files:
+            await file.close()
+
+
+@router.post("", response_model=ReceiptDetailResponse, status_code=status.HTTP_201_CREATED)
+async def create_receipt(
+    pipeline: ReceiptPipelineDep,
+    settings: SettingsDep,
+    session: SessionDep,
+    files: ReceiptUploads,
+) -> ReceiptDetailResponse:
+    """Analyze one receipt made of one or more uploaded images and save it to the database."""
+    uploads = await _save_uploads(files, settings.resolved_upload_dir)
+    try:
+        pipeline_result = await pipeline.analyze_images(tuple(upload.path for upload in uploads))
+        detail = _save_pipeline_result(session, uploads=uploads, pipeline_result=pipeline_result)
+    except ConfigurationError as exc:
+        _cleanup_uploads(uploads)
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
+    except OutputValidationError as exc:
+        _cleanup_uploads(uploads)
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
+    except ExternalServiceError as exc:
+        _cleanup_uploads(uploads)
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
+    except Exception:
+        _cleanup_uploads(uploads)
+        raise
+    return _detail_response(detail)
+
+
+@router.post("/batch", response_model=ReceiptBatchCreateResponse, status_code=status.HTTP_201_CREATED)
+async def create_receipt_batch(
+    pipeline: ReceiptPipelineDep,
+    settings: SettingsDep,
+    session: SessionDep,
+    files: ReceiptUploads,
+) -> ReceiptBatchCreateResponse:
+    """Analyze multiple receipts and save each one, grouping files named like receipt_001_1.png."""
+    if not files:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="At least one file is required")
+
+    uploads = await _save_uploads(files, settings.resolved_upload_dir)
+    details: list[ReceiptDetailResponse] = []
+    try:
+        upload_groups = _group_uploads_by_receipt(uploads)
+        pipeline_results = await pipeline.analyze_receipt_groups(
+            tuple(tuple(upload.path for upload in group) for group in upload_groups)
+        )
+        for upload_group, pipeline_result in zip(upload_groups, pipeline_results, strict=True):
+            detail = _save_pipeline_result(session, uploads=upload_group, pipeline_result=pipeline_result)
+            details.append(_detail_response(detail))
+    except ConfigurationError as exc:
+        _cleanup_uploads(uploads)
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
+    except OutputValidationError as exc:
+        _cleanup_uploads(uploads)
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
+    except ExternalServiceError as exc:
+        _cleanup_uploads(uploads)
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
+    except Exception:
+        _cleanup_uploads(uploads)
+        raise
+    return ReceiptBatchCreateResponse(receipts=details)
+
+
+@router.get("", response_model=list[ReceiptListItemResponse])
+def list_receipts(
+    session: SessionDep,
+    start_date: Annotated[date | None, Query(description="Inclusive receipt date start filter.")] = None,
+    end_date: Annotated[date | None, Query(description="Inclusive receipt date end filter.")] = None,
+    merchant_name: Annotated[str | None, Query(description="Case-insensitive merchant name substring.")] = None,
+) -> list[ReceiptListItemResponse]:
+    """List persisted receipts for the demo user."""
+    repository = ReceiptRepository(session)
+    receipts = repository.list_receipts(start_date=start_date, end_date=end_date, merchant_name=merchant_name)
+    responses: list[ReceiptListItemResponse] = []
+    for receipt in receipts:
+        if receipt.id is None:
+            continue
+        detail = repository.get_detail(receipt.id)
+        if detail is None:
+            continue
+        responses.append(
+            ReceiptListItemResponse(
+                id=receipt.id,
+                status=receipt.status,
+                merchant_name=receipt.merchant_name,
+                receipt_date=receipt.receipt_date,
+                currency=receipt.currency,
+                total_amount=receipt.total_amount,
+                image_count=len(detail.images),
+                item_count=len(detail.items),
+                created_at=receipt.created_at,
+            )
+        )
+    return responses
+
+
+@router.get("/{receipt_id}", response_model=ReceiptDetailResponse)
+def get_receipt(receipt_id: int, session: SessionDep) -> ReceiptDetailResponse:
+    """Return one persisted receipt with images and items."""
+    detail = ReceiptRepository(session).get_detail(receipt_id)
+    if detail is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Receipt not found")
+    return _detail_response(detail)
+
+
+@router.delete("/{receipt_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_receipt(receipt_id: int, session: SessionDep) -> None:
+    """Delete a persisted receipt and its stored upload files."""
+    detail = ReceiptRepository(session).delete_receipt(receipt_id)
+    if detail is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Receipt not found")
+    _cleanup_stored_receipt_files(detail)
+
+
+async def _save_temp_upload(file: UploadFile) -> Path:
     suffix = Path(file.filename or "receipt.png").suffix or ".png"
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temporary_file:
         while chunk := await file.read(_UPLOAD_CHUNK_BYTES):
@@ -75,6 +246,175 @@ async def _save_upload(file: UploadFile) -> Path:
         return Path(temporary_file.name)
 
 
+async def _save_uploads(files: list[UploadFile], upload_dir: Path) -> tuple[StoredUpload, ...]:
+    if not files:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="At least one file is required")
+
+    batch_dir = upload_dir / uuid4().hex
+    batch_dir.mkdir(parents=True, exist_ok=False)
+    uploads: list[StoredUpload] = []
+    try:
+        for index, file in enumerate(files, start=1):
+            original_filename = Path(file.filename or f"receipt_{index}.png").name
+            suffix = Path(original_filename).suffix.lower() or ".png"
+            target_path = batch_dir / f"page_{index:03d}{suffix}"
+            with target_path.open("wb") as output_file:
+                while chunk := await file.read(_UPLOAD_CHUNK_BYTES):
+                    output_file.write(chunk)
+            if target_path.stat().st_size == 0:
+                _raise_empty_upload(original_filename)
+            uploads.append(
+                StoredUpload(
+                    original_filename=original_filename,
+                    path=target_path,
+                    relative_path=_relative_repo_path(target_path),
+                    content_type=file.content_type,
+                )
+            )
+        return tuple(uploads)
+    except Exception:
+        _cleanup_directory(batch_dir)
+        raise
+    finally:
+        for file in files:
+            await file.close()
+
+
+def _group_uploads_by_receipt(uploads: tuple[StoredUpload, ...]) -> tuple[tuple[StoredUpload, ...], ...]:
+    paired_groups: dict[str, dict[int, StoredUpload]] = {}
+    standalone_groups: list[tuple[StoredUpload, ...]] = []
+    for upload in uploads:
+        match = _PAIRED_RECEIPT_NAME_RE.match(Path(upload.original_filename).stem)
+        if match is None:
+            standalone_groups.append((upload,))
+            continue
+
+        receipt_name = match.group("receipt")
+        page_number = int(match.group("page"))
+        pages = paired_groups.setdefault(receipt_name, {})
+        if page_number in pages:
+            msg = f"Duplicate page {page_number} for receipt group {receipt_name}"
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=msg)
+        pages[page_number] = upload
+
+    grouped_uploads = [
+        tuple(upload for _, upload in sorted(pages.items())) for _, pages in sorted(paired_groups.items())
+    ]
+    return tuple(grouped_uploads + standalone_groups)
+
+
+def _save_pipeline_result(
+    session: Session,
+    *,
+    uploads: tuple[StoredUpload, ...],
+    pipeline_result: MultiImageReceiptPipelineResult,
+) -> ReceiptDetailRecord:
+    images = tuple(
+        ReceiptImageCreate(
+            page_number=result.page_number,
+            original_filename=uploads[result.page_number - 1].original_filename,
+            stored_path=uploads[result.page_number - 1].relative_path,
+            content_type=uploads[result.page_number - 1].content_type,
+            ocr_text=result.ocr.text,
+            ocr_engine=result.ocr.engine,
+            ocr_processing_time_ms=result.ocr.processing_time_ms,
+            image_shape=result.ocr.image_shape,
+        )
+        for result in pipeline_result.images
+    )
+    return ReceiptRepository(session).save_analysis(result=pipeline_result.receipt, images=images)
+
+
+def _detail_response(detail: ReceiptDetailRecord) -> ReceiptDetailResponse:
+    receipt_id = _required_id(detail.receipt.id, "receipt")
+    return ReceiptDetailResponse(
+        id=receipt_id,
+        status=detail.receipt.status,
+        merchant_name=detail.receipt.merchant_name,
+        receipt_date=detail.receipt.receipt_date,
+        currency=detail.receipt.currency,
+        subtotal_amount=detail.receipt.subtotal_amount,
+        tax_amount=detail.receipt.tax_amount,
+        total_amount=detail.receipt.total_amount,
+        total_discount_amount=detail.receipt.total_discount_amount,
+        payment_method=detail.receipt.payment_method,
+        raw_ocr_text=detail.receipt.raw_ocr_text,
+        warnings=detail.receipt.warnings,
+        error=detail.receipt.error,
+        created_at=detail.receipt.created_at,
+        images=[
+            StoredReceiptImageResponse(
+                id=_required_id(image.id, "receipt image"),
+                page_number=image.page_number,
+                original_filename=image.original_filename,
+                stored_path=image.stored_path,
+                content_type=image.content_type,
+                ocr_text=image.ocr_text,
+                ocr_engine=image.ocr_engine,
+                ocr_processing_time_ms=image.ocr_processing_time_ms,
+                image_width=image.image_width,
+                image_height=image.image_height,
+            )
+            for image in detail.images
+        ],
+        items=[
+            StoredReceiptItemResponse(
+                id=_required_id(item.item.id, "receipt item"),
+                product_name=item.item.product_name,
+                quantity=item.item.quantity,
+                unit_price=item.item.unit_price,
+                total_price=item.item.total_price,
+                discount_amount=item.item.discount_amount,
+                category=item.category_name,
+            )
+            for item in detail.items
+        ],
+    )
+
+
+def _relative_repo_path(path: Path) -> Path:
+    try:
+        return path.resolve().relative_to(project_root())
+    except ValueError:
+        return path.resolve()
+
+
+def _cleanup_uploads(uploads: tuple[StoredUpload, ...]) -> None:
+    for upload in uploads:
+        _cleanup_stored_path(upload.relative_path)
+
+
+def _cleanup_stored_receipt_files(detail: ReceiptDetailRecord) -> None:
+    for image in detail.images:
+        _cleanup_stored_path(Path(image.stored_path))
+
+
+def _cleanup_stored_path(path: Path) -> None:
+    resolved_path = path if path.is_absolute() else project_root() / path
+    with contextlib.suppress(OSError):
+        resolved_path.unlink(missing_ok=True)
+    parent = resolved_path.parent
+    with contextlib.suppress(OSError):
+        if parent != project_root() and not any(parent.iterdir()):
+            parent.rmdir()
+
+
+def _cleanup_directory(path: Path) -> None:
+    with contextlib.suppress(OSError):
+        shutil.rmtree(path)
+
+
+def _raise_empty_upload(filename: str) -> None:
+    raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"{filename} is empty")
+
+
 def _cleanup_temp_file(path: Path) -> None:
     with contextlib.suppress(OSError):
         path.unlink(missing_ok=True)
+
+
+def _required_id(value: int | None, entity_name: str) -> int:
+    if value is None:
+        msg = f"Persisted {entity_name} is missing an id"
+        raise RuntimeError(msg)
+    return value

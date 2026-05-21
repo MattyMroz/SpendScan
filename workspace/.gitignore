@@ -3,5 +3,7 @@
 !input/
 !input/.gitkeep
 !input/receipt_*.png
+!input/paired_receipts/
+!input/paired_receipts/receipt_*.png
 !output/
 !output/.gitkeep

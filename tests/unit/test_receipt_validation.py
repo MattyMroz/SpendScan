@@ -101,3 +101,5 @@ def test_receipt_output_validator_ignores_aggregate_discount_duplicate() -> None
     )
 
     assert result.warnings == []
+    assert len(result.discounts) == 4
+    assert all(discount.item_name for discount in result.discounts)
