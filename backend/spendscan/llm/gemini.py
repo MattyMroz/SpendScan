@@ -113,6 +113,7 @@ class GeminiReceiptClient:
             temperature=self._settings.gemini_temperature,
             max_output_tokens=self._settings.gemini_max_output_tokens,
             response_mime_type="application/json",
+            thinking_config=_thinking_config(self._settings.gemini_thinking_budget),
         )
         contents: list[Any] = [build_receipt_prompt(ocr_text)]
         contents.extend(
@@ -129,6 +130,12 @@ def _unique_models(primary: str, fallback: str, gemma_fallback: str) -> tuple[st
         gemma_fallback or DEFAULT_GEMINI_GEMMA_FALLBACK_MODEL,
     ]
     return tuple(dict.fromkeys(model for model in models if model))
+
+
+def _thinking_config(thinking_budget: int | None) -> types.ThinkingConfig | None:
+    if thinking_budget is None:
+        return None
+    return types.ThinkingConfig(thinking_budget=thinking_budget)
 
 
 def _resolved_image_paths(*, image_path: Path | None, image_paths: Sequence[Path] | None) -> tuple[Path, ...]:

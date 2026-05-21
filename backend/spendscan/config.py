@@ -44,6 +44,7 @@ class Settings(BaseSettings):
     gemini_gemma_fallback_model: str = DEFAULT_GEMINI_GEMMA_FALLBACK_MODEL
     gemini_temperature: float = 0.0
     gemini_max_output_tokens: int = 8192
+    gemini_thinking_budget: int | None = Field(default=0, ge=0)
     gemini_retry_attempts: int = Field(default=3, ge=1)
     gemini_retry_delay_seconds: float = Field(default=5.0, ge=0)
     qianfan_model_dir: Path = Field(default=Path("external/models/ocr/qianfan-ocr"))
