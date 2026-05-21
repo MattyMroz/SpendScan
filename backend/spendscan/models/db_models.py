@@ -1,5 +1,6 @@
 """SQLModel database table models."""
 
+# pyright: reportIncompatibleVariableOverride=false
 from __future__ import annotations
 
 from datetime import date, datetime
@@ -24,7 +25,7 @@ def timestamp_column() -> Column[datetime]:
 
 
 class User(SQLModel, table=True):
-    """Demo user database table."""
+    """User database table."""
 
     __tablename__: ClassVar[str] = "users"
 
@@ -36,12 +37,24 @@ class User(SQLModel, table=True):
 
 
 class Category(SQLModel, table=True):
-    """Receipt category database table."""
+    """Category database table."""
 
     __tablename__: ClassVar[str] = "categories"
 
     id: int | None = Field(default=None, primary_key=True)
     name: str = Field(sa_column=Column(Text, nullable=False, unique=True))
+
+
+class Folder(SQLModel, table=True):
+    """Folder database table."""
+
+    __tablename__: ClassVar[str] = "folders"
+
+    id: int | None = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="users.id")
+    name: str
+    description: str | None = None
+    created_at: datetime | None = Field(default=None, sa_column=timestamp_column())
 
 
 class Receipt(SQLModel, table=True):
@@ -98,3 +111,58 @@ class ReceiptItem(SQLModel, table=True):
     total_price: Decimal = Field(sa_column=money_column(nullable=False))
     discount_amount: Decimal | None = Field(default=None, sa_column=money_column())
     category_id: int | None = Field(default=None, foreign_key="categories.id")
+
+
+class Subscription(SQLModel, table=True):
+    """Subscription database table."""
+
+    __tablename__: ClassVar[str] = "subscriptions"
+
+    id: int | None = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="users.id")
+    name: str
+    amount: int
+    billing_cycle: str
+    next_payment_date: date
+    category_id: int | None = Field(default=None, foreign_key="categories.id")
+    is_active: int = 1
+    created_at: datetime | None = Field(default=None, sa_column=timestamp_column())
+
+
+class Budget(SQLModel, table=True):
+    """Budget database table."""
+
+    __tablename__: ClassVar[str] = "budgets"
+
+    id: int | None = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="users.id")
+    name: str
+    description: str | None = None
+    category_id: int | None = Field(default=None, foreign_key="categories.id")
+    amount_limit: int
+    period_type: str
+    alert_threshold_percent: int = 80
+    is_active: int = 1
+    created_at: datetime | None = Field(default=None, sa_column=timestamp_column())
+
+
+class FolderReceipt(SQLModel, table=True):
+    """Folder receipt relation table."""
+
+    __tablename__: ClassVar[str] = "folder_receipts"
+
+    id: int | None = Field(default=None, primary_key=True)
+    folder_id: int = Field(foreign_key="folders.id")
+    receipt_id: int = Field(foreign_key="receipts.id")
+    created_at: datetime | None = Field(default=None, sa_column=timestamp_column())
+
+
+class BudgetReceipt(SQLModel, table=True):
+    """Budget receipt relation table."""
+
+    __tablename__: ClassVar[str] = "budget_receipts"
+
+    id: int | None = Field(default=None, primary_key=True)
+    budget_id: int = Field(foreign_key="budgets.id")
+    receipt_id: int = Field(foreign_key="receipts.id")
+    created_at: datetime | None = Field(default=None, sa_column=timestamp_column())
