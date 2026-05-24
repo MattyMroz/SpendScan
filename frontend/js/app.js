@@ -1,0 +1,53 @@
+
+const SS = {
+  isAuthed() { return !!localStorage.getItem('ss_user'); },
+  user() { return JSON.parse(localStorage.getItem('ss_user') || 'null'); },
+  login(email) { localStorage.setItem('ss_user', JSON.stringify({ email })); },
+  logout() { localStorage.removeItem('ss_user'); window.location.href = 'login.html'; },
+  receipts() { return JSON.parse(localStorage.getItem('ss_receipts') || '[]'); },
+  saveReceipt(r) {
+    const all = SS.receipts();
+    all.push(r);
+    localStorage.setItem('ss_receipts', JSON.stringify(all));
+  },
+  guard() {
+    if (!SS.isAuthed()) window.location.href = 'login.html';
+  },
+  fmt(n) { return '$' + Number(n).toFixed(2); },
+};
+
+$(function () {
+  const path = location.pathname.split('/').pop() || 'index.html';
+  const authed = SS.isAuthed();
+  const links = [
+    { href: 'scan.html', icon: 'camera', label: 'Scan' },
+    { href: 'stats.html', icon: 'bar-chart', label: 'Statistics' },
+    { href: 'calendar.html', icon: 'calendar3', label: 'Calendar' },
+    { href: 'about.html', icon: 'people', label: 'About' },
+  ];
+  const linkHtml = links.map(l =>
+    `<li class="nav-item"><a class="nav-link ${path === l.href ? 'active' : ''}" href="${l.href}"><i class="bi bi-${l.icon} me-1"></i>${l.label}</a></li>`
+  ).join('');
+  const right = authed
+    ? `<button id="ssLogout" class="btn btn-outline-light btn-sm"><i class="bi bi-box-arrow-right me-1"></i>Logout</button>`
+    : `<a href="login.html" class="btn btn-outline-light btn-sm me-2"><i class="bi bi-box-arrow-in-right me-1"></i>Login</a>
+       <a href="register.html" class="btn btn-info btn-sm text-dark"><i class="bi bi-person-plus me-1"></i>Register</a>`;
+
+  const nav = `
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top shadow-sm">
+      <div class="container">
+        <a class="navbar-brand fw-bold" href="${authed ? 'scan.html' : 'index.html'}">
+          <i class="bi bi-receipt-cutoff me-2 text-info"></i>SpendScan
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nv">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="nv">
+          <ul class="navbar-nav me-auto">${linkHtml}</ul>
+          <div class="d-flex align-items-center">${right}</div>
+        </div>
+      </div>
+    </nav>`;
+  $('#nav-placeholder').html(nav);
+  $('#ssLogout').on('click', SS.logout);
+});
