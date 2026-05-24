@@ -12,7 +12,7 @@ from spendscan.api.dependencies import SessionDep
 from spendscan.db.repositories import ReceiptRepository
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
-PeriodType = Literal["weekly", "monthly", "quarterly", "yearly"]
+PeriodType = Literal["daily", "weekly", "monthly", "quarterly", "yearly", "all_time"]
 
 
 @router.get("/dashboard", response_model=DashboardResponse)
@@ -32,10 +32,15 @@ def dashboard(
         date_range_label=f"{current_start.isoformat()} - {current_end.isoformat()}",
         period_type=period_type,
         days_in_period=(current_end - current_start).days + 1,
+        category_budgets={},
     )
 
 
 def _period_bounds(period_type: PeriodType, reference_date: date) -> tuple[date, date]:
+    if period_type == "daily":
+        return reference_date, reference_date
+    if period_type == "all_time":
+        return date(2000, 1, 1), reference_date
     if period_type == "weekly":
         start = reference_date - timedelta(days=reference_date.weekday())
         return start, start + timedelta(days=6)
@@ -51,6 +56,11 @@ def _period_bounds(period_type: PeriodType, reference_date: date) -> tuple[date,
 
 
 def _previous_period_bounds(period_type: PeriodType, current_start: date) -> tuple[date, date]:
+    if period_type == "daily":
+        prev = current_start - timedelta(days=1)
+        return prev, prev
+    if period_type == "all_time":
+        return date(1999, 1, 1), date(1999, 1, 1)
     if period_type == "weekly":
         end = current_start - timedelta(days=1)
         return end - timedelta(days=6), end

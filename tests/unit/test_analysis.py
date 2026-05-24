@@ -57,6 +57,55 @@ def test_generate_dashboard_calculates_correct_totals_and_trends() -> None:
     assert result.receipt_count_trend == 100.0
 
 
+def test_generate_dashboard_calculates_monthly_average_and_budgets() -> None:
+    current_receipts = [
+        ReceiptAnalysisResult(
+            merchant_name="Biedronka",
+            receipt_date="2026-04-10",
+            total_amount=Decimal("120.00"),
+            currency="PLN",
+            items=[ReceiptItem(name="Zakupy", total_price=Decimal("120.00"), category="food")],
+        )
+    ]
+
+    mock_budgets = {"food": Decimal("300.00")}
+    service = AnalysisService()
+
+    result = service.generate_dashboard(
+        current_receipts=current_receipts,
+        previous_receipts=[],
+        date_range_label="Q2 2026",
+        period_type="quarterly",
+        days_in_period=90,
+        category_budgets=mock_budgets,
+    )
+
+    assert result.daily_average == Decimal("1.33")
+
+    assert result.monthly_average == Decimal("40.00")
+
+    food_stats = next(c for c in result.by_category if c.category == "food")
+    assert food_stats.budget_limit == Decimal("300.00")
+    assert food_stats.budget_utilized_percentage == 40.0
+
+
+def test_generate_dashboard_handles_all_time_period() -> None:
+    current_receipts = [ReceiptAnalysisResult(total_amount=Decimal("500.00"), currency="PLN", items=[])]
+    service = AnalysisService()
+
+    result = service.generate_dashboard(
+        current_receipts=current_receipts,
+        previous_receipts=[],
+        date_range_label="Od początku",
+        period_type="all_time",
+        days_in_period=365,
+    )
+
+    assert result.period_type == "all_time"
+    assert result.total_spent == Decimal("500.00")
+    assert result.total_spent_trend is None
+
+
 def test_generate_dashboard_handles_no_previous_data() -> None:
     current_receipts = [ReceiptAnalysisResult(total_amount=Decimal("50.00"), currency="PLN", items=[])]
     service = AnalysisService()
