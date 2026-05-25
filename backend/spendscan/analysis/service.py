@@ -23,8 +23,9 @@ class AnalysisService:
         current_receipts: list[ReceiptAnalysisResult],
         previous_receipts: list[ReceiptAnalysisResult],
         date_range_label: str,
-        period_type: Literal["weekly", "monthly", "quarterly", "yearly"],
+        period_type: Literal["daily", "weekly", "monthly", "quarterly", "yearly", "all_time"],
         days_in_period: int,
+        category_budgets: dict[str, Decimal] | None = None,
     ) -> DashboardResponse:
         """
         Calculates dashboard statistics from a list of receipts for any time period.
@@ -39,6 +40,7 @@ class AnalysisService:
                 total_spent=total_spent,
                 receipt_count=receipt_count,
                 daily_average=Decimal("0.00"),
+                monthly_average=None,
                 total_spent_trend=None,
                 receipt_count_trend=None,
                 by_category=[],
@@ -74,18 +76,30 @@ class AnalysisService:
 
         # UNIWERSALNA ŚREDNIA DZIENNA
         daily_average = total_spent / Decimal(str(days_in_period))
+        monthly_average: Decimal | None = None
+        if days_in_period >= 30:
+            monthly_average = daily_average * Decimal("30")
 
         shops = [ShopSpend(shop_name=name, amount=amount) for name, amount in shop_totals.items()]
         shops.sort(key=lambda x: x.amount, reverse=True)
 
         categories: list[CategorySpend] = []
+        budgets = category_budgets or {}
         for cat_name, cat_amount in category_totals.items():
             percentage = float(cat_amount / total_spent * Decimal("100"))
+
+            limit = budgets.get(cat_name)
+            utilized_pct: float | None = None
+            if limit and limit > Decimal("0.00"):
+                utilized_pct = round(float((cat_amount / limit) * Decimal("100")), 1)
+
             categories.append(
                 CategorySpend(
                     category=cat_name,
                     amount=cat_amount,
                     percentage=round(percentage, 2),
+                    budget_limit=limit,
+                    budget_utilized_percentage=utilized_pct,
                 )
             )
         categories.sort(key=lambda x: x.amount, reverse=True)
@@ -100,6 +114,7 @@ class AnalysisService:
             total_spent=total_spent,
             receipt_count=receipt_count,
             daily_average=round(daily_average, 2),
+            monthly_average=round(monthly_average, 2) if monthly_average else None,
             total_spent_trend=round(spent_trend, 1) if spent_trend is not None else None,
             receipt_count_trend=round(count_trend, 1) if count_trend is not None else None,
             by_category=categories,
