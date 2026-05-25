@@ -22,6 +22,9 @@ class CategorySpend(BaseModel):
     amount: Decimal
     percentage: float = Field(ge=0.0, le=100.0)
 
+    budget_limit: Decimal | None = None
+    budget_utilized_percentage: float | None = None
+
 
 class ShopSpend(BaseModel):
     """Wydatki zgrupowane po sklepie."""
@@ -37,11 +40,12 @@ class DashboardResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     date_range_label: str
-    period_type: Literal["weekly", "monthly", "quarterly", "yearly"]
+    period_type: Literal["daily", "weekly", "monthly", "quarterly", "yearly", "all_time"]
 
     total_spent: Decimal
     receipt_count: int
     daily_average: Decimal
+    monthly_average: Decimal | None = None
 
     total_spent_trend: float | None = None
     receipt_count_trend: float | None = None
