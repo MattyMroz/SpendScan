@@ -11,7 +11,7 @@ class DailySpend(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
     date: str
-    amount: Decimal
+    amount: Decimal = Field(ge=Decimal("0.00"))
 
 
 class SubscriptionSpend(BaseModel):
@@ -19,7 +19,7 @@ class SubscriptionSpend(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
     name: str
-    amount: Decimal
+    amount: Decimal = Field(ge=Decimal("0.00"))
     category: str
 
 
@@ -28,11 +28,11 @@ class CategorySpend(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
     category: str
-    amount: Decimal
+    amount: Decimal = Field(ge=Decimal("0.00"))
     percentage: float = Field(ge=0.0, le=100.0)
 
-    budget_limit: Decimal | None = None
-    budget_utilized_percentage: float | None = None
+    budget_limit: Decimal | None = Field(default=None, ge=Decimal("0.00"))
+    budget_utilized_percentage: float | None = Field(default=None, ge=0.0)
 
 
 class ShopSpend(BaseModel):
@@ -40,7 +40,7 @@ class ShopSpend(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
     shop_name: str
-    amount: Decimal
+    amount: Decimal = Field(ge=Decimal("0.00"))
 
 
 class DashboardResponse(BaseModel):
@@ -51,10 +51,10 @@ class DashboardResponse(BaseModel):
     date_range_label: str
     period_type: Literal["daily", "weekly", "monthly", "quarterly", "yearly", "all_time"]
 
-    total_spent: Decimal
-    receipt_count: int
-    daily_average: Decimal
-    monthly_average: Decimal | None = None
+    total_spent: Decimal = Field(ge=Decimal("0.00"))
+    receipt_count: int = Field(ge=0)
+    daily_average: Decimal = Field(ge=Decimal("0.00"))
+    monthly_average: Decimal | None = Field(default=None, ge=Decimal("0.00"))
 
     total_spent_trend: float | None = None
     receipt_count_trend: float | None = None
