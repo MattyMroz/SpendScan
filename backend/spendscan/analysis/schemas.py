@@ -14,6 +14,15 @@ class DailySpend(BaseModel):
     amount: Decimal
 
 
+class SubscriptionSpend(BaseModel):
+    """Subskrypcja do analizy wydatków"""
+
+    model_config = ConfigDict(extra="forbid")
+    name: str
+    amount: Decimal
+    category: str
+
+
 class CategorySpend(BaseModel):
     """Wydatki zgrupowane po kategorii."""
 
