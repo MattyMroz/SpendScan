@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from decimal import Decimal
 
+from spendscan.analysis.schemas import SubscriptionSpend
 from spendscan.analysis.service import AnalysisService
 from spendscan.llm.schemas import ReceiptAnalysisResult, ReceiptItem
 
@@ -139,3 +140,47 @@ def test_generate_dashboard_handles_empty_receipts() -> None:
     assert result.total_spent_trend is None
     assert len(result.by_shop) == 0
     assert len(result.daily_breakdown) == 0
+
+
+def test_generate_dashboard_includes_subscriptions_in_totals_and_categories() -> None:
+    current_receipts = [
+        ReceiptAnalysisResult(
+            merchant_name="Biedronka",
+            receipt_date="2026-05-10",
+            total_amount=Decimal("100.00"),
+            currency="PLN",
+            items=[ReceiptItem(name="Ser", total_price=Decimal("100.00"), category="food")],
+        )
+    ]
+    current_subscriptions = [SubscriptionSpend(name="Netflix", amount=Decimal("60.00"), category="entertainment")]
+
+    previous_receipts = [
+        ReceiptAnalysisResult(
+            merchant_name="Lidl",
+            receipt_date="2026-04-10",
+            total_amount=Decimal("50.00"),
+            currency="PLN",
+            items=[],
+        )
+    ]
+    previous_subscriptions = [SubscriptionSpend(name="Netflix", amount=Decimal("50.00"), category="entertainment")]
+
+    service = AnalysisService()
+
+    result = service.generate_dashboard(
+        current_receipts=current_receipts,
+        previous_receipts=previous_receipts,
+        date_range_label="Maj 2026",
+        period_type="monthly",
+        days_in_period=31,
+        current_subscriptions=current_subscriptions,
+        previous_subscriptions=previous_subscriptions,
+    )
+
+    assert result.total_spent == Decimal("160.00")
+    assert result.total_spent_trend == 60.0
+    food_stats = next(c for c in result.by_category if c.category == "food")
+    assert food_stats.amount == Decimal("100.00")
+
+    ent_stats = next(c for c in result.by_category if c.category == "entertainment")
+    assert ent_stats.amount == Decimal("60.00")
