@@ -50,72 +50,158 @@
   <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script src="../js/app.js"></script>
-  <script>
-    SS.guard();
+<script>
+  SS.guard();
 
-    let lastResult = null;
-    const SHOPS = ['Walmart', 'Target', 'Whole Foods', 'Costco', 'Trader Joe\u2019s'];
-    const ITEMS = [
-      ['Bread', 3.49], ['Milk', 4.20], ['Eggs', 5.99], ['Cheese', 6.50],
-      ['Apples', 4.10], ['Coffee', 8.99], ['Chicken', 12.40], ['Pasta', 2.30],
-    ];
+  let lastResult = null;
 
-    function processFile(file) {
-      $('#fileName').text(file.name);
-      $('#progressWrap').removeClass('d-none');
-      $('#result').addClass('d-none');
-      let p = 0;
-      const tick = setInterval(function () {
-        p += Math.random() * 12 + 5;
-        if (p >= 100) { p = 100; clearInterval(tick); finish(); }
-        $('#progressBar').css('width', p + '%');
-        $('#pctLabel').text(Math.round(p) + '%');
-      }, 200);
-    }
+  async function processFile(file) {
+    $('#fileName').text(file.name);
 
-    function finish() {
-      const shop = SHOPS[Math.floor(Math.random() * SHOPS.length)];
-      const count = 3 + Math.floor(Math.random() * 4);
-      const items = [];
-      for (let i = 0; i < count; i++) {
-        const it = ITEMS[Math.floor(Math.random() * ITEMS.length)];
-        items.push({ name: it[0], price: +(it[1] * (0.9 + Math.random() * 0.4)).toFixed(2) });
-      }
-      const total = +items.reduce((s, i) => s + i.price, 0).toFixed(2);
-      lastResult = { shop, items, total, date: new Date().toISOString(), id: Date.now() };
+    $('#progressWrap').removeClass('d-none');
+    $('#result').addClass('d-none');
 
-      $('#shop').text(shop);
-      $('#dateLabel').text(new Date().toLocaleDateString());
-      $('#itemsBody').html(items.map(i => `<tr><td>${i.name}</td><td class="text-end">${SS.fmt(i.price)}</td></tr>`).join(''));
-      $('#totalLabel').text(SS.fmt(total));
-      $('#result').removeClass('d-none');
-    }
+    $('#progressBar').css('width', '15%');
+    $('#pctLabel').text('15%');
 
-    $('#pickBtn').on('click', () => $('#fileInput').click());
-    $('#fileInput').on('change', e => { if (e.target.files[0]) processFile(e.target.files[0]); });
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
 
-    $('#dropzone').on('dragover', function (e) { e.preventDefault(); $(this).addClass('dragover'); })
-      .on('dragleave drop', function () { $(this).removeClass('dragover'); })
-      .on('drop', function (e) {
-        e.preventDefault();
-        const f = e.originalEvent.dataTransfer.files[0];
-        if (f) processFile(f);
+      const response = await fetch('http://127.0.0.1:8000/api/v1/receipts/analyze', {
+        method: 'POST',
+        body: formData
       });
 
-    $('#saveBtn').on('click', function () {
-      if (!lastResult) return;
-      SS.saveReceipt(lastResult);
-      alert('Receipt saved!');
-      window.location.href = 'calendar.html';
-    });
-    $('#resetBtn').on('click', function () {
-      lastResult = null;
-      $('#result').addClass('d-none');
+      $('#progressBar').css('width', '70%');
+      $('#pctLabel').text('70%');
+
+      if (!response.ok) {
+        throw new Error('Analyze failed');
+      }
+
+      const data = await response.json();
+
+      console.log(data);
+
+      $('#progressBar').css('width', '100%');
+      $('#pctLabel').text('100%');
+
+      lastResult = data;
+
+      const items = data.items || [];
+
+      $('#shop').text(
+        data.vendor ||
+        data.shop ||
+        '-'
+      );
+
+      $('#dateLabel').text(
+        data.purchase_date ||
+        data.date ||
+        new Date().toLocaleDateString()
+      );
+
+      $('#itemsBody').html(
+        items.map(i => `
+          <tr>
+            <td>${i.name}</td>
+            <td class="text-end">
+              ${SS.fmt(i.price || i.amount || 0)}
+            </td>
+          </tr>
+        `).join('')
+      );
+
+      $('#totalLabel').text(
+        SS.fmt(
+          data.total ||
+          data.total_amount ||
+          0
+        )
+      );
+
+      $('#result').removeClass('d-none');
+
+    } catch (err) {
+      console.error(err);
+
+      alert('Failed to analyze receipt');
+
       $('#progressWrap').addClass('d-none');
-      $('#fileName').text('');
-      $('#progressBar').css('width', '0%');
+    }
+  }
+
+  $('#pickBtn').on('click', () => {
+    $('#fileInput').click();
+  });
+
+  $('#fileInput').on('change', e => {
+    const file = e.target.files[0];
+
+    if (file) {
+      processFile(file);
+    }
+  });
+
+  $('#dropzone')
+    .on('dragover', function (e) {
+      e.preventDefault();
+      $(this).addClass('dragover');
+    })
+    .on('dragleave drop', function () {
+      $(this).removeClass('dragover');
+    })
+    .on('drop', function (e) {
+      e.preventDefault();
+
+      const file = e.originalEvent.dataTransfer.files[0];
+
+      if (file) {
+        processFile(file);
+      }
     });
-  </script>
+
+  $('#saveBtn').on('click', async function () {
+    if (!lastResult) return;
+
+    try {
+      const response = await fetch('http://127.0.0.1:8000/api/v1/receipts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(lastResult)
+      });
+
+      if (!response.ok) {
+        throw new Error('Save failed');
+      }
+
+      alert('Receipt saved');
+
+      window.location.href = 'calendar.html';
+
+    } catch (err) {
+      console.error(err);
+
+      alert('Failed to save receipt');
+    }
+  });
+
+  $('#resetBtn').on('click', function () {
+    lastResult = null;
+
+    $('#result').addClass('d-none');
+    $('#progressWrap').addClass('d-none');
+
+    $('#fileName').text('');
+
+    $('#progressBar').css('width', '0%');
+    $('#pctLabel').text('0%');
+  });
+</script>
 
   <footer class="bg-dark text-muted border-top border-secondary border-opacity-25 py-4 mt-auto">
     <div class="container d-flex flex-column flex-md-row align-items-center justify-content-between gap-3">
