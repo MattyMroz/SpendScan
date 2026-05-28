@@ -6,7 +6,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Final
 
-from pydantic import Field, SecretStr
+from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 DEFAULT_GEMINI_MODEL: Final[str] = "gemini-3.1-flash-lite-preview"
@@ -55,6 +55,16 @@ class Settings(BaseSettings):
     llama_build_tag: str | None = DEFAULT_LLAMA_BUILD_TAG
     database_url: SecretStr = SecretStr(DEFAULT_DATABASE_URL)
     upload_dir: Path = Field(default=Path("workspace/uploads/receipts"))
+
+    @field_validator("llama_build_tag", mode="before")
+    @classmethod
+    def normalize_llama_build_tag(cls, value: object) -> str:
+        """Treat a blank env value as the project's pinned llama.cpp build."""
+        if value is None:
+            return DEFAULT_LLAMA_BUILD_TAG
+        if isinstance(value, str) and not value.strip():
+            return DEFAULT_LLAMA_BUILD_TAG
+        return str(value)
 
     @property
     def resolved_qianfan_model_dir(self) -> Path:

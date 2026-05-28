@@ -13,7 +13,7 @@ import httpx
 from loguru import logger
 from PIL import Image
 
-from spendscan.config import Settings, get_settings
+from spendscan.config import DEFAULT_LLAMA_BUILD_TAG, Settings, get_settings
 
 from .errors import OcrConfigError, OcrEngineError
 from .llama_runtime import (
@@ -61,7 +61,7 @@ class QianfanOcrConfig:
     variant: str = DEFAULT_VARIANT
     model_dir: Path | None = None
     llama_cache_dir: Path | None = None
-    llama_build_tag: str | None = None
+    llama_build_tag: str | None = DEFAULT_LLAMA_BUILD_TAG
     max_image_dimension: int = DEFAULT_MAX_IMAGE_DIMENSION
     max_tokens: int = DEFAULT_MAX_TOKENS
     temperature: float = DEFAULT_TEMPERATURE
