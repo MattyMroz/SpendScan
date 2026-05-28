@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>About · SpendScan</title>
+  <link rel="icon" href="/assets/icon.png" />
+  <link rel="stylesheet" href="/static/css/base.css" />
+  <link rel="stylesheet" href="/static/css/app.css" />
+</head>
+<body>
+  <div class="page-shell">
+    <nav class="topnav" id="topnav"></nav>
+
+    <main class="about">
+      <div class="about__inner">
+        <header class="about__head">
+          <h1 class="about__title">About SpendScan</h1>
+        </header>
+
+        <div class="card about__card">
+          <div class="about__intro">
+            <div class="about__intro-icon"><i data-lucide="users"></i></div>
+            <div>
+              <h2 class="about__intro-title">Our team</h2>
+              <p class="about__intro-text">
+                SpendScan is a project built by a team of Computer Science students at Lodz University of Technology
+                for the IT Project Management course.
+              </p>
+            </div>
+          </div>
+
+          <div class="about__table-wrap">
+            <table class="about__table">
+              <thead>
+                <tr>
+                  <th>Name and surname</th>
+                  <th>Student ID</th>
+                  <th>Specialization</th>
+                  <th>Responsibilities</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>Mateusz Mróz</td><td>251190</td><td>EAIDB</td><td>OCR + coordination</td></tr>
+                <tr><td>Piotr Marczak</td><td>251184</td><td>EAIBD</td><td>Database</td></tr>
+                <tr><td>Jakub Bryła</td><td>251130</td><td>EAIBD</td><td>Architecture + data analysis</td></tr>
+                <tr><td>Igor Typiński</td><td>251137</td><td>IO</td><td>API + frontend</td></tr>
+                <tr><td>Mateusz Słoń</td><td>251221</td><td>TI</td><td>Frontend + API</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <p class="about__footer">SpendScan © 2026. All rights reserved.</p>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="/static/js/api.js"></script>
+  <script src="/static/js/icons.js"></script>
+  <script>
+    SS.paintNav('about');
+  </script>
+</body>
+</html>

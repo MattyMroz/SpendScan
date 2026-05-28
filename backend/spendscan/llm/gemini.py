@@ -28,7 +28,7 @@ from .validation import ReceiptOutputValidator
 class GeminiReceiptClient:
     """Direct Google Gemini API client for receipt JSON extraction."""
 
-    __slots__ = ("_client", "_settings", "_validator")
+    __slots__ = ("_clients", "_settings", "_validator")
 
     def __init__(
         self,
@@ -38,7 +38,7 @@ class GeminiReceiptClient:
     ) -> None:
         self._settings = settings or get_settings()
         self._validator = validator or ReceiptOutputValidator()
-        self._client: Any | None = None
+        self._clients: dict[str, Any] = {}
 
     @property
     def is_available(self) -> bool:
@@ -53,7 +53,11 @@ class GeminiReceiptClient:
         image_paths: Sequence[Path] | None = None,
     ) -> ReceiptAnalysisResult:
         """Analyze OCR text and optional image through Gemini."""
-        if not self._settings.gemini_api_key_value:
+        api_keys = _unique_api_keys(
+            self._settings.gemini_api_key_value,
+            self._settings.gemini_api_key_backup_value,
+        )
+        if not api_keys:
             msg = "SPENDSCAN_GEMINI_API_KEY is missing"
             raise ConfigurationError(msg)
 
@@ -65,17 +69,22 @@ class GeminiReceiptClient:
         )
         last_error: Exception | None = None
         for attempt in range(1, self._settings.gemini_retry_attempts + 1):
-            for model_name in models:
-                try:
-                    raw_text = await self._call_api(
-                        model_name=model_name,
-                        ocr_text=ocr_text,
-                        image_paths=resolved_image_paths,
-                    )
-                    return self._validator.validate(raw_text, raw_ocr_text=ocr_text)
-                except (ExternalServiceError, OutputValidationError) as exc:
-                    last_error = exc
-                    logger.warning("Gemini model {} failed on attempt {}: {}", model_name, attempt, exc)
+            for api_key in api_keys:
+                key_label = _key_label(api_key, api_keys)
+                for model_name in models:
+                    try:
+                        raw_text = await self._call_api(
+                            api_key=api_key,
+                            model_name=model_name,
+                            ocr_text=ocr_text,
+                            image_paths=resolved_image_paths,
+                        )
+                        return self._validator.validate(raw_text, raw_ocr_text=ocr_text)
+                    except (ExternalServiceError, OutputValidationError) as exc:
+                        last_error = exc
+                        logger.warning(
+                            "Gemini key={} model={} attempt={} failed: {}", key_label, model_name, attempt, exc
+                        )
 
             if attempt < self._settings.gemini_retry_attempts:
                 await asyncio.sleep(self._settings.gemini_retry_delay_seconds)
@@ -83,16 +92,19 @@ class GeminiReceiptClient:
         msg = "Gemini receipt analysis failed for all configured models"
         raise ExternalServiceError(msg) from last_error
 
-    def _get_client(self) -> Any:
-        if self._client is None:
-            self._client = genai.Client(api_key=self._settings.gemini_api_key_value)
-        return self._client
+    def _get_client(self, api_key: str) -> Any:
+        client = self._clients.get(api_key)
+        if client is None:
+            client = genai.Client(api_key=api_key)
+            self._clients[api_key] = client
+        return client
 
-    async def _call_api(self, *, model_name: str, ocr_text: str, image_paths: tuple[Path, ...]) -> str:
+    async def _call_api(self, *, api_key: str, model_name: str, ocr_text: str, image_paths: tuple[Path, ...]) -> str:
         try:
             response = await asyncio.wait_for(
                 asyncio.to_thread(
                     self._generate_content,
+                    api_key,
                     model_name,
                     ocr_text,
                     image_paths,
@@ -112,8 +124,8 @@ class GeminiReceiptClient:
             raise ExternalServiceError(msg)
         return text
 
-    def _generate_content(self, model_name: str, ocr_text: str, image_paths: tuple[Path, ...]) -> Any:
-        client = self._get_client()
+    def _generate_content(self, api_key: str, model_name: str, ocr_text: str, image_paths: tuple[Path, ...]) -> Any:
+        client = self._get_client(api_key)
         config = types.GenerateContentConfig(
             system_instruction=SYSTEM_PROMPT,
             temperature=self._settings.gemini_temperature,
@@ -127,6 +139,16 @@ class GeminiReceiptClient:
             for image_path in image_paths
         )
         return client.models.generate_content(model=model_name, contents=contents, config=config)
+
+
+def _unique_api_keys(*keys: str) -> tuple[str, ...]:
+    return tuple(dict.fromkeys(key for key in keys if key))
+
+
+def _key_label(api_key: str, all_keys: tuple[str, ...]) -> str:
+    if len(all_keys) <= 1:
+        return "primary"
+    return "primary" if api_key == all_keys[0] else "backup"
 
 
 def _unique_models(primary: str, fallback: str, gemma_fallback: str) -> tuple[str, ...]:

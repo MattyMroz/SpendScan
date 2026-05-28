@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 from spendscan.llm import ReceiptPipelineResult
 
@@ -82,6 +82,7 @@ class ReceiptListItemResponse(BaseModel):
     receipt_date: date | None
     currency: str
     total_amount: Decimal
+    importance: int = 0
     image_count: int = 0
     item_count: int = 0
     created_at: datetime | None
@@ -104,9 +105,35 @@ class ReceiptDetailResponse(BaseModel):
     raw_ocr_text: str
     warnings: list[str]
     error: str | None
+    importance: int = 0
     created_at: datetime | None
     images: list[StoredReceiptImageResponse]
     items: list[StoredReceiptItemResponse]
+
+
+class ReceiptItemUpdate(BaseModel):
+    """Editable fields of a receipt item."""
+
+    model_config = ConfigDict(extra="forbid")
+    id: int | None = None
+    product_name: str
+    quantity: Decimal | None = None
+    unit_price: Decimal | None = None
+    total_price: Decimal
+    discount_amount: Decimal | None = None
+
+
+class ReceiptUpdateRequest(BaseModel):
+    """Editable fields of a saved receipt."""
+
+    model_config = ConfigDict(extra="forbid")
+    merchant_name: str | None = None
+    receipt_date: date | None = None
+    currency: str | None = None
+    total_amount: Decimal | None = None
+    payment_method: str | None = None
+    importance: int | None = Field(default=None, ge=0, le=3)
+    items: list[ReceiptItemUpdate] | None = None
 
 
 class ReceiptBatchCreateResponse(BaseModel):

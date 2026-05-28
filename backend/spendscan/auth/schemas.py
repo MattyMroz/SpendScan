@@ -36,5 +36,4 @@ class UserResponse(BaseModel):
     id: int
     username: str
     email: EmailStr
-    coins: int
     created_at: datetime | None

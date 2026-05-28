@@ -98,7 +98,12 @@ class AnalysisService:
         categories: list[CategorySpend] = []
         budgets = category_budgets or {}
         for cat_name, cat_amount in category_totals.items():
-            percentage = float(cat_amount / total_spent * Decimal("100"))
+            if total_spent > Decimal("0"):
+                percentage = float(cat_amount / total_spent * Decimal("100"))
+            else:
+                percentage = 0.0
+            # Decimal->float roundtrip can give 100.0000000001; CategorySpend has le=100.0 constraint.
+            percentage = max(0.0, min(100.0, round(percentage, 2)))
 
             limit = budgets.get(cat_name)
             utilized_pct: float | None = None
@@ -109,7 +114,7 @@ class AnalysisService:
                 CategorySpend(
                     category=cat_name,
                     amount=cat_amount,
-                    percentage=round(percentage, 2),
+                    percentage=percentage,
                     budget_limit=limit,
                     budget_utilized_percentage=utilized_pct,
                 )

@@ -124,9 +124,9 @@ async def main() -> None:  # noqa: PLR0915
                 }
             )
 
-        avg_ocr = sum(r["ocr_total_s"] for r in results) / len(results)  # type: ignore[arg-type]
-        avg_llm = sum(r["gemini_s"] for r in results) / len(results)  # type: ignore[arg-type]
-        avg_total = sum(r["total_s"] for r in results) / len(results)  # type: ignore[arg-type]
+        avg_ocr = sum(float(r["ocr_total_s"]) for r in results) / len(results)
+        avg_llm = sum(float(r["gemini_s"]) for r in results) / len(results)
+        avg_total = sum(float(r["total_s"]) for r in results) / len(results)
 
         report = {
             "preload_s": round(preload_s, 1),

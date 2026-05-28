@@ -24,12 +24,11 @@ from spendscan.db.repositories import UserRepository
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
-def _to_user_response(user_id: int, username: str, email: str, coins: int, created_at: object) -> UserResponse:
+def _to_user_response(user_id: int, username: str, email: str, created_at: object) -> UserResponse:
     return UserResponse(
         id=user_id,
         username=username,
         email=email,
-        coins=coins,
         created_at=created_at,  # type: ignore[arg-type]
     )
 
@@ -79,6 +78,5 @@ def me(current_user: CurrentUser) -> UserResponse:
         user_id=current_user.id,
         username=current_user.username,
         email=current_user.email,
-        coins=current_user.coins,
         created_at=current_user.created_at,
     )

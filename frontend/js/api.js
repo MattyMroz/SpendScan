@@ -29,7 +29,7 @@ const SS = {
     if (res.status === 401) {
       SS.clearSession();
       const here = location.pathname.split('/').pop();
-      if (here !== 'login.html' && here !== 'register.html' && here !== 'index.html') {
+      if (here !== 'login.html' && here !== 'register.html' && here !== 'index.html' && here !== '') {
         location.href = '/login.html';
       }
       throw new Error('Unauthorized');
@@ -64,12 +64,99 @@ const SS = {
     return user;
   },
 
+  async listReceipts(params = {}) {
+    const qs = new URLSearchParams();
+    if (params.start_date) qs.set('start_date', params.start_date);
+    if (params.end_date)   qs.set('end_date',   params.end_date);
+    const suffix = qs.toString() ? `?${qs}` : '';
+    const res = await SS.api(`/receipts${suffix}`);
+    if (!res.ok) throw new Error('Failed to load receipts');
+    return res.json();
+  },
+
+  async getDashboard(period_type = 'monthly') {
+    const res = await SS.api(`/analytics/dashboard?period_type=${period_type}`);
+    if (!res.ok) throw new Error('Failed to load dashboard');
+    return res.json();
+  },
+
+  async uploadReceipt(files) {
+    const form = new FormData();
+    for (const f of files) form.append('files', f, f.name);
+    const res = await SS.api('/receipts', { method: 'POST', body: form });
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || 'Upload failed');
+    return res.json();
+  },
+
+  async getReceipt(id) {
+    const res = await SS.api(`/receipts/${id}`);
+    if (!res.ok) throw new Error('Failed to load receipt');
+    return res.json();
+  },
+
+  async updateReceipt(id, payload) {
+    const res = await SS.api(`/receipts/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error((await res.json().catch(() => ({}))).detail || 'Save failed');
+    return res.json();
+  },
+
+  async deleteReceipt(id) {
+    const res = await SS.api(`/receipts/${id}`, { method: 'DELETE' });
+    if (!res.ok && res.status !== 204) throw new Error('Delete failed');
+  },
+
   guard() {
     if (!SS.isAuthed()) location.href = '/login.html';
   },
 
   guestOnly() {
-    if (SS.isAuthed()) location.href = '/scan.html';
+    if (SS.isAuthed()) location.href = '/';
+  },
+
+  async paintNav(active) {
+    const root = document.getElementById('topnav');
+    if (!root) return;
+    const isAuthed = SS.isAuthed();
+    let user = SS.user();
+    if (isAuthed && !user) {
+      try { user = await SS.me(); } catch { user = null; }
+    }
+    const link = (key, href, icon, label) => `
+      <a href="${href}" class="topnav__link${active === key ? ' is-active' : ''}">
+        <i data-lucide="${icon}"></i><span>${label}</span>
+      </a>`;
+    const coinsHtml = isAuthed && user ? `
+      <div class="topnav__user">
+        <span class="topnav__username">${user.username || ''}</span>
+        <button type="button" class="btn btn--ghost btn--sm" id="ss-logout">
+          <i data-lucide="log-out"></i><span>Sign out</span>
+        </button>
+      </div>` : `
+      <div class="topnav__user">
+        <a href="/login.html" class="topnav__link"><i data-lucide="log-in"></i><span>Sign in</span></a>
+        <a href="/register.html" class="topnav__cta"><i data-lucide="user-plus"></i><span>Sign up</span></a>
+      </div>`;
+    root.innerHTML = `
+      <div class="topnav__inner">
+        <a href="/" class="topnav__brand">
+          <img class="icon" src="/assets/icon.png" alt="">
+          <img class="wordmark" src="/assets/logo.png" alt="SpendScan">
+        </a>
+        <div class="topnav__links">
+          ${link('scan',  '/',               'receipt-text', 'Scan')}
+          ${link('stats', '/statistics.html','bar-chart-3',  'Statistics')}
+          ${link('cal',   '/calendar.html',  'calendar-days','Calendar')}
+          ${link('about', '/about.html',     'info',         'About')}
+          <span class="topnav__divider"></span>
+          ${coinsHtml}
+        </div>
+      </div>`;
+    document.getElementById('ss-logout')?.addEventListener('click', () => SS.logout());
+    if (window.ssIcons) window.ssIcons();
   },
 };
 

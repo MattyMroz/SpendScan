@@ -64,7 +64,10 @@ Rules:
   user prompt explicitly says the images are separate receipts.
 - Do not duplicate the same item or discount because it appears in both OCR text and image, or because a line appears on
   more than one page. Return each real receipt line once.
-- Keep item names in Polish when the receipt is Polish.
+- Keep item names in Polish when the receipt is Polish, BUT transliterate all Polish diacritics to ASCII
+  (z->z, l->l, o->o, a->a, e->e, c->c, n->n, s->s) so the output is pure ASCII. Example: "Dzem wisniowy"
+  instead of "Dzem wisniowy" with diacritics. NEVER emit non-ASCII characters or Unicode escapes (\\uXXXX).
+- Do not put any backslashes inside string values. If a name contains a slash, use the forward slash only.
 - Use only these category labels: food, drinks, household, cosmetics, electronics, clothing, health, transport,
   services, other.
 - raw_ocr_text must equal the OCR transcript from the user prompt exactly.

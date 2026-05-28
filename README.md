@@ -60,6 +60,17 @@ uv run uvicorn spendscan.api.app:app --reload
 ```
 
 API: <http://127.0.0.1:8000/docs>
+Frontend: <http://127.0.0.1:8000/> — login → register → scan paragonu.
+
+### Dlaczego frontend leci przez FastAPI a nie Live Server?
+
+FastAPI mountuje `frontend/public/` jako `StaticFiles` pod `/`. Powody:
+
+- **Jeden origin** — `/api/v1/...` i `/static/...` na tym samym hoście → zero CORS, ciasteczka/`Authorization` headery działają out of the box.
+- **Jeden process do uruchomienia** — `uvicorn ...` i działa wszystko (frontend + API + OCR + DB client).
+- **Auth** — token JWT trzymany w `localStorage`, frontend dodaje `Authorization: Bearer ...` do każdego call. Z Live Server (np. `http://127.0.0.1:5500`) trzeba by włączyć CORS po stronie API i ustawić `apiBase` na pełny URL.
+
+Jeśli chcesz Live Server z auto-reload HTML/CSS, możesz — wystarczy w `frontend/js/api.js` zmienić `apiBase` na `http://127.0.0.1:8000/api/v1` i dodać CORS w `api/app.py`. Domyślnie nie jest to potrzebne — FastAPI w trybie `--reload` przeładowuje też frontend (bo serwuje pliki z dysku bez cache, zob. `disable_static_cache` middleware).
 
 ## Architektura
 

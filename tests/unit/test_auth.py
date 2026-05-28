@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from fastapi.testclient import TestClient
 from pydantic import SecretStr
 from sqlmodel import Session
 
@@ -30,7 +31,7 @@ def test_jwt_token_roundtrip() -> None:
     assert decode_access_token(token, settings=settings) == 42
 
 
-def test_register_endpoint_creates_user_and_returns_token(api_client) -> None:
+def test_register_endpoint_creates_user_and_returns_token(api_client: TestClient) -> None:
     response = api_client.post(
         "/api/v1/auth/register",
         json={"username": "alice", "email": "alice@example.com", "password": "Password123!"},
@@ -41,7 +42,7 @@ def test_register_endpoint_creates_user_and_returns_token(api_client) -> None:
     assert payload["access_token"]
 
 
-def test_login_endpoint_returns_token_for_valid_credentials(db_session: Session, api_client) -> None:
+def test_login_endpoint_returns_token_for_valid_credentials(db_session: Session, api_client: TestClient) -> None:
     UserRepository(db_session).create_user(
         username="bob",
         email="bob@example.com",
@@ -55,7 +56,7 @@ def test_login_endpoint_returns_token_for_valid_credentials(db_session: Session,
     assert response.json()["access_token"]
 
 
-def test_login_endpoint_rejects_bad_password(db_session: Session, api_client) -> None:
+def test_login_endpoint_rejects_bad_password(db_session: Session, api_client: TestClient) -> None:
     UserRepository(db_session).create_user(
         username="carol",
         email="carol@example.com",
@@ -68,15 +69,15 @@ def test_login_endpoint_rejects_bad_password(db_session: Session, api_client) ->
     assert response.status_code == 401
 
 
-def test_me_endpoint_returns_authenticated_user(api_client) -> None:
+def test_me_endpoint_returns_authenticated_user(api_client: TestClient) -> None:
     response = api_client.get("/api/v1/auth/me")
     assert response.status_code == 200, response.json()
     payload = response.json()
     assert payload["username"] == "tester"
     assert payload["email"] == "tester@example.com"
-    assert payload["coins"] == 0
+    assert "coins" not in payload
 
 
-def test_protected_endpoint_rejects_missing_token(api_client) -> None:
+def test_protected_endpoint_rejects_missing_token(api_client: TestClient) -> None:
     response = api_client.get("/api/v1/receipts", headers={"Authorization": ""})
     assert response.status_code == 401

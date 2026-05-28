@@ -13,6 +13,7 @@ from typing import Annotated, Final
 from uuid import uuid4
 
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile, status
+from fastapi.responses import FileResponse
 from sqlmodel import Session
 
 from spendscan.api.dependencies import ReceiptPipelineDep, SessionDep, SettingsDep
@@ -23,12 +24,13 @@ from spendscan.api.schemas import (
     ReceiptBatchCreateResponse,
     ReceiptDetailResponse,
     ReceiptListItemResponse,
+    ReceiptUpdateRequest,
     StoredReceiptImageResponse,
     StoredReceiptItemResponse,
 )
 from spendscan.auth import CurrentUser
 from spendscan.config import project_root
-from spendscan.db.repositories import ReceiptDetailRecord, ReceiptImageCreate, ReceiptRepository, UserRepository
+from spendscan.db.repositories import ReceiptDetailRecord, ReceiptImageCreate, ReceiptRepository
 from spendscan.errors import ConfigurationError, ExternalServiceError, OutputValidationError
 from spendscan.pipeline import MultiImageReceiptPipelineResult
 
@@ -228,6 +230,7 @@ def list_receipts(
                 receipt_date=receipt.receipt_date,
                 currency=receipt.currency,
                 total_amount=receipt.total_amount,
+                importance=receipt.importance,
                 image_count=len(detail.images),
                 item_count=len(detail.items),
                 created_at=receipt.created_at,
@@ -256,6 +259,59 @@ def delete_receipt(receipt_id: int, session: SessionDep, current_user: CurrentUs
     if detail is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Receipt not found")
     _cleanup_stored_receipt_files(detail)
+
+
+@router.patch("/{receipt_id}", response_model=ReceiptDetailResponse)
+def update_receipt(
+    receipt_id: int,
+    payload: ReceiptUpdateRequest,
+    session: SessionDep,
+    current_user: CurrentUser,
+) -> ReceiptDetailResponse:
+    """Patch editable fields of a persisted receipt."""
+    if current_user.id is None:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="User id missing")
+    items_payload: list[dict[str, object]] | None = None
+    if payload.items is not None:
+        items_payload = [item.model_dump() for item in payload.items]
+    detail = ReceiptRepository(session).update_receipt(
+        receipt_id,
+        user_id=current_user.id,
+        merchant_name=payload.merchant_name,
+        receipt_date=payload.receipt_date,
+        currency=payload.currency,
+        total_amount=payload.total_amount,
+        payment_method=payload.payment_method,
+        importance=payload.importance,
+        items=items_payload,
+    )
+    if detail is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Receipt not found")
+    return _detail_response(detail)
+
+
+@router.get("/{receipt_id}/images/{image_id}")
+def get_receipt_image(
+    receipt_id: int,
+    image_id: int,
+    session: SessionDep,
+    settings: SettingsDep,
+    current_user: CurrentUser,
+) -> FileResponse:
+    """Stream a stored receipt image file owned by the current user."""
+    if current_user.id is None:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="User id missing")
+    detail = ReceiptRepository(session).get_detail(receipt_id, user_id=current_user.id)
+    if detail is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Receipt not found")
+    image = next((img for img in detail.images if img.id == image_id), None)
+    if image is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
+    # stored_path is already relative to project root (workspace/uploads/...).
+    file_path = project_root() / image.stored_path
+    if not file_path.exists():
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File missing on disk")
+    return FileResponse(file_path, media_type=image.content_type or "image/png")
 
 
 async def _save_temp_upload(file: UploadFile) -> Path:
@@ -344,9 +400,6 @@ def _save_pipeline_result(
         for result in pipeline_result.images
     )
     detail = ReceiptRepository(session).save_analysis(result=pipeline_result.receipt, images=images, user_id=user_id)
-    coins = int(detail.receipt.total_amount)
-    if coins > 0:
-        UserRepository(session).add_coins(user_id, coins)
     return detail
 
 
@@ -366,6 +419,7 @@ def _detail_response(detail: ReceiptDetailRecord) -> ReceiptDetailResponse:
         raw_ocr_text=detail.receipt.raw_ocr_text,
         warnings=detail.receipt.warnings,
         error=detail.receipt.error,
+        importance=detail.receipt.importance,
         created_at=detail.receipt.created_at,
         images=[
             StoredReceiptImageResponse(

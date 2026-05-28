@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Sign in · SpendScan</title>
+  <link rel="icon" href="/assets/icon.png" />
+  <link rel="stylesheet" href="/static/css/base.css" />
+  <link rel="stylesheet" href="/static/css/app.css" />
+</head>
+<body>
+  <div class="page-shell">
+    <main class="auth-wrap">
+      <div class="auth">
+        <a class="auth__back" href="/"><i data-lucide="arrow-left"></i><span>Back to home</span></a>
+        <div class="auth__brand">
+          <img class="icon" src="/assets/icon.png" alt="" />
+          <img class="wordmark" src="/assets/logo.png" alt="SpendScan" />
+        </div>
+
+        <div class="card">
+          <h1 class="auth__title">Sign in</h1>
+          <p class="auth__subtitle">Welcome back!</p>
+
+          <form id="login-form">
+            <div class="field">
+              <label class="field__label" for="email">Email</label>
+              <div class="field__wrap">
+                <i class="field__icon" data-lucide="mail"></i>
+                <input class="input input--with-icon" type="email" id="email" required autocomplete="email" placeholder="you@example.com" />
+              </div>
+            </div>
+
+            <div class="field">
+              <label class="field__label" for="password">Password</label>
+              <div class="field__wrap">
+                <i class="field__icon" data-lucide="lock"></i>
+                <input class="input input--with-icon" type="password" id="password" required autocomplete="current-password" placeholder="••••••••" />
+              </div>
+            </div>
+
+            <div id="alert" class="alert alert--error hidden"></div>
+
+            <button class="btn btn--primary btn--lg btn--block" type="submit" id="submit">
+              <i data-lucide="log-in"></i><span>Sign in</span>
+            </button>
+          </form>
+
+          <p class="auth__footer">
+            Don't have an account? <a class="link-blue" href="/register.html">Sign up</a>
+          </p>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+  <script src="/static/js/api.js"></script>
+  <script src="/static/js/icons.js"></script>
+  <script>
+    SS.guestOnly();
+    const form = document.getElementById('login-form');
+    const alertBox = document.getElementById('alert');
+    const submit = document.getElementById('submit');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      alertBox.classList.add('hidden');
+      submit.disabled = true;
+      submit.innerHTML = '<i data-lucide="loader-2" class="spin"></i><span>Signing in…</span>'; ssIcons();
+      try {
+        await SS.login(document.getElementById('email').value, document.getElementById('password').value);
+        await SS.me().catch(() => {});
+        location.href = '/';
+      } catch (err) {
+        alertBox.textContent = err.message || 'Login failed';
+        alertBox.classList.remove('hidden');
+        submit.disabled = false;
+        submit.innerHTML = '<i data-lucide="log-in"></i><span>Sign in</span>'; ssIcons();
+      }
+    });
+  </script>
+</body>
+</html>

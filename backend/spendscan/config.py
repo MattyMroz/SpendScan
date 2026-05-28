@@ -42,6 +42,7 @@ class Settings(BaseSettings):
 
     api_prefix: str = "/api/v1"
     gemini_api_key: SecretStr | None = None
+    gemini_api_key_backup: SecretStr | None = None
     gemini_model: str = DEFAULT_GEMINI_MODEL
     gemini_fallback_model: str = DEFAULT_GEMINI_FALLBACK_MODEL
     gemini_gemma_fallback_model: str = DEFAULT_GEMINI_GEMMA_FALLBACK_MODEL
@@ -92,6 +93,13 @@ class Settings(BaseSettings):
         if self.gemini_api_key is None:
             return ""
         return self.gemini_api_key.get_secret_value().strip()
+
+    @property
+    def gemini_api_key_backup_value(self) -> str:
+        """Return the raw backup Gemini API key or an empty string."""
+        if self.gemini_api_key_backup is None:
+            return ""
+        return self.gemini_api_key_backup.get_secret_value().strip()
 
     @property
     def database_url_value(self) -> str:

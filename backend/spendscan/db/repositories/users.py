@@ -8,7 +8,7 @@ from spendscan.models import User
 
 
 class UserRepository:
-    """Database access for users and coin balances."""
+    """Database access for users."""
 
     def __init__(self, session: Session) -> None:
         self._session = session
@@ -34,15 +34,3 @@ class UserRepository:
     def get_by_id(self, user_id: int) -> User | None:
         """Return the user with the given id or None."""
         return self._session.get(User, user_id)
-
-    def add_coins(self, user_id: int, amount: int) -> User:
-        """Increment the coin balance for a user and return the updated row."""
-        user = self._session.get(User, user_id)
-        if user is None:
-            msg = f"User {user_id} not found"
-            raise ValueError(msg)
-        user.coins += max(0, amount)
-        self._session.add(user)
-        self._session.commit()
-        self._session.refresh(user)
-        return user

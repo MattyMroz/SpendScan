@@ -33,7 +33,6 @@ class User(SQLModel, table=True):
     username: str = Field(sa_column=Column(Text, nullable=False, unique=True))
     email: str = Field(sa_column=Column(Text, nullable=False, unique=True))
     password_hash: str
-    coins: int = Field(default=0, nullable=False)
     created_at: datetime | None = Field(default=None, sa_column=timestamp_column())
 
 
@@ -77,6 +76,7 @@ class Receipt(SQLModel, table=True):
     raw_ocr_text: str = ""
     warnings: list[str] = Field(default_factory=list, sa_column=Column(JSON, nullable=False))
     error: str | None = None
+    importance: int = Field(default=0, nullable=False)
     created_at: datetime | None = Field(default=None, sa_column=timestamp_column())
 
 

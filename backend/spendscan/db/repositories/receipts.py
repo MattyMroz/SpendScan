@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date
+from decimal import Decimal
 from pathlib import Path
 from typing import Final
 
@@ -176,6 +177,57 @@ class ReceiptRepository:
         self._session.delete(detail.receipt)
         self._session.commit()
         return detail
+
+    def update_receipt(
+        self,
+        receipt_id: int,
+        *,
+        user_id: int,
+        merchant_name: str | None = None,
+        receipt_date: date | None = None,
+        currency: str | None = None,
+        total_amount: Decimal | None = None,
+        payment_method: str | None = None,
+        importance: int | None = None,
+        items: list[dict[str, object]] | None = None,
+    ) -> ReceiptDetailRecord | None:
+        """Patch editable fields of a receipt and optionally replace its items."""
+        receipt = self._session.get(Receipt, receipt_id)
+        if receipt is None or receipt.user_id != user_id:
+            return None
+        if merchant_name is not None:
+            receipt.merchant_name = merchant_name or None
+        if receipt_date is not None:
+            receipt.receipt_date = receipt_date
+        if currency is not None and currency.strip():
+            receipt.currency = currency.strip().upper()
+        if total_amount is not None:
+            receipt.total_amount = total_amount
+        if payment_method is not None:
+            receipt.payment_method = payment_method or None
+        if importance is not None:
+            receipt.importance = max(0, min(3, int(importance)))
+        self._session.add(receipt)
+
+        if items is not None:
+            existing = self._session.exec(select(ReceiptItem).where(ReceiptItem.receipt_id == receipt_id)).all()
+            for old in existing:
+                self._session.delete(old)
+            self._session.flush()
+            for payload in items:
+                self._session.add(
+                    ReceiptItem(
+                        receipt_id=receipt_id,
+                        product_name=str(payload.get("product_name") or "").strip() or "—",
+                        quantity=payload.get("quantity"),
+                        unit_price=payload.get("unit_price"),
+                        total_price=payload.get("total_price"),
+                        discount_amount=payload.get("discount_amount"),
+                    )
+                )
+
+        self._session.commit()
+        return self.get_detail(receipt_id, user_id=user_id)
 
     def list_analysis_results(
         self,
