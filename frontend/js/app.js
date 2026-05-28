@@ -4,11 +4,34 @@ const SS = {
   user() { return JSON.parse(localStorage.getItem('ss_user') || 'null'); },
   login(email) { localStorage.setItem('ss_user', JSON.stringify({ email })); },
   logout() { localStorage.removeItem('ss_user'); window.location.href = 'login.html'; },
-  receipts() { return JSON.parse(localStorage.getItem('ss_receipts') || '[]'); },
-  saveReceipt(r) {
-    const all = SS.receipts();
-    all.push(r);
-    localStorage.setItem('ss_receipts', JSON.stringify(all));
+  apiBase() {
+    return `http://${window.location.hostname || '127.0.0.1'}:8000/api/v1`;
+  },
+  async apiError(response, fallbackMessage) {
+    try {
+      const payload = await response.json();
+      return payload.detail || JSON.stringify(payload);
+    } catch {
+      return fallbackMessage;
+    }
+  },
+  mapReceipt(r) {
+    return {
+      id: r.id,
+      shop: r.merchant_name || 'Unknown shop',
+      date: r.receipt_date || r.created_at || new Date().toISOString(),
+      total: Number(r.total_amount || 0),
+      currency: r.currency || 'PLN',
+      items: Array.from({ length: Number(r.item_count || 0) }),
+    };
+  },
+  async fetchReceipts() {
+    const response = await fetch(`${SS.apiBase()}/receipts`);
+    if (!response.ok) {
+      throw new Error(await SS.apiError(response, 'Failed to load receipts'));
+    }
+    const payload = await response.json();
+    return payload.map(SS.mapReceipt);
   },
   guard() {
     if (!SS.isAuthed()) window.location.href = 'login.html';

@@ -88,8 +88,10 @@
     SS.guard();
 
     let view = new Date();
-    let selectedDates = new Set(); 
+    let selectedDates = new Set();
     let expandedGroups = new Set();
+    let receipts = [];
+    let loadError = '';
 
     function toISO(y, m, d) {
       return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
@@ -120,7 +122,7 @@
       const startDow = (first.getDay() + 6) % 7;
       const daysInMonth = new Date(y, m + 1, 0).getDate();
 
-      const recs = SS.receipts();
+      const recs = receipts;
       const totals = {};
       recs.forEach(r => {
         const d = new Date(r.date);
@@ -203,7 +205,12 @@
     }
 
     function renderList() {
-      let recs = SS.receipts().slice();
+      if (loadError) {
+        $('#rcpBody').html(`<tr><td colspan="6" class="text-center text-danger py-4">${loadError}</td></tr>`);
+        return;
+      }
+
+      let recs = receipts.slice();
       const range = $('#rangeSel').val();
       const now = new Date();
 
@@ -316,8 +323,20 @@
     $('#nextM').on('click', () => { view.setMonth(view.getMonth() + 1); renderCal(); });
     $('#rangeSel, #sortSel').on('change', renderList);
 
-    renderCal();
-    renderList();
+    async function loadReceipts() {
+      try {
+        receipts = await SS.fetchReceipts();
+        loadError = '';
+      } catch (err) {
+        console.error(err);
+        receipts = [];
+        loadError = `Failed to load receipts from database: ${err.message}`;
+      }
+      renderCal();
+      renderList();
+    }
+
+    loadReceipts();
   </script>
 
   <footer class="bg-dark text-muted border-top border-secondary border-opacity-25 py-4 mt-auto">

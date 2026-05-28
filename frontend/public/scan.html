@@ -20,7 +20,7 @@
       <h5 class="mt-3">Drop receipt photo here</h5>
       <p class="text-muted mb-3">or</p>
       <button class="btn btn-primary" id="pickBtn"><i class="bi bi-folder2-open"></i> Choose file</button>
-      <input type="file" id="fileInput" accept="image/*" hidden>
+      <input type="file" id="fileInput" accept="image/*" multiple hidden>
       <p class="small text-muted mt-3 mb-0" id="fileName"></p>
     </div>
 
@@ -54,9 +54,24 @@
   SS.guard();
 
   let lastResult = null;
+  let selectedFiles = [];
+  const apiBase = SS.apiBase();
 
-  async function processFile(file) {
-    $('#fileName').text(file.name);
+  function formatMoney(value, currency = 'PLN') {
+    const amount = Number(value || 0);
+    return new Intl.NumberFormat('pl-PL', {
+      style: 'currency',
+      currency
+    }).format(amount);
+  }
+
+  async function parseError(response, fallbackMessage) {
+    return SS.apiError(response, fallbackMessage);
+  }
+
+  async function processFiles(files) {
+    selectedFiles = files;
+    $('#fileName').text(files.map(file => file.name).join(', '));
 
     $('#progressWrap').removeClass('d-none');
     $('#result').addClass('d-none');
@@ -65,10 +80,29 @@
     $('#pctLabel').text('15%');
 
     try {
-      const formData = new FormData();
-      formData.append('file', file);
+      if (files.length > 1) {
+        lastResult = { mode: 'batch-preview', fileCount: files.length };
+        $('#progressBar').css('width', '100%');
+        $('#pctLabel').text('100%');
+        $('#shop').text(`${files.length} receipts selected`);
+        $('#dateLabel').text('Click Save receipt to analyze and save them to the database.');
+        $('#itemsBody').html(
+          files.map(file => `
+            <tr>
+              <td>${file.name}</td>
+              <td class="text-end">Ready</td>
+            </tr>
+          `).join('')
+        );
+        $('#totalLabel').text('-');
+        $('#result').removeClass('d-none');
+        return;
+      }
 
-      const response = await fetch('http://127.0.0.1:8000/api/v1/receipts/analyze', {
+      const formData = new FormData();
+      formData.append('file', files[0]);
+
+      const response = await fetch(`${apiBase}/receipts/analyze`, {
         method: 'POST',
         body: formData
       });
@@ -77,29 +111,28 @@
       $('#pctLabel').text('70%');
 
       if (!response.ok) {
-        throw new Error('Analyze failed');
+        throw new Error(await parseError(response, 'Analyze failed'));
       }
 
       const data = await response.json();
+      const analysis = data.analysis || {};
 
-      console.log(data);
+      console.log({ data, analysis });
 
       $('#progressBar').css('width', '100%');
       $('#pctLabel').text('100%');
 
       lastResult = data;
 
-      const items = data.items || [];
+      const items = analysis.items || [];
 
       $('#shop').text(
-        data.vendor ||
-        data.shop ||
+        analysis.merchant_name ||
         '-'
       );
 
       $('#dateLabel').text(
-        data.purchase_date ||
-        data.date ||
+        analysis.receipt_date ||
         new Date().toLocaleDateString()
       );
 
@@ -108,18 +141,14 @@
           <tr>
             <td>${i.name}</td>
             <td class="text-end">
-              ${SS.fmt(i.price || i.amount || 0)}
+              ${formatMoney(i.total_price || i.unit_price || 0, analysis.currency || 'PLN')}
             </td>
           </tr>
         `).join('')
       );
 
       $('#totalLabel').text(
-        SS.fmt(
-          data.total ||
-          data.total_amount ||
-          0
-        )
+        formatMoney(analysis.total_amount || 0, analysis.currency || 'PLN')
       );
 
       $('#result').removeClass('d-none');
@@ -127,7 +156,7 @@
     } catch (err) {
       console.error(err);
 
-      alert('Failed to analyze receipt');
+      alert(`Failed to analyze receipt: ${err.message}`);
 
       $('#progressWrap').addClass('d-none');
     }
@@ -138,10 +167,10 @@
   });
 
   $('#fileInput').on('change', e => {
-    const file = e.target.files[0];
+    const files = Array.from(e.target.files || []);
 
-    if (file) {
-      processFile(file);
+    if (files.length) {
+      processFiles(files);
     }
   });
 
@@ -156,42 +185,45 @@
     .on('drop', function (e) {
       e.preventDefault();
 
-      const file = e.originalEvent.dataTransfer.files[0];
+      const files = Array.from(e.originalEvent.dataTransfer.files || []);
 
-      if (file) {
-        processFile(file);
+      if (files.length) {
+        processFiles(files);
       }
     });
 
   $('#saveBtn').on('click', async function () {
-    if (!lastResult) return;
+    if (!lastResult || !selectedFiles.length) return;
 
     try {
-      const response = await fetch('http://127.0.0.1:8000/api/v1/receipts', {
+      const formData = new FormData();
+      selectedFiles.forEach(file => formData.append('files', file));
+      const endpoint = selectedFiles.length > 1 ? `${apiBase}/receipts/batch` : `${apiBase}/receipts`;
+
+      const response = await fetch(endpoint, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(lastResult)
+        body: formData
       });
 
       if (!response.ok) {
-        throw new Error('Save failed');
+        throw new Error(await parseError(response, 'Save failed'));
       }
 
-      alert('Receipt saved');
+      const payload = await response.json();
+      const savedCount = payload.receipts ? payload.receipts.length : 1;
+      alert(`${savedCount} receipt${savedCount === 1 ? '' : 's'} saved to database`);
 
       window.location.href = 'calendar.html';
 
     } catch (err) {
       console.error(err);
-
-      alert('Failed to save receipt');
+      alert(`Failed to save receipt: ${err.message}`);
     }
   });
 
   $('#resetBtn').on('click', function () {
     lastResult = null;
+    selectedFiles = [];
 
     $('#result').addClass('d-none');
     $('#progressWrap').addClass('d-none');

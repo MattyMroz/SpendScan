@@ -48,48 +48,62 @@
   <script>
     SS.guard();
 
-    const recs = SS.receipts();
-    const overall = recs.reduce((s, r) => s + r.total, 0);
-    const now = new Date();
-    const month = recs.filter(r => {
-      const d = new Date(r.date);
-      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-    }).reduce((s, r) => s + r.total, 0);
+    loadStats();
 
-    $('#sOverall').text(SS.fmt(overall));
-    $('#sMonth').text(SS.fmt(month));
-    $('#sCount').text(recs.length);
+    async function loadStats() {
+      let recs = [];
+      try {
+        recs = await SS.fetchReceipts();
+      } catch (err) {
+        console.error(err);
+        $('#sOverall').text('DB error');
+        $('#sMonth').text('DB error');
+        $('#sCount').text('0');
+        return;
+      }
 
-    const labels = [], values = [];
-    for (let i = 5; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      labels.push(d.toLocaleString('default', { month: 'short' }));
-      const v = recs.filter(r => {
-        const rd = new Date(r.date);
-        return rd.getMonth() === d.getMonth() && rd.getFullYear() === d.getFullYear();
+      const overall = recs.reduce((s, r) => s + r.total, 0);
+      const now = new Date();
+      const month = recs.filter(r => {
+        const d = new Date(r.date);
+        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
       }).reduce((s, r) => s + r.total, 0);
-      values.push(+v.toFixed(2));
+
+      $('#sOverall').text(SS.fmt(overall));
+      $('#sMonth').text(SS.fmt(month));
+      $('#sCount').text(recs.length);
+
+      const labels = [], values = [];
+      for (let i = 5; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        labels.push(d.toLocaleString('default', { month: 'short' }));
+        const v = recs.filter(r => {
+          const rd = new Date(r.date);
+          return rd.getMonth() === d.getMonth() && rd.getFullYear() === d.getFullYear();
+        }).reduce((s, r) => s + r.total, 0);
+        values.push(+v.toFixed(2));
+      }
+
+      new Chart(document.getElementById('barChart'), {
+        type: 'bar',
+        data: { labels, datasets: [{ label: 'Spend $', data: values, backgroundColor: '#0d6efd', borderRadius: 6 }] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+      });
+
+      const byShop = {};
+      recs.forEach(r => { byShop[r.shop] = (byShop[r.shop] || 0) + r.total; });
+      const shopLabels = Object.keys(byShop);
+      const shopVals = shopLabels.map(s => +byShop[s].toFixed(2));
+      new Chart(document.getElementById('doughChart'), {
+        type: 'doughnut',
+        data: {
+          labels: shopLabels.length ? shopLabels : ['No data'],
+          datasets: [{ data: shopVals.length ? shopVals : [1],
+            backgroundColor: ['#0d6efd', '#198754', '#fd7e14', '#dc3545', '#6f42c1', '#0dcaf0'] }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
+      });
     }
-
-    new Chart(document.getElementById('barChart'), {
-      type: 'bar',
-      data: { labels, datasets: [{ label: 'Spend $', data: values, backgroundColor: '#0d6efd', borderRadius: 6 }] },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-    });
-
-    const byShop = {};
-    recs.forEach(r => { byShop[r.shop] = (byShop[r.shop] || 0) + r.total; });
-    const shopLabels = Object.keys(byShop);
-    const shopVals = shopLabels.map(s => +byShop[s].toFixed(2));
-    new Chart(document.getElementById('doughChart'), {
-      type: 'doughnut',
-      data: {
-        labels: shopLabels.length ? shopLabels : ['No data'],
-        datasets: [{ data: shopVals.length ? shopVals : [1],
-          backgroundColor: ['#0d6efd', '#198754', '#fd7e14', '#dc3545', '#6f42c1', '#0dcaf0'] }]
-      },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom' } } }
-    });
   </script>
 
   <footer class="bg-dark text-muted border-top border-secondary border-opacity-25 py-4 mt-auto">

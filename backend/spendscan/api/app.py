@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Annotated
 
 from fastapi import Depends, FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from sqlmodel import Session, select
 
 from spendscan import __version__
@@ -20,6 +21,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     """Create configured SpendScan FastAPI app."""
     resolved_settings = settings or get_settings()
     app = FastAPI(title="SpendScan API", version=__version__)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=False,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
     app.include_router(health_router)
     app.include_router(receipts_router, prefix=resolved_settings.api_prefix)
