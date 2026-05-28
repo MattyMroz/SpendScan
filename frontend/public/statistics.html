@@ -1,243 +1,316 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Statistics · SpendScan</title>
-  <link rel="icon" href="/assets/icon.png" />
-  <link rel="stylesheet" href="/static/css/base.css" />
-  <link rel="stylesheet" href="/static/css/app.css" />
-</head>
-<body>
-  <div class="page-shell">
-    <nav class="topnav" id="topnav"></nav>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Statistics · SpendScan</title>
+    <link rel="icon" href="/assets/icon.png" />
+    <link rel="stylesheet" href="/static/css/base.css" />
+    <link rel="stylesheet" href="/static/css/app.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <nav class="topnav" id="topnav"></nav>
 
-    <main class="stats">
-      <div class="stats__inner">
-        <header class="stats__head">
-          <h1 class="stats__title">Spending statistics</h1>
-          <p class="stats__sub">Overview of your spending and shopping trends</p>
-        </header>
+      <main class="stats">
+        <div class="stats__inner">
+          <header class="stats__head">
+            <h1 class="stats__title">Spending statistics</h1>
+            <p class="stats__sub">Overview of your spending and shopping trends</p>
+          </header>
 
-        <div id="stats-empty" class="card hidden" style="text-align:center;padding:48px;">
-          <i data-lucide="bar-chart-3" style="width:48px;height:48px;color:var(--slate-400);"></i>
-          <h3 style="margin:16px 0 8px;color:var(--slate-700);">No receipts yet</h3>
-          <p style="color:var(--slate-500);">Scan your first receipt to see statistics.</p>
+          <div id="stats-empty" class="card hidden" style="text-align: center; padding: 48px">
+            <i data-lucide="bar-chart-3" style="width: 48px; height: 48px; color: var(--slate-400)"></i>
+            <h3 style="margin: 16px 0 8px; color: var(--slate-700)">No receipts yet</h3>
+            <p style="color: var(--slate-500)">Scan your first receipt to see statistics.</p>
+          </div>
+
+          <div id="stats-body" class="hidden">
+            <div class="stats__cards" id="stat-cards"></div>
+
+            <div class="stats__grid">
+              <div class="card stats__chart">
+                <h3 class="stats__chart-title">Monthly spending</h3>
+                <canvas id="chart-monthly"></canvas>
+              </div>
+              <div class="card stats__chart">
+                <h3 class="stats__chart-title">Spending categories</h3>
+                <canvas id="chart-categories"></canvas>
+              </div>
+            </div>
+
+            <div class="card stats__chart" style="margin-top: 24px">
+              <h3 class="stats__chart-title">Daily spending (this month)</h3>
+              <canvas id="chart-weekly"></canvas>
+            </div>
+
+            <div class="stats__grid" style="margin-top: 24px">
+              <div class="card stats__chart">
+                <h3 class="stats__chart-title">Top 5 shops</h3>
+                <ol id="top-shops" class="shop-list"></ol>
+              </div>
+              <div class="card stats__chart">
+                <h3 class="stats__chart-title">Weekly trend (12 weeks)</h3>
+                <canvas id="chart-weekly-trend"></canvas>
+              </div>
+            </div>
+
+            <div class="card stats__chart" style="margin-top: 24px">
+              <h3 class="stats__chart-title">Heatmap (this month)</h3>
+              <div id="heatmap" class="heatmap"></div>
+              <div class="heatmap__legend">
+                <span>Less</span>
+                <span class="heatmap__sw heatmap__sw--0"></span>
+                <span class="heatmap__sw heatmap__sw--1"></span>
+                <span class="heatmap__sw heatmap__sw--2"></span>
+                <span class="heatmap__sw heatmap__sw--3"></span>
+                <span class="heatmap__sw heatmap__sw--4"></span>
+                <span>More</span>
+              </div>
+            </div>
+          </div>
+
+          <div id="stats-alert" class="alert alert--error hidden" style="margin-top: 16px"></div>
         </div>
+      </main>
+    </div>
 
-        <div id="stats-body" class="hidden">
-          <div class="stats__cards" id="stat-cards"></div>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="/static/js/api.js"></script>
+    <script src="/static/js/icons.js"></script>
+    <script>
+      SS.guard();
+      SS.paintNav("stats");
 
-          <div class="stats__grid">
-            <div class="card stats__chart">
-              <h3 class="stats__chart-title">Monthly spending</h3>
-              <canvas id="chart-monthly"></canvas>
-            </div>
-            <div class="card stats__chart">
-              <h3 class="stats__chart-title">Spending categories</h3>
-              <canvas id="chart-categories"></canvas>
-            </div>
-          </div>
+      const CATEGORY_COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#0ea5e9", "#ec4899", "#14b8a6"];
 
-          <div class="card stats__chart" style="margin-top: 24px;">
-            <h3 class="stats__chart-title">Daily spending (this month)</h3>
-            <canvas id="chart-weekly"></canvas>
-          </div>
+      function fmt(n) {
+        return Number(n || 0).toLocaleString("en-US", { maximumFractionDigits: 2 }) + " PLN";
+      }
 
-          <div class="stats__grid" style="margin-top: 24px;">
-            <div class="card stats__chart">
-              <h3 class="stats__chart-title">Top 5 shops</h3>
-              <ol id="top-shops" class="shop-list"></ol>
-            </div>
-            <div class="card stats__chart">
-              <h3 class="stats__chart-title">Weekly trend (12 weeks)</h3>
-              <canvas id="chart-weekly-trend"></canvas>
-            </div>
-          </div>
+      function showError(msg) {
+        const a = document.getElementById("stats-alert");
+        a.textContent = msg;
+        a.classList.remove("hidden");
+      }
 
-          <div class="card stats__chart" style="margin-top: 24px;">
-            <h3 class="stats__chart-title">Heatmap (this month)</h3>
-            <div id="heatmap" class="heatmap"></div>
-            <div class="heatmap__legend">
-              <span>Less</span>
-              <span class="heatmap__sw heatmap__sw--0"></span>
-              <span class="heatmap__sw heatmap__sw--1"></span>
-              <span class="heatmap__sw heatmap__sw--2"></span>
-              <span class="heatmap__sw heatmap__sw--3"></span>
-              <span class="heatmap__sw heatmap__sw--4"></span>
-              <span>More</span>
-            </div>
-          </div>
-        </div>
+      (async () => {
+        try {
+          const [monthly, yearly] = await Promise.all([SS.getDashboard("monthly"), SS.getDashboard("yearly")]);
 
-        <div id="stats-alert" class="alert alert--error hidden" style="margin-top:16px;"></div>
-      </div>
-    </main>
-  </div>
+          if ((yearly.receipt_count || 0) === 0) {
+            document.getElementById("stats-empty").classList.remove("hidden");
+            return;
+          }
+          document.getElementById("stats-body").classList.remove("hidden");
 
-  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="/static/js/api.js"></script>
-  <script src="/static/js/icons.js"></script>
-  <script>
-    SS.guard();
-    SS.paintNav('stats');
-
-    const CATEGORY_COLORS = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#0ea5e9','#ec4899','#14b8a6'];
-
-    function fmt(n) { return Number(n || 0).toLocaleString('en-US', { maximumFractionDigits: 2 }) + ' PLN'; }
-
-    function showError(msg) {
-      const a = document.getElementById('stats-alert');
-      a.textContent = msg; a.classList.remove('hidden');
-    }
-
-    (async () => {
-      try {
-        const [monthly, yearly] = await Promise.all([
-          SS.getDashboard('monthly'),
-          SS.getDashboard('yearly'),
-        ]);
-
-        if ((yearly.receipt_count || 0) === 0) {
-          document.getElementById('stats-empty').classList.remove('hidden');
-          return;
-        }
-        document.getElementById('stats-body').classList.remove('hidden');
-
-        const cards = [
-          { label: 'Total (yearly)',  value: fmt(yearly.total_spent),  icon: 'shopping-cart', tone: 'blue',   sub: yearly.date_range_label },
-          { label: 'This month',      value: fmt(monthly.total_spent), icon: 'receipt',       tone: 'green',
-            sub: monthly.total_spent_trend == null ? 'No previous data'
-                 : `${monthly.total_spent_trend > 0 ? '+' : ''}${monthly.total_spent_trend.toFixed(1)}% vs last month`,
-            trend: monthly.total_spent_trend == null ? null : (monthly.total_spent_trend > 0 ? 'up' : 'down') },
-          { label: 'Receipts (year)', value: String(yearly.receipt_count), icon: 'file-text', tone: 'purple', sub: 'Scanned' },
-          { label: 'Daily average',   value: fmt(monthly.daily_average), icon: 'trending-up',  tone: 'orange', sub: 'This month' },
-        ];
-        document.getElementById('stat-cards').innerHTML = cards.map(c =>
-          `<div class="stat-card">
+          const cards = [
+            {
+              label: "Total (yearly)",
+              value: fmt(yearly.total_spent),
+              icon: "shopping-cart",
+              tone: "blue",
+              sub: yearly.date_range_label,
+            },
+            {
+              label: "This month",
+              value: fmt(monthly.total_spent),
+              icon: "receipt",
+              tone: "green",
+              sub:
+                monthly.total_spent_trend == null
+                  ? "No previous data"
+                  : `${monthly.total_spent_trend > 0 ? "+" : ""}${monthly.total_spent_trend.toFixed(1)}% vs last month`,
+              trend: monthly.total_spent_trend == null ? null : monthly.total_spent_trend > 0 ? "up" : "down",
+            },
+            {
+              label: "Receipts (year)",
+              value: String(yearly.receipt_count),
+              icon: "file-text",
+              tone: "purple",
+              sub: "Scanned",
+            },
+            {
+              label: "Daily average",
+              value: fmt(monthly.daily_average),
+              icon: "trending-up",
+              tone: "orange",
+              sub: "This month",
+            },
+          ];
+          document.getElementById("stat-cards").innerHTML = cards
+            .map(
+              (c) =>
+                `<div class="stat-card">
             <div class="stat-card__head">
               <div class="stat-card__icon stat-card__icon--${c.tone}"><i data-lucide="${c.icon}"></i></div>
               <span class="stat-card__label">${c.label}</span>
             </div>
             <div class="stat-card__value">${c.value}</div>
-            <div class="stat-card__sub ${c.trend ? 'stat-card__sub--' + c.trend : ''}">${c.sub}</div>
-          </div>`
-        ).join('');
-        ssIcons();
+            <div class="stat-card__sub ${c.trend ? "stat-card__sub--" + c.trend : ""}">${c.sub}</div>
+          </div>`,
+            )
+            .join("");
+          ssIcons();
 
-        const monthlyAgg = aggregateByMonth(yearly.daily_breakdown || []);
-        new Chart(document.getElementById('chart-monthly'), {
-          type: 'bar',
-          data: { labels: monthlyAgg.labels,
-            datasets: [{ label: 'PLN', data: monthlyAgg.values, backgroundColor: '#3b82f6', borderRadius: 8 }] },
-          options: { responsive: true, plugins: { legend: { display: false } },
-            scales: { y: { grid: { color: '#e2e8f0' } }, x: { grid: { display: false } } } },
-        });
-
-        const cats = (monthly.by_category || []).slice(0, 8);
-        if (cats.length) {
-          new Chart(document.getElementById('chart-categories'), {
-            type: 'doughnut',
-            data: { labels: cats.map(c => c.category),
-              datasets: [{ data: cats.map(c => Number(c.amount)),
-                backgroundColor: cats.map((_, i) => CATEGORY_COLORS[i % CATEGORY_COLORS.length]),
-                borderWidth: 0 }] },
-            options: { responsive: true, plugins: { legend: { position: 'bottom' } } },
+          const monthlyAgg = aggregateByMonth(yearly.daily_breakdown || []);
+          new Chart(document.getElementById("chart-monthly"), {
+            type: "bar",
+            data: {
+              labels: monthlyAgg.labels,
+              datasets: [{ label: "PLN", data: monthlyAgg.values, backgroundColor: "#3b82f6", borderRadius: 8 }],
+            },
+            options: {
+              responsive: true,
+              plugins: { legend: { display: false } },
+              scales: { y: { grid: { color: "#e2e8f0" } }, x: { grid: { display: false } } },
+            },
           });
+
+          const cats = (monthly.by_category || []).slice(0, 8);
+          if (cats.length) {
+            new Chart(document.getElementById("chart-categories"), {
+              type: "doughnut",
+              data: {
+                labels: cats.map((c) => c.category),
+                datasets: [
+                  {
+                    data: cats.map((c) => Number(c.amount)),
+                    backgroundColor: cats.map((_, i) => CATEGORY_COLORS[i % CATEGORY_COLORS.length]),
+                    borderWidth: 0,
+                  },
+                ],
+              },
+              options: { responsive: true, plugins: { legend: { position: "bottom" } } },
+            });
+          }
+
+          const daily = monthly.daily_breakdown || [];
+          if (daily.length) {
+            new Chart(document.getElementById("chart-weekly"), {
+              type: "line",
+              data: {
+                labels: daily.map((d) => d.date.slice(5)),
+                datasets: [
+                  {
+                    label: "PLN",
+                    data: daily.map((d) => Number(d.amount)),
+                    borderColor: "#3b82f6",
+                    backgroundColor: "rgba(59,130,246,0.1)",
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 4,
+                    pointBackgroundColor: "#3b82f6",
+                  },
+                ],
+              },
+              options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: { y: { grid: { color: "#e2e8f0" } }, x: { grid: { display: false } } },
+              },
+            });
+          }
+
+          renderTopShops(yearly.by_shop || []);
+          renderWeeklyTrend(yearly.daily_breakdown || []);
+          renderHeatmap(daily);
+        } catch (err) {
+          showError(err.message || "Failed to load statistics");
         }
+      })();
 
-        const daily = (monthly.daily_breakdown || []);
-        if (daily.length) {
-          new Chart(document.getElementById('chart-weekly'), {
-            type: 'line',
-            data: { labels: daily.map(d => d.date.slice(5)),
-              datasets: [{ label: 'PLN', data: daily.map(d => Number(d.amount)),
-                borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)',
-                fill: true, tension: 0.3, pointRadius: 4, pointBackgroundColor: '#3b82f6' }] },
-            options: { responsive: true, plugins: { legend: { display: false } },
-              scales: { y: { grid: { color: '#e2e8f0' } }, x: { grid: { display: false } } } },
-          });
+      function aggregateByMonth(daily) {
+        const map = new Map();
+        for (const d of daily) {
+          const key = d.date.slice(0, 7);
+          map.set(key, (map.get(key) || 0) + Number(d.amount || 0));
         }
-
-        renderTopShops(yearly.by_shop || []);
-        renderWeeklyTrend(yearly.daily_breakdown || []);
-        renderHeatmap(daily);
-      } catch (err) {
-        showError(err.message || 'Failed to load statistics');
+        const labels = [...map.keys()].sort();
+        return { labels: labels.map((l) => l.slice(5) + "/" + l.slice(2, 4)), values: labels.map((l) => map.get(l)) };
       }
-    })();
 
-    function aggregateByMonth(daily) {
-      const map = new Map();
-      for (const d of daily) {
-        const key = d.date.slice(0, 7);
-        map.set(key, (map.get(key) || 0) + Number(d.amount || 0));
-      }
-      const labels = [...map.keys()].sort();
-      return { labels: labels.map(l => l.slice(5) + '/' + l.slice(2,4)), values: labels.map(l => map.get(l)) };
-    }
-
-    function renderTopShops(shops) {
-      const list = document.getElementById('top-shops');
-      const top = (shops || []).slice(0, 5);
-      if (!top.length) { list.innerHTML = '<li class="shop-list__empty">No shop data yet.</li>'; return; }
-      const max = Math.max(...top.map(s => Number(s.amount || 0)));
-      list.innerHTML = top.map((s, i) => {
-        const amt = Number(s.amount || 0);
-        const pct = max > 0 ? (amt / max) * 100 : 0;
-        return `
+      function renderTopShops(shops) {
+        const list = document.getElementById("top-shops");
+        const top = (shops || []).slice(0, 5);
+        if (!top.length) {
+          list.innerHTML = '<li class="shop-list__empty">No shop data yet.</li>';
+          return;
+        }
+        const max = Math.max(...top.map((s) => Number(s.amount || 0)));
+        list.innerHTML = top
+          .map((s, i) => {
+            const amt = Number(s.amount || 0);
+            const pct = max > 0 ? (amt / max) * 100 : 0;
+            return `
           <li class="shop">
             <span class="shop__rank">${i + 1}</span>
             <div class="shop__body">
-              <div class="shop__head"><span class="shop__name">${s.shop_name || '—'}</span><span class="shop__amt">${fmt(amt)}</span></div>
+              <div class="shop__head"><span class="shop__name">${s.shop_name || "—"}</span><span class="shop__amt">${fmt(amt)}</span></div>
               <div class="shop__bar"><span style="width:${pct.toFixed(1)}%"></span></div>
             </div>
           </li>`;
-      }).join('');
-    }
-
-    function renderWeeklyTrend(daily) {
-      const buckets = new Map();
-      for (const d of daily) {
-        const day = new Date(d.date + 'T00:00:00');
-        const y = day.getFullYear();
-        const onejan = new Date(y, 0, 1);
-        const week = Math.ceil((((day - onejan) / 86400000) + onejan.getDay() + 1) / 7);
-        const key = `${y}-W${String(week).padStart(2, '0')}`;
-        buckets.set(key, (buckets.get(key) || 0) + Number(d.amount || 0));
+          })
+          .join("");
       }
-      const keys = [...buckets.keys()].sort().slice(-12);
-      const labels = keys.map(k => k.split('-W')[1]);
-      const values = keys.map(k => buckets.get(k));
-      new Chart(document.getElementById('chart-weekly-trend'), {
-        type: 'line',
-        data: { labels, datasets: [{ label: 'PLN', data: values, borderColor: '#10b981',
-          backgroundColor: 'rgba(16,185,129,0.1)', fill: true, tension: 0.3, pointRadius: 3 }] },
-        options: { responsive: true, plugins: { legend: { display: false } },
-          scales: { y: { grid: { color: '#e2e8f0' } }, x: { grid: { display: false } } } },
-      });
-    }
 
-    function renderHeatmap(daily) {
-      const root = document.getElementById('heatmap');
-      const now = new Date();
-      const year = now.getFullYear();
-      const month = now.getMonth();
-      const days = new Date(year, month + 1, 0).getDate();
-      const byDay = new Map(daily.map(d => [d.date, Number(d.amount || 0)]));
-      const max = Math.max(0, ...byDay.values());
-      const firstWeekday = (new Date(year, month, 1).getDay() + 6) % 7;
-      const cells = [];
-      for (let i = 0; i < firstWeekday; i++) cells.push('<span class="heatmap__cell heatmap__cell--blank"></span>');
-      for (let d = 1; d <= days; d++) {
-        const iso = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-        const amt = byDay.get(iso) || 0;
-        const level = max === 0 ? 0 : Math.min(4, Math.ceil((amt / max) * 4));
-        cells.push(`<span class="heatmap__cell heatmap__cell--${level}" title="${iso}: ${fmt(amt)}">${d}</span>`);
+      function renderWeeklyTrend(daily) {
+        const buckets = new Map();
+        for (const d of daily) {
+          const day = new Date(d.date + "T00:00:00");
+          const y = day.getFullYear();
+          const onejan = new Date(y, 0, 1);
+          const week = Math.ceil(((day - onejan) / 86400000 + onejan.getDay() + 1) / 7);
+          const key = `${y}-W${String(week).padStart(2, "0")}`;
+          buckets.set(key, (buckets.get(key) || 0) + Number(d.amount || 0));
+        }
+        const keys = [...buckets.keys()].sort().slice(-12);
+        const labels = keys.map((k) => k.split("-W")[1]);
+        const values = keys.map((k) => buckets.get(k));
+        new Chart(document.getElementById("chart-weekly-trend"), {
+          type: "line",
+          data: {
+            labels,
+            datasets: [
+              {
+                label: "PLN",
+                data: values,
+                borderColor: "#10b981",
+                backgroundColor: "rgba(16,185,129,0.1)",
+                fill: true,
+                tension: 0.3,
+                pointRadius: 3,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            plugins: { legend: { display: false } },
+            scales: { y: { grid: { color: "#e2e8f0" } }, x: { grid: { display: false } } },
+          },
+        });
       }
-      root.innerHTML = cells.join('');
-    }
-  </script>
-</body>
+
+      function renderHeatmap(daily) {
+        const root = document.getElementById("heatmap");
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = now.getMonth();
+        const days = new Date(year, month + 1, 0).getDate();
+        const byDay = new Map(daily.map((d) => [d.date, Number(d.amount || 0)]));
+        const max = Math.max(0, ...byDay.values());
+        const firstWeekday = (new Date(year, month, 1).getDay() + 6) % 7;
+        const cells = [];
+        for (let i = 0; i < firstWeekday; i++) cells.push('<span class="heatmap__cell heatmap__cell--blank"></span>');
+        for (let d = 1; d <= days; d++) {
+          const iso = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+          const amt = byDay.get(iso) || 0;
+          const level = max === 0 ? 0 : Math.min(4, Math.ceil((amt / max) * 4));
+          cells.push(`<span class="heatmap__cell heatmap__cell--${level}" title="${iso}: ${fmt(amt)}">${d}</span>`);
+        }
+        root.innerHTML = cells.join("");
+      }
+    </script>
+  </body>
 </html>

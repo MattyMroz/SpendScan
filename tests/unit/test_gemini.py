@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import time
 from pathlib import Path
 from typing import Any
 
@@ -53,8 +54,6 @@ def test_thinking_config_for_gemini_respects_budget() -> None:
 
 class _SlowGeminiClient(GeminiReceiptClient):
     def _generate_content(self, model_name: str, ocr_text: str, image_paths: tuple[Path, ...]) -> Any:
-        import time
-
         time.sleep(self._settings.gemini_timeout_seconds + 5.0)
         return object()
 

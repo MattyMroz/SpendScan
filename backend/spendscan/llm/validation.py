@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+import pathlib
 import re
+import time
 from decimal import Decimal
 from typing import Final
 
@@ -31,11 +33,10 @@ class ReceiptOutputValidator:
             try:
                 payload = json.loads(_escape_stray_backslashes(extracted))
             except json.JSONDecodeError:
-                stripped = re.sub(r'\\(?!["\\/bfnrtu])', '', extracted)
+                stripped = re.sub(r'\\(?!["\\/bfnrtu])', "", extracted)
                 try:
                     payload = json.loads(stripped)
                 except json.JSONDecodeError as exc:
-                    import pathlib, time
                     dump = pathlib.Path("workspace/output/debug") / f"gemini_bad_{int(time.time())}.txt"
                     dump.parent.mkdir(parents=True, exist_ok=True)
                     dump.write_text(extracted, encoding="utf-8")
@@ -192,9 +193,9 @@ def _escape_stray_backslashes(text: str) -> str:
         char = text[i]
         if char == "\\":
             nxt = text[i + 1] if i + 1 < length else ""
-            if nxt in _VALID_JSON_ESCAPES:
-                out.append(char)
-            elif nxt == "u" and i + 5 < length and all(c in _HEX_DIGITS for c in text[i + 2 : i + 6]):
+            if nxt in _VALID_JSON_ESCAPES or (
+                nxt == "u" and i + 5 < length and all(c in _HEX_DIGITS for c in text[i + 2 : i + 6])
+            ):
                 out.append(char)
             else:
                 out.append("\\\\")

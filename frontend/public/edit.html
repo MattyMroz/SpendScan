@@ -1,305 +1,341 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Edit receipt · SpendScan</title>
-  <link rel="icon" type="image/png" href="/assets/icon.png">
-  <link rel="stylesheet" href="/static/css/base.css">
-  <link rel="stylesheet" href="/static/css/app.css">
-</head>
-<body>
-  <nav id="topnav" class="topnav"></nav>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Edit receipt · SpendScan</title>
+    <link rel="icon" type="image/png" href="/assets/icon.png" />
+    <link rel="stylesheet" href="/static/css/base.css" />
+    <link rel="stylesheet" href="/static/css/app.css" />
+  </head>
+  <body>
+    <nav id="topnav" class="topnav"></nav>
 
-  <main class="container edit-wrap">
-    <header class="edit__head">
-      <a href="/" class="btn btn--ghost btn--sm"><i data-lucide="arrow-left"></i><span>Back</span></a>
-      <h1 class="edit__title">Review your receipt</h1>
-      <p class="edit__sub">Adjust anything the scanner got wrong, then save.</p>
-    </header>
+    <main class="container edit-wrap">
+      <header class="edit__head">
+        <a href="/" class="btn btn--ghost btn--sm"><i data-lucide="arrow-left"></i><span>Back</span></a>
+        <h1 class="edit__title">Review your receipt</h1>
+        <p class="edit__sub">Adjust anything the scanner got wrong, then save.</p>
+      </header>
 
-    <div id="edit-loading" class="edit__loading">
-      <i data-lucide="loader-2" class="spin"></i><span>Loading receipt…</span>
-    </div>
+      <div id="edit-loading" class="edit__loading">
+        <i data-lucide="loader-2" class="spin"></i><span>Loading receipt…</span>
+      </div>
 
-    <form id="edit-form" class="edit__form" hidden>
-      <div class="edit__layout">
-        <aside class="edit__photo">
-          <div class="edit__photo-head">
-            <i data-lucide="image"></i><span>Original photo</span>
-          </div>
-          <div id="photo-stack" class="edit__photo-stack"></div>
-        </aside>
+      <form id="edit-form" class="edit__form" hidden>
+        <div class="edit__layout">
+          <aside class="edit__photo">
+            <div class="edit__photo-head"><i data-lucide="image"></i><span>Original photo</span></div>
+            <div id="photo-stack" class="edit__photo-stack"></div>
+          </aside>
 
-        <div class="edit__main">
-          <section class="edit__card">
-            <h2 class="edit__h2">Details</h2>
-            <div class="edit__grid">
-              <label class="field">
-                <span class="field__label">Store</span>
-                <input class="input" type="text" name="merchant_name" placeholder="e.g. Biedronka">
-              </label>
-              <label class="field">
-                <span class="field__label">Date</span>
-                <input class="input" type="date" name="receipt_date">
-              </label>
-              <label class="field">
-                <span class="field__label">Total amount</span>
-                <div class="input-with-suffix">
-                  <input class="input" type="number" name="total_amount" step="0.01" min="0">
-                  <span class="input__suffix" id="cur-suffix">PLN</span>
-                </div>
-              </label>
-              <label class="field">
-                <span class="field__label">Currency</span>
-                <input class="input" type="text" name="currency" maxlength="3" placeholder="PLN" id="currency-input">
-              </label>
-              <label class="field">
-                <span class="field__label">Payment method</span>
-                <input class="input" type="text" name="payment_method" placeholder="card / cash">
-              </label>
-              <label class="field">
-                <span class="field__label">Importance (0–3)</span>
-                <div class="importance">
-                  <button type="button" class="importance__btn" data-imp="0" title="None"><i data-lucide="circle"></i></button>
-                  <button type="button" class="importance__btn" data-imp="1" title="Low"><i data-lucide="coins"></i></button>
-                  <button type="button" class="importance__btn" data-imp="2" title="Medium"><i data-lucide="coins"></i></button>
-                  <button type="button" class="importance__btn" data-imp="3" title="High"><i data-lucide="coins"></i></button>
-                </div>
-              </label>
-            </div>
-          </section>
-
-          <section class="edit__card">
-            <div class="edit__row">
-              <h2 class="edit__h2">Items</h2>
-              <span id="sanity-status" class="sanity">—</span>
-            </div>
-            <div class="items">
-              <div class="item item--head">
-                <span>Product</span>
-                <span>Qty</span>
-                <span>Unit price</span>
-                <span>Total</span>
-                <span></span>
+          <div class="edit__main">
+            <section class="edit__card">
+              <h2 class="edit__h2">Details</h2>
+              <div class="edit__grid">
+                <label class="field">
+                  <span class="field__label">Store</span>
+                  <input class="input" type="text" name="merchant_name" placeholder="e.g. Biedronka" />
+                </label>
+                <label class="field">
+                  <span class="field__label">Date</span>
+                  <input class="input" type="date" name="receipt_date" />
+                </label>
+                <label class="field">
+                  <span class="field__label">Total amount</span>
+                  <div class="input-with-suffix">
+                    <input class="input" type="number" name="total_amount" step="0.01" min="0" />
+                    <span class="input__suffix" id="cur-suffix">PLN</span>
+                  </div>
+                </label>
+                <label class="field">
+                  <span class="field__label">Currency</span>
+                  <input
+                    class="input"
+                    type="text"
+                    name="currency"
+                    maxlength="3"
+                    placeholder="PLN"
+                    id="currency-input"
+                  />
+                </label>
+                <label class="field">
+                  <span class="field__label">Payment method</span>
+                  <input class="input" type="text" name="payment_method" placeholder="card / cash" />
+                </label>
+                <label class="field">
+                  <span class="field__label">Importance (0–3)</span>
+                  <div class="importance">
+                    <button type="button" class="importance__btn" data-imp="0" title="None">
+                      <i data-lucide="circle"></i>
+                    </button>
+                    <button type="button" class="importance__btn" data-imp="1" title="Low">
+                      <i data-lucide="coins"></i>
+                    </button>
+                    <button type="button" class="importance__btn" data-imp="2" title="Medium">
+                      <i data-lucide="coins"></i>
+                    </button>
+                    <button type="button" class="importance__btn" data-imp="3" title="High">
+                      <i data-lucide="coins"></i>
+                    </button>
+                  </div>
+                </label>
               </div>
-              <div id="items-list"></div>
-              <button type="button" class="btn btn--outline btn--sm items__add" id="add-item">
-                <i data-lucide="plus"></i><span>Add item</span>
+            </section>
+
+            <section class="edit__card">
+              <div class="edit__row">
+                <h2 class="edit__h2">Items</h2>
+                <span id="sanity-status" class="sanity">—</span>
+              </div>
+              <div class="items">
+                <div class="item item--head">
+                  <span>Product</span>
+                  <span>Qty</span>
+                  <span>Unit price</span>
+                  <span>Total</span>
+                  <span></span>
+                </div>
+                <div id="items-list"></div>
+                <button type="button" class="btn btn--outline btn--sm items__add" id="add-item">
+                  <i data-lucide="plus"></i><span>Add item</span>
+                </button>
+              </div>
+            </section>
+
+            <div class="edit__actions">
+              <button type="button" class="btn btn--ghost" id="discard">
+                <i data-lucide="trash-2"></i><span>Discard</span>
+              </button>
+              <button type="submit" class="btn btn--primary" id="save">
+                <i data-lucide="check"></i><span>Save receipt</span>
               </button>
             </div>
-          </section>
-
-          <div class="edit__actions">
-            <button type="button" class="btn btn--ghost" id="discard"><i data-lucide="trash-2"></i><span>Discard</span></button>
-            <button type="submit" class="btn btn--primary" id="save"><i data-lucide="check"></i><span>Save receipt</span></button>
           </div>
         </div>
-      </div>
-    </form>
-  </main>
+      </form>
+    </main>
 
-  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
-  <script src="/static/js/api.js"></script>
-  <script src="/static/js/icons.js"></script>
-  <script>
-    let RECEIPT = null;
-    let CURRENT_IMPORTANCE = 0;
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <script src="/static/js/api.js"></script>
+    <script src="/static/js/icons.js"></script>
+    <script>
+      let RECEIPT = null;
+      let CURRENT_IMPORTANCE = 0;
 
-    async function boot() {
-      SS.guard();
-      await SS.paintNav('scan');
-      ssIcons();
+      async function boot() {
+        SS.guard();
+        await SS.paintNav("scan");
+        ssIcons();
 
-      const id = new URLSearchParams(location.search).get('id');
-      if (!id) { location.href = '/'; return; }
+        const id = new URLSearchParams(location.search).get("id");
+        if (!id) {
+          location.href = "/";
+          return;
+        }
 
-      try {
-        RECEIPT = await SS.getReceipt(id);
-      } catch (err) {
-        document.getElementById('edit-loading').innerHTML =
-          '<span style="color:var(--red-500)">Could not load receipt.</span>';
-        return;
+        try {
+          RECEIPT = await SS.getReceipt(id);
+        } catch (err) {
+          document.getElementById("edit-loading").innerHTML =
+            '<span style="color:var(--red-500)">Could not load receipt.</span>';
+          return;
+        }
+        document.getElementById("edit-loading").hidden = true;
+        document.getElementById("edit-form").hidden = false;
+        fillForm(RECEIPT);
+        wireForm();
+        ssIcons();
       }
-      document.getElementById('edit-loading').hidden = true;
-      document.getElementById('edit-form').hidden = false;
-      fillForm(RECEIPT);
-      wireForm();
-      ssIcons();
-    }
 
-    function fillForm(r) {
-      const f = document.getElementById('edit-form');
-      f.merchant_name.value  = r.merchant_name || '';
-      f.receipt_date.value   = r.receipt_date || '';
-      f.total_amount.value   = r.total_amount ?? '';
-      f.currency.value       = r.currency || 'PLN';
-      f.payment_method.value = r.payment_method || '';
-      document.getElementById('cur-suffix').textContent = (r.currency || 'PLN').toUpperCase();
-      setImportance(Number(r.importance || 0));
-      renderItems(r.items || []);
-      renderPhotos(r.id, r.images || []);
-      checkSanity();
-    }
-
-    function renderPhotos(receiptId, images) {
-      const stack = document.getElementById('photo-stack');
-      if (!images.length) {
-        stack.innerHTML = '<div class="edit__photo-empty">No image stored</div>';
-        return;
+      function fillForm(r) {
+        const f = document.getElementById("edit-form");
+        f.merchant_name.value = r.merchant_name || "";
+        f.receipt_date.value = r.receipt_date || "";
+        f.total_amount.value = r.total_amount ?? "";
+        f.currency.value = r.currency || "PLN";
+        f.payment_method.value = r.payment_method || "";
+        document.getElementById("cur-suffix").textContent = (r.currency || "PLN").toUpperCase();
+        setImportance(Number(r.importance || 0));
+        renderItems(r.items || []);
+        renderPhotos(r.id, r.images || []);
+        checkSanity();
       }
-      const token = SS.token();
-      stack.innerHTML = images.map(img => `
+
+      function renderPhotos(receiptId, images) {
+        const stack = document.getElementById("photo-stack");
+        if (!images.length) {
+          stack.innerHTML = '<div class="edit__photo-empty">No image stored</div>';
+          return;
+        }
+        const token = SS.token();
+        stack.innerHTML = images
+          .map(
+            (img) => `
         <a class="edit__photo-link" href="/api/v1/receipts/${receiptId}/images/${img.id}?auth=1"
            target="_blank" rel="noopener" data-img-id="${img.id}">
           <img alt="page ${img.page_number}" class="edit__photo-img"
                data-src="/api/v1/receipts/${receiptId}/images/${img.id}" loading="lazy">
           <span class="edit__photo-caption">Page ${img.page_number}</span>
-        </a>`).join('');
-      stack.querySelectorAll('.edit__photo-img').forEach(async (el) => {
-        try {
-          const res = await fetch(el.dataset.src, { headers: { Authorization: `Bearer ${token}` } });
-          if (!res.ok) throw new Error('img fetch fail');
-          const blob = await res.blob();
-          el.src = URL.createObjectURL(blob);
-        } catch {
-          el.replaceWith(Object.assign(document.createElement('div'),
-            { className: 'edit__photo-empty', textContent: 'image load failed' }));
-        }
-      });
-      stack.querySelectorAll('.edit__photo-link').forEach(a => {
-        a.addEventListener('click', async (ev) => {
-          ev.preventDefault();
-          const img = a.querySelector('img');
-          if (img && img.src) window.open(img.src, '_blank');
+        </a>`,
+          )
+          .join("");
+        stack.querySelectorAll(".edit__photo-img").forEach(async (el) => {
+          try {
+            const res = await fetch(el.dataset.src, { headers: { Authorization: `Bearer ${token}` } });
+            if (!res.ok) throw new Error("img fetch fail");
+            const blob = await res.blob();
+            el.src = URL.createObjectURL(blob);
+          } catch {
+            el.replaceWith(
+              Object.assign(document.createElement("div"), {
+                className: "edit__photo-empty",
+                textContent: "image load failed",
+              }),
+            );
+          }
         });
-      });
-    }
+        stack.querySelectorAll(".edit__photo-link").forEach((a) => {
+          a.addEventListener("click", async (ev) => {
+            ev.preventDefault();
+            const img = a.querySelector("img");
+            if (img && img.src) window.open(img.src, "_blank");
+          });
+        });
+      }
 
-    function setImportance(n) {
-      CURRENT_IMPORTANCE = Math.max(0, Math.min(3, n));
-      document.querySelectorAll('.importance__btn').forEach(btn => {
-        const v = Number(btn.dataset.imp);
-        btn.classList.toggle('is-on', v > 0 && v <= CURRENT_IMPORTANCE);
-        btn.classList.toggle('is-zero', v === 0 && CURRENT_IMPORTANCE === 0);
-      });
-    }
+      function setImportance(n) {
+        CURRENT_IMPORTANCE = Math.max(0, Math.min(3, n));
+        document.querySelectorAll(".importance__btn").forEach((btn) => {
+          const v = Number(btn.dataset.imp);
+          btn.classList.toggle("is-on", v > 0 && v <= CURRENT_IMPORTANCE);
+          btn.classList.toggle("is-zero", v === 0 && CURRENT_IMPORTANCE === 0);
+        });
+      }
 
-    function renderItems(items) {
-      const root = document.getElementById('items-list');
-      root.innerHTML = '';
-      items.forEach(it => root.appendChild(makeItemRow(it)));
-      if (!items.length) root.appendChild(makeItemRow({ product_name: '', quantity: 1, unit_price: 0, total_price: 0 }));
-      ssIcons();
-    }
+      function renderItems(items) {
+        const root = document.getElementById("items-list");
+        root.innerHTML = "";
+        items.forEach((it) => root.appendChild(makeItemRow(it)));
+        if (!items.length)
+          root.appendChild(makeItemRow({ product_name: "", quantity: 1, unit_price: 0, total_price: 0 }));
+        ssIcons();
+      }
 
-    function fmtNum(v, d=2) {
-      if (v === null || v === undefined || v === '') return '';
-      const n = Number(v);
-      if (Number.isNaN(n)) return '';
-      if (Number.isInteger(n)) return String(n);
-      return n.toFixed(d).replace(/\.?0+$/, '');
-    }
+      function fmtNum(v, d = 2) {
+        if (v === null || v === undefined || v === "") return "";
+        const n = Number(v);
+        if (Number.isNaN(n)) return "";
+        if (Number.isInteger(n)) return String(n);
+        return n.toFixed(d).replace(/\.?0+$/, "");
+      }
 
-    function makeItemRow(it) {
-      const row = document.createElement('div');
-      row.className = 'item';
-      row.innerHTML = `
-        <input class="input item__name" type="text"   placeholder="Product name" value="${(it.product_name || '').replace(/"/g,'&quot;')}">
+      function makeItemRow(it) {
+        const row = document.createElement("div");
+        row.className = "item";
+        row.innerHTML = `
+        <input class="input item__name" type="text"   placeholder="Product name" value="${(it.product_name || "").replace(/"/g, "&quot;")}">
         <input class="input item__qty"  type="number" step="0.001" placeholder="0" value="${fmtNum(it.quantity, 3)}">
         <input class="input item__unit" type="number" step="0.01"  placeholder="0.00" value="${fmtNum(it.unit_price, 2)}">
         <input class="input item__tot"  type="number" step="0.01"  placeholder="0.00" value="${fmtNum(it.total_price, 2)}">
         <button type="button" class="btn btn--ghost btn--icon item__del" title="Remove"><i data-lucide="x"></i></button>`;
-      row.querySelector('.item__del').addEventListener('click', () => { row.remove(); checkSanity(); });
-      row.querySelectorAll('input').forEach(inp => inp.addEventListener('input', checkSanity));
-      return row;
-    }
-
-    function checkSanity() {
-      let itemsSum = 0;
-      let mismatches = 0;
-      document.querySelectorAll('#items-list .item').forEach(row => {
-        const qty  = parseFloat(row.querySelector('.item__qty').value)  || 0;
-        const unit = parseFloat(row.querySelector('.item__unit').value) || 0;
-        const tot  = parseFloat(row.querySelector('.item__tot').value)  || 0;
-        itemsSum += tot;
-        const expected = qty * unit;
-        const tooFar = qty > 0 && unit > 0 && Math.abs(expected - tot) > 0.05;
-        row.classList.toggle('is-bad', tooFar);
-        if (tooFar) mismatches += 1;
-      });
-      const tot = parseFloat(document.querySelector('[name=total_amount]').value) || 0;
-      const sumOk = Math.abs(tot - itemsSum) <= 0.05 || itemsSum === 0;
-      const el = document.getElementById('sanity-status');
-      if (mismatches === 0 && sumOk) {
-        el.className = 'sanity sanity--ok';
-        el.innerHTML = `<i data-lucide="check-circle-2"></i> Items match (${itemsSum.toFixed(2)})`;
-      } else {
-        const parts = [];
-        if (mismatches) parts.push(`${mismatches} qty·price ≠ total`);
-        if (!sumOk) parts.push(`sum ${itemsSum.toFixed(2)} ≠ total ${tot.toFixed(2)}`);
-        el.className = 'sanity sanity--bad';
-        el.innerHTML = `<i data-lucide="alert-triangle"></i> ${parts.join(' · ')}`;
+        row.querySelector(".item__del").addEventListener("click", () => {
+          row.remove();
+          checkSanity();
+        });
+        row.querySelectorAll("input").forEach((inp) => inp.addEventListener("input", checkSanity));
+        return row;
       }
-      ssIcons();
-    }
 
-    function wireForm() {
-      document.querySelectorAll('.importance__btn').forEach(btn => {
-        btn.addEventListener('click', () => setImportance(Number(btn.dataset.imp)));
-      });
-      document.getElementById('add-item').addEventListener('click', () => {
-        document.getElementById('items-list').appendChild(makeItemRow({}));
-        ssIcons();
-        checkSanity();
-      });
-      document.getElementById('discard').addEventListener('click', async () => {
-        if (!confirm('Delete this receipt? This cannot be undone.')) return;
-        try { await SS.deleteReceipt(RECEIPT.id); } catch {}
-        location.href = '/';
-      });
-      document.getElementById('currency-input').addEventListener('input', (e) => {
-        document.getElementById('cur-suffix').textContent = (e.target.value || 'PLN').toUpperCase();
-      });
-      document.querySelector('[name=total_amount]').addEventListener('input', checkSanity);
-      document.getElementById('edit-form').addEventListener('submit', onSave);
-    }
-
-    async function onSave(ev) {
-      ev.preventDefault();
-      const f = ev.currentTarget;
-      const items = Array.from(document.querySelectorAll('#items-list .item')).map(row => ({
-        product_name: row.querySelector('.item__name').value.trim() || '—',
-        quantity:     parseFloat(row.querySelector('.item__qty').value)  || null,
-        unit_price:   parseFloat(row.querySelector('.item__unit').value) || null,
-        total_price:  parseFloat(row.querySelector('.item__tot').value)  || 0,
-      })).filter(it => (it.product_name && it.product_name !== '—') || it.total_price > 0);
-
-      const payload = {
-        merchant_name:  f.merchant_name.value.trim() || null,
-        receipt_date:   f.receipt_date.value || null,
-        currency:       f.currency.value.trim().toUpperCase() || null,
-        total_amount:   parseFloat(f.total_amount.value) || 0,
-        payment_method: f.payment_method.value.trim() || null,
-        importance:     CURRENT_IMPORTANCE,
-        items,
-      };
-      const btn = document.getElementById('save');
-      btn.disabled = true;
-      btn.innerHTML = '<i data-lucide="loader-2" class="spin"></i><span>Saving…</span>';
-      ssIcons();
-      try {
-        await SS.updateReceipt(RECEIPT.id, payload);
-        location.href = '/statistics.html';
-      } catch (err) {
-        alert(err.message || 'Save failed');
-        btn.disabled = false;
-        btn.innerHTML = '<i data-lucide="check"></i><span>Save receipt</span>';
+      function checkSanity() {
+        let itemsSum = 0;
+        let mismatches = 0;
+        document.querySelectorAll("#items-list .item").forEach((row) => {
+          const qty = parseFloat(row.querySelector(".item__qty").value) || 0;
+          const unit = parseFloat(row.querySelector(".item__unit").value) || 0;
+          const tot = parseFloat(row.querySelector(".item__tot").value) || 0;
+          itemsSum += tot;
+          const expected = qty * unit;
+          const tooFar = qty > 0 && unit > 0 && Math.abs(expected - tot) > 0.05;
+          row.classList.toggle("is-bad", tooFar);
+          if (tooFar) mismatches += 1;
+        });
+        const tot = parseFloat(document.querySelector("[name=total_amount]").value) || 0;
+        const sumOk = Math.abs(tot - itemsSum) <= 0.05 || itemsSum === 0;
+        const el = document.getElementById("sanity-status");
+        if (mismatches === 0 && sumOk) {
+          el.className = "sanity sanity--ok";
+          el.innerHTML = `<i data-lucide="check-circle-2"></i> Items match (${itemsSum.toFixed(2)})`;
+        } else {
+          const parts = [];
+          if (mismatches) parts.push(`${mismatches} qty·price ≠ total`);
+          if (!sumOk) parts.push(`sum ${itemsSum.toFixed(2)} ≠ total ${tot.toFixed(2)}`);
+          el.className = "sanity sanity--bad";
+          el.innerHTML = `<i data-lucide="alert-triangle"></i> ${parts.join(" · ")}`;
+        }
         ssIcons();
       }
-    }
 
-    boot();
-  </script>
-</body>
+      function wireForm() {
+        document.querySelectorAll(".importance__btn").forEach((btn) => {
+          btn.addEventListener("click", () => setImportance(Number(btn.dataset.imp)));
+        });
+        document.getElementById("add-item").addEventListener("click", () => {
+          document.getElementById("items-list").appendChild(makeItemRow({}));
+          ssIcons();
+          checkSanity();
+        });
+        document.getElementById("discard").addEventListener("click", async () => {
+          if (!confirm("Delete this receipt? This cannot be undone.")) return;
+          try {
+            await SS.deleteReceipt(RECEIPT.id);
+          } catch {}
+          location.href = "/";
+        });
+        document.getElementById("currency-input").addEventListener("input", (e) => {
+          document.getElementById("cur-suffix").textContent = (e.target.value || "PLN").toUpperCase();
+        });
+        document.querySelector("[name=total_amount]").addEventListener("input", checkSanity);
+        document.getElementById("edit-form").addEventListener("submit", onSave);
+      }
+
+      async function onSave(ev) {
+        ev.preventDefault();
+        const f = ev.currentTarget;
+        const items = Array.from(document.querySelectorAll("#items-list .item"))
+          .map((row) => ({
+            product_name: row.querySelector(".item__name").value.trim() || "—",
+            quantity: parseFloat(row.querySelector(".item__qty").value) || null,
+            unit_price: parseFloat(row.querySelector(".item__unit").value) || null,
+            total_price: parseFloat(row.querySelector(".item__tot").value) || 0,
+          }))
+          .filter((it) => (it.product_name && it.product_name !== "—") || it.total_price > 0);
+
+        const payload = {
+          merchant_name: f.merchant_name.value.trim() || null,
+          receipt_date: f.receipt_date.value || null,
+          currency: f.currency.value.trim().toUpperCase() || null,
+          total_amount: parseFloat(f.total_amount.value) || 0,
+          payment_method: f.payment_method.value.trim() || null,
+          importance: CURRENT_IMPORTANCE,
+          items,
+        };
+        const btn = document.getElementById("save");
+        btn.disabled = true;
+        btn.innerHTML = '<i data-lucide="loader-2" class="spin"></i><span>Saving…</span>';
+        ssIcons();
+        try {
+          await SS.updateReceipt(RECEIPT.id, payload);
+          location.href = "/statistics.html";
+        } catch (err) {
+          alert(err.message || "Save failed");
+          btn.disabled = false;
+          btn.innerHTML = '<i data-lucide="check"></i><span>Save receipt</span>';
+          ssIcons();
+        }
+      }
+
+      boot();
+    </script>
+  </body>
 </html>

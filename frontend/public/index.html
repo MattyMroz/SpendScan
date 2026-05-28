@@ -1,178 +1,203 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Scan receipt · SpendScan</title>
-  <link rel="icon" href="/assets/icon.png" />
-  <link rel="stylesheet" href="/static/css/base.css" />
-  <link rel="stylesheet" href="/static/css/app.css" />
-</head>
-<body>
-  <div class="page-shell">
-    <nav class="topnav" id="topnav"></nav>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Scan receipt · SpendScan</title>
+    <link rel="icon" href="/assets/icon.png" />
+    <link rel="stylesheet" href="/static/css/base.css" />
+    <link rel="stylesheet" href="/static/css/app.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <nav class="topnav" id="topnav"></nav>
 
-    <main class="home-main" id="main">
-      <div class="home-inner">
-        <div class="home-head">
-          <h1 class="home-title">Scan your receipt</h1>
-          <p class="home-subtitle">Upload photos of your receipts and automatically extract the data.</p>
+      <main class="home-main" id="main">
+        <div class="home-inner">
+          <div class="home-head">
+            <h1 class="home-title">Scan your receipt</h1>
+            <p class="home-subtitle">Upload photos of your receipts and automatically extract the data.</p>
+          </div>
+
+          <label class="dz" id="dropzone" for="file-upload">
+            <input id="file-upload" type="file" accept="image/*" multiple />
+            <div class="dz__icon"><i data-lucide="upload"></i></div>
+            <h3 class="dz__title">Click anywhere to choose photos</h3>
+            <p class="dz__hint">or drop them here · multi-page = one receipt</p>
+            <p class="dz__formats">JPG, PNG, WebP</p>
+          </label>
+
+          <div id="alert" class="alert alert--error hidden" style="margin-top: 16px"></div>
         </div>
+      </main>
 
-        <label class="dz" id="dropzone" for="file-upload">
-          <input id="file-upload" type="file" accept="image/*" multiple />
-          <div class="dz__icon"><i data-lucide="upload"></i></div>
-          <h3 class="dz__title">Click anywhere to choose photos</h3>
-          <p class="dz__hint">or drop them here · multi-page = one receipt</p>
-          <p class="dz__formats">JPG, PNG, WebP</p>
-        </label>
-
-        <div id="alert" class="alert alert--error hidden" style="margin-top: 16px;"></div>
-      </div>
-    </main>
-
-    <template id="scanning-tpl">
-      <div class="scan-wrap">
-        <div class="scan">
-          <div class="card">
-            <div class="scan__head">
-              <div class="scan__icon" id="scan-icon"><i data-lucide="loader-2" class="spin"></i></div>
-              <h2 class="scan__title" id="scan-title">Uploading receipt…</h2>
-              <p class="scan__sub" id="scan-sub">Please wait, this may take a moment.</p>
+      <template id="scanning-tpl">
+        <div class="scan-wrap">
+          <div class="scan">
+            <div class="card">
+              <div class="scan__head">
+                <div class="scan__icon" id="scan-icon"><i data-lucide="loader-2" class="spin"></i></div>
+                <h2 class="scan__title" id="scan-title">Uploading receipt…</h2>
+                <p class="scan__sub" id="scan-sub">Please wait, this may take a moment.</p>
+              </div>
+              <div class="scan__bar"><div class="scan__bar-fill" id="scan-fill"></div></div>
+              <div class="scan__percent" id="scan-percent">0%</div>
+              <div class="scan__stages" id="scan-stages">
+                <div class="scan__stage" data-stage="upload">
+                  <span class="scan__stage-dot"></span><span class="scan__stage-label">Uploading</span>
+                </div>
+                <div class="scan__stage" data-stage="ocr">
+                  <span class="scan__stage-dot"></span><span class="scan__stage-label">OCR</span>
+                </div>
+                <div class="scan__stage" data-stage="extract">
+                  <span class="scan__stage-dot"></span><span class="scan__stage-label">Extracting</span>
+                </div>
+                <div class="scan__stage" data-stage="done">
+                  <span class="scan__stage-dot"></span><span class="scan__stage-label">Done</span>
+                </div>
+              </div>
+              <div id="scan-alert" class="alert alert--error hidden" style="margin-top: 16px"></div>
             </div>
-            <div class="scan__bar"><div class="scan__bar-fill" id="scan-fill"></div></div>
-            <div class="scan__percent" id="scan-percent">0%</div>
-            <div class="scan__stages" id="scan-stages">
-              <div class="scan__stage" data-stage="upload"><span class="scan__stage-dot"></span><span class="scan__stage-label">Uploading</span></div>
-              <div class="scan__stage" data-stage="ocr"><span class="scan__stage-dot"></span><span class="scan__stage-label">OCR</span></div>
-              <div class="scan__stage" data-stage="extract"><span class="scan__stage-dot"></span><span class="scan__stage-label">Extracting</span></div>
-              <div class="scan__stage" data-stage="done"><span class="scan__stage-dot"></span><span class="scan__stage-label">Done</span></div>
-            </div>
-            <div id="scan-alert" class="alert alert--error hidden" style="margin-top: 16px;"></div>
           </div>
         </div>
-      </div>
-    </template>
-  </div>
+      </template>
+    </div>
 
-  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
-  <script src="/static/js/api.js"></script>
-  <script src="/static/js/icons.js"></script>
-  <script>
-    SS.paintNav('scan');
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <script src="/static/js/api.js"></script>
+    <script src="/static/js/icons.js"></script>
+    <script>
+      SS.paintNav("scan");
 
-    const dropzone   = document.getElementById('dropzone');
-    const fileInput  = document.getElementById('file-upload');
-    const alertBox   = document.getElementById('alert');
+      const dropzone = document.getElementById("dropzone");
+      const fileInput = document.getElementById("file-upload");
+      const alertBox = document.getElementById("alert");
 
-    function showError(msg) { alertBox.textContent = msg; alertBox.classList.remove('hidden'); }
-    function hideError()    { alertBox.classList.add('hidden'); }
+      function showError(msg) {
+        alertBox.textContent = msg;
+        alertBox.classList.remove("hidden");
+      }
+      function hideError() {
+        alertBox.classList.add("hidden");
+      }
 
-    function pickedFiles(input) {
-      return Array.from(input.files || []).filter(f => f.type.startsWith('image/'));
-    }
+      function pickedFiles(input) {
+        return Array.from(input.files || []).filter((f) => f.type.startsWith("image/"));
+      }
 
-    async function handleFiles(files) {
-      if (!files.length) return;
-      if (!SS.isAuthed()) { location.href = '/login.html'; return; }
-      hideError();
-      swapToScanning();
-      await runUpload(files);
-    }
+      async function handleFiles(files) {
+        if (!files.length) return;
+        if (!SS.isAuthed()) {
+          location.href = "/login.html";
+          return;
+        }
+        hideError();
+        swapToScanning();
+        await runUpload(files);
+      }
 
-    fileInput.addEventListener('change', () => handleFiles(pickedFiles(fileInput)));
+      fileInput.addEventListener("change", () => handleFiles(pickedFiles(fileInput)));
 
-    ['dragenter','dragover'].forEach(ev =>
-      dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.add('is-dragover'); })
-    );
-    ['dragleave','drop'].forEach(ev =>
-      dropzone.addEventListener(ev, e => { e.preventDefault(); dropzone.classList.remove('is-dragover'); })
-    );
-    dropzone.addEventListener('drop', e => {
-      const files = Array.from(e.dataTransfer?.files || []).filter(f => f.type.startsWith('image/'));
-      if (files.length) handleFiles(files);
-    });
-
-    function swapToScanning() {
-      const main = document.getElementById('main');
-      main.innerHTML = '';
-      main.appendChild(document.getElementById('scanning-tpl').content.cloneNode(true));
-      ssIcons();
-    }
-
-    function setStage(name, percent) {
-      const stages = ['upload', 'ocr', 'extract', 'done'];
-      const idx = stages.indexOf(name);
-      document.querySelectorAll('#scan-stages .scan__stage').forEach((el, i) => {
-        el.classList.toggle('is-active', i === idx);
-        el.classList.toggle('is-done', i < idx);
+      ["dragenter", "dragover"].forEach((ev) =>
+        dropzone.addEventListener(ev, (e) => {
+          e.preventDefault();
+          dropzone.classList.add("is-dragover");
+        }),
+      );
+      ["dragleave", "drop"].forEach((ev) =>
+        dropzone.addEventListener(ev, (e) => {
+          e.preventDefault();
+          dropzone.classList.remove("is-dragover");
+        }),
+      );
+      dropzone.addEventListener("drop", (e) => {
+        const files = Array.from(e.dataTransfer?.files || []).filter((f) => f.type.startsWith("image/"));
+        if (files.length) handleFiles(files);
       });
-      const titles = {
-        upload:  ['Uploading receipt…',  'Sending images to the server.'],
-        ocr:     ['Reading text…',       'OCR is extracting text from each page.'],
-        extract: ['Extracting data…',    'AI is structuring items, prices and totals.'],
-        done:    ['Done!',               'Receipt processed successfully.'],
-      };
-      const [t, s] = titles[name];
-      document.getElementById('scan-title').textContent = t;
-      document.getElementById('scan-sub').textContent = s;
-      document.getElementById('scan-fill').style.width = percent + '%';
-      document.getElementById('scan-percent').textContent = Math.round(percent) + '%';
-      if (name === 'done') {
-        const icon = document.getElementById('scan-icon');
-        icon.classList.add('is-done');
-        icon.innerHTML = '<i data-lucide="check-circle-2"></i>';
+
+      function swapToScanning() {
+        const main = document.getElementById("main");
+        main.innerHTML = "";
+        main.appendChild(document.getElementById("scanning-tpl").content.cloneNode(true));
         ssIcons();
       }
-    }
 
-    async function runUpload(files) {
-      setStage('upload', 5);
-      let progress = 5;
-      const tick = setInterval(() => {
-        progress = Math.min(progress + 0.6, 88);
-        if (progress < 25)      setStage('upload',  progress);
-        else if (progress < 55) setStage('ocr',     progress);
-        else                    setStage('extract', progress);
-      }, 260);
-      try {
-        const result = await SS.uploadReceipt(files);
-        clearInterval(tick);
-        setStage('done', 100);
-        const id = (result && (result.id || (result.receipts && result.receipts[0] && result.receipts[0].id))) || null;
-        setTimeout(() => {
-          location.href = id ? `/edit.html?id=${id}` : '/statistics.html';
-        }, 700);
-      } catch (err) {
-        clearInterval(tick);
-        showScanError(err.message || 'Upload failed');
+      function setStage(name, percent) {
+        const stages = ["upload", "ocr", "extract", "done"];
+        const idx = stages.indexOf(name);
+        document.querySelectorAll("#scan-stages .scan__stage").forEach((el, i) => {
+          el.classList.toggle("is-active", i === idx);
+          el.classList.toggle("is-done", i < idx);
+        });
+        const titles = {
+          upload: ["Uploading receipt…", "Sending images to the server."],
+          ocr: ["Reading text…", "OCR is extracting text from each page."],
+          extract: ["Extracting data…", "AI is structuring items, prices and totals."],
+          done: ["Done!", "Receipt processed successfully."],
+        };
+        const [t, s] = titles[name];
+        document.getElementById("scan-title").textContent = t;
+        document.getElementById("scan-sub").textContent = s;
+        document.getElementById("scan-fill").style.width = percent + "%";
+        document.getElementById("scan-percent").textContent = Math.round(percent) + "%";
+        if (name === "done") {
+          const icon = document.getElementById("scan-icon");
+          icon.classList.add("is-done");
+          icon.innerHTML = '<i data-lucide="check-circle-2"></i>';
+          ssIcons();
+        }
       }
-    }
 
-    function showScanError(message) {
-      const icon = document.getElementById('scan-icon');
-      icon.classList.remove('is-done');
-      icon.classList.add('is-error');
-      icon.innerHTML = '<i data-lucide="alert-triangle"></i>';
-      document.getElementById('scan-title').textContent = 'Something went wrong';
-      document.getElementById('scan-sub').textContent = 'We could not process your receipt.';
-      document.getElementById('scan-fill').style.width = '100%';
-      document.getElementById('scan-fill').classList.add('is-error');
-      document.getElementById('scan-percent').textContent = 'Failed';
-      const alert = document.getElementById('scan-alert');
-      alert.textContent = message;
-      alert.classList.remove('hidden');
-      const actions = document.createElement('div');
-      actions.className = 'home-actions';
-      actions.style.marginTop = '24px';
-      actions.innerHTML = `
+      async function runUpload(files) {
+        setStage("upload", 5);
+        let progress = 5;
+        const tick = setInterval(() => {
+          progress = Math.min(progress + 0.6, 88);
+          if (progress < 25) setStage("upload", progress);
+          else if (progress < 55) setStage("ocr", progress);
+          else setStage("extract", progress);
+        }, 260);
+        try {
+          const result = await SS.uploadReceipt(files);
+          clearInterval(tick);
+          setStage("done", 100);
+          const id =
+            (result && (result.id || (result.receipts && result.receipts[0] && result.receipts[0].id))) || null;
+          setTimeout(() => {
+            location.href = id ? `/edit.html?id=${id}` : "/statistics.html";
+          }, 700);
+        } catch (err) {
+          clearInterval(tick);
+          showScanError(err.message || "Upload failed");
+        }
+      }
+
+      function showScanError(message) {
+        const icon = document.getElementById("scan-icon");
+        icon.classList.remove("is-done");
+        icon.classList.add("is-error");
+        icon.innerHTML = '<i data-lucide="alert-triangle"></i>';
+        document.getElementById("scan-title").textContent = "Something went wrong";
+        document.getElementById("scan-sub").textContent = "We could not process your receipt.";
+        document.getElementById("scan-fill").style.width = "100%";
+        document.getElementById("scan-fill").classList.add("is-error");
+        document.getElementById("scan-percent").textContent = "Failed";
+        const alert = document.getElementById("scan-alert");
+        alert.textContent = message;
+        alert.classList.remove("hidden");
+        const actions = document.createElement("div");
+        actions.className = "home-actions";
+        actions.style.marginTop = "24px";
+        actions.innerHTML = `
         <button type="button" class="btn btn--primary btn--lg" id="scan-retry"><i data-lucide="refresh-ccw"></i><span>Try again</span></button>
         <a href="/" class="btn btn--outline btn--lg"><i data-lucide="home"></i><span>Back to home</span></a>
       `;
-      alert.insertAdjacentElement('afterend', actions);
-      document.getElementById('scan-retry').addEventListener('click', () => { location.reload(); });
-      ssIcons();
-    }
-  </script>
-</body>
+        alert.insertAdjacentElement("afterend", actions);
+        document.getElementById("scan-retry").addEventListener("click", () => {
+          location.reload();
+        });
+        ssIcons();
+      }
+    </script>
+  </body>
 </html>

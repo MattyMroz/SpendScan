@@ -399,8 +399,7 @@ def _save_pipeline_result(
         )
         for result in pipeline_result.images
     )
-    detail = ReceiptRepository(session).save_analysis(result=pipeline_result.receipt, images=images, user_id=user_id)
-    return detail
+    return ReceiptRepository(session).save_analysis(result=pipeline_result.receipt, images=images, user_id=user_id)
 
 
 def _detail_response(detail: ReceiptDetailRecord) -> ReceiptDetailResponse:

@@ -1,170 +1,205 @@
 <!doctype html>
 <html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Calendar · SpendScan</title>
-  <link rel="icon" href="/assets/icon.png" />
-  <link rel="stylesheet" href="/static/css/base.css" />
-  <link rel="stylesheet" href="/static/css/app.css" />
-</head>
-<body>
-  <div class="page-shell">
-    <nav class="topnav" id="topnav"></nav>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Calendar · SpendScan</title>
+    <link rel="icon" href="/assets/icon.png" />
+    <link rel="stylesheet" href="/static/css/base.css" />
+    <link rel="stylesheet" href="/static/css/app.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <nav class="topnav" id="topnav"></nav>
 
-    <main class="cal">
-      <div class="cal__inner">
-        <header class="cal__head">
-          <h1 class="cal__title">Receipt calendar</h1>
-          <p class="cal__sub">Overview of all your scans by day</p>
-        </header>
+      <main class="cal">
+        <div class="cal__inner">
+          <header class="cal__head">
+            <h1 class="cal__title">Receipt calendar</h1>
+            <p class="cal__sub">Overview of all your scans by day</p>
+          </header>
 
-        <div class="card">
-          <div class="cal__nav">
-            <h2 class="cal__month" id="cal-month"></h2>
-            <div class="cal__nav-btns">
-              <button class="cal__nav-btn" id="cal-prev" type="button"><i data-lucide="chevron-left"></i></button>
-              <button class="cal__nav-btn" id="cal-next" type="button"><i data-lucide="chevron-right"></i></button>
+          <div class="card">
+            <div class="cal__nav">
+              <h2 class="cal__month" id="cal-month"></h2>
+              <div class="cal__nav-btns">
+                <button class="cal__nav-btn" id="cal-prev" type="button"><i data-lucide="chevron-left"></i></button>
+                <button class="cal__nav-btn" id="cal-next" type="button"><i data-lucide="chevron-right"></i></button>
+              </div>
+            </div>
+
+            <div class="cal__weekdays">
+              <div class="cal__weekday">Mon</div>
+              <div class="cal__weekday">Tue</div>
+              <div class="cal__weekday">Wed</div>
+              <div class="cal__weekday">Thu</div>
+              <div class="cal__weekday">Fri</div>
+              <div class="cal__weekday">Sat</div>
+              <div class="cal__weekday">Sun</div>
+            </div>
+
+            <div class="cal__grid" id="cal-grid"></div>
+          </div>
+
+          <div class="card" style="margin-top: 24px">
+            <h3 class="cal__list-title">
+              All receipts <span class="cal__hint">(click coins to mark importance)</span>
+            </h3>
+            <div id="rcpt-list"></div>
+            <div id="rcpt-empty" class="hidden" style="text-align: center; padding: 32px; color: var(--slate-500)">
+              <i data-lucide="receipt-text" style="width: 40px; height: 40px; color: var(--slate-300)"></i>
+              <p style="margin-top: 8px">No receipts yet. Scan one from the home page.</p>
             </div>
           </div>
 
-          <div class="cal__weekdays">
-            <div class="cal__weekday">Mon</div><div class="cal__weekday">Tue</div>
-            <div class="cal__weekday">Wed</div><div class="cal__weekday">Thu</div>
-            <div class="cal__weekday">Fri</div><div class="cal__weekday">Sat</div>
-            <div class="cal__weekday">Sun</div>
-          </div>
-
-          <div class="cal__grid" id="cal-grid"></div>
+          <div id="cal-alert" class="alert alert--error hidden" style="margin-top: 16px"></div>
         </div>
+      </main>
+    </div>
 
-        <div class="card" style="margin-top: 24px;">
-          <h3 class="cal__list-title">
-            All receipts <span class="cal__hint">(click coins to mark importance)</span>
-          </h3>
-          <div id="rcpt-list"></div>
-          <div id="rcpt-empty" class="hidden" style="text-align:center;padding:32px;color:var(--slate-500);">
-            <i data-lucide="receipt-text" style="width:40px;height:40px;color:var(--slate-300);"></i>
-            <p style="margin-top:8px;">No receipts yet. Scan one from the home page.</p>
-          </div>
-        </div>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <script src="/static/js/api.js"></script>
+    <script src="/static/js/icons.js"></script>
+    <script>
+      SS.guard();
+      SS.paintNav("cal");
 
-        <div id="cal-alert" class="alert alert--error hidden" style="margin-top:16px;"></div>
-      </div>
-    </main>
-  </div>
+      const MONTH_NAMES = [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+      ];
+      let viewYear,
+        viewMonth,
+        receipts = [];
 
-  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
-  <script src="/static/js/api.js"></script>
-  <script src="/static/js/icons.js"></script>
-  <script>
-    SS.guard();
-    SS.paintNav('cal');
+      const today = new Date();
+      viewYear = today.getFullYear();
+      viewMonth = today.getMonth();
 
-    const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-    let viewYear, viewMonth, receipts = [];
-
-    const today = new Date();
-    viewYear = today.getFullYear();
-    viewMonth = today.getMonth();
-
-    function importanceKey() { return 'ss_importance'; }
-    function getImp(r) {
-      return Math.max(0, Math.min(3, Number(r.importance || 0)));
-    }
-    async function setImp(r, val) {
-      r.importance = val;
-      try { await SS.updateReceipt(r.id, { importance: val }); }
-      catch (err) { showError(err.message || 'Failed to save importance'); }
-    }
-
-    function fmtAmt(v) { return Number(v || 0).toLocaleString('en-US', { maximumFractionDigits: 2 }) + ' PLN'; }
-    function showError(msg) {
-      const a = document.getElementById('cal-alert');
-      a.textContent = msg; a.classList.remove('hidden');
-    }
-
-    async function load() {
-      try {
-        const list = await SS.listReceipts();
-        receipts = list;
-        render();
-      } catch (err) {
-        showError(err.message || 'Failed to load receipts');
+      function importanceKey() {
+        return "ss_importance";
       }
-    }
-
-    function render() {
-      document.getElementById('cal-month').textContent = `${MONTH_NAMES[viewMonth]} ${viewYear}`;
-      renderGrid();
-      renderList();
-      ssIcons();
-    }
-
-    function renderGrid() {
-      const grid = document.getElementById('cal-grid');
-      const firstDay = new Date(viewYear, viewMonth, 1);
-      const lastDay  = new Date(viewYear, viewMonth + 1, 0);
-      const dim = lastDay.getDate();
-      const mondayIndex = (firstDay.getDay() + 6) % 7;
-
-      const byDay = new Map();
-      for (const r of receipts) {
-        if (!r.receipt_date) continue;
-        const d = new Date(r.receipt_date);
-        if (d.getFullYear() === viewYear && d.getMonth() === viewMonth) {
-          const day = d.getDate();
-          const entry = byDay.get(day) || { count: 0, total: 0 };
-          entry.count += 1; entry.total += Number(r.total_amount || 0);
-          byDay.set(day, entry);
+      function getImp(r) {
+        return Math.max(0, Math.min(3, Number(r.importance || 0)));
+      }
+      async function setImp(r, val) {
+        r.importance = val;
+        try {
+          await SS.updateReceipt(r.id, { importance: val });
+        } catch (err) {
+          showError(err.message || "Failed to save importance");
         }
       }
 
-      const cells = [];
-      for (let i = 0; i < mondayIndex; i++) cells.push(`<div class="cal__cell cal__cell--empty"></div>`);
-      for (let d = 1; d <= dim; d++) {
-        const isToday = (d === today.getDate() && viewMonth === today.getMonth() && viewYear === today.getFullYear());
-        const data = byDay.get(d);
-        const cls = ['cal__cell'];
-        if (data) cls.push('cal__cell--has');
-        if (isToday) cls.push('cal__cell--today');
-        cells.push(`
-          <div class="${cls.join(' ')}">
+      function fmtAmt(v) {
+        return Number(v || 0).toLocaleString("en-US", { maximumFractionDigits: 2 }) + " PLN";
+      }
+      function showError(msg) {
+        const a = document.getElementById("cal-alert");
+        a.textContent = msg;
+        a.classList.remove("hidden");
+      }
+
+      async function load() {
+        try {
+          const list = await SS.listReceipts();
+          receipts = list;
+          render();
+        } catch (err) {
+          showError(err.message || "Failed to load receipts");
+        }
+      }
+
+      function render() {
+        document.getElementById("cal-month").textContent = `${MONTH_NAMES[viewMonth]} ${viewYear}`;
+        renderGrid();
+        renderList();
+        ssIcons();
+      }
+
+      function renderGrid() {
+        const grid = document.getElementById("cal-grid");
+        const firstDay = new Date(viewYear, viewMonth, 1);
+        const lastDay = new Date(viewYear, viewMonth + 1, 0);
+        const dim = lastDay.getDate();
+        const mondayIndex = (firstDay.getDay() + 6) % 7;
+
+        const byDay = new Map();
+        for (const r of receipts) {
+          if (!r.receipt_date) continue;
+          const d = new Date(r.receipt_date);
+          if (d.getFullYear() === viewYear && d.getMonth() === viewMonth) {
+            const day = d.getDate();
+            const entry = byDay.get(day) || { count: 0, total: 0 };
+            entry.count += 1;
+            entry.total += Number(r.total_amount || 0);
+            byDay.set(day, entry);
+          }
+        }
+
+        const cells = [];
+        for (let i = 0; i < mondayIndex; i++) cells.push(`<div class="cal__cell cal__cell--empty"></div>`);
+        for (let d = 1; d <= dim; d++) {
+          const isToday = d === today.getDate() && viewMonth === today.getMonth() && viewYear === today.getFullYear();
+          const data = byDay.get(d);
+          const cls = ["cal__cell"];
+          if (data) cls.push("cal__cell--has");
+          if (isToday) cls.push("cal__cell--today");
+          cells.push(`
+          <div class="${cls.join(" ")}">
             <div class="cal__day-num">${d}</div>
-            ${data ? `<div class="cal__day-body">
+            ${
+              data
+                ? `<div class="cal__day-body">
               <i data-lucide="receipt"></i>
               <div class="cal__day-amount">${fmtAmt(data.total)}</div>
-              <div class="cal__day-count">${data.count} receipt${data.count > 1 ? 's' : ''}</div>
-            </div>` : ''}
+              <div class="cal__day-count">${data.count} receipt${data.count > 1 ? "s" : ""}</div>
+            </div>`
+                : ""
+            }
           </div>
         `);
+        }
+        grid.innerHTML = cells.join("");
       }
-      grid.innerHTML = cells.join('');
-    }
 
-    function renderList() {
-      const list = document.getElementById('rcpt-list');
-      const empty = document.getElementById('rcpt-empty');
-      const sorted = [...receipts].sort((a, b) => {
-        const ad = a.receipt_date || ''; const bd = b.receipt_date || '';
-        return bd.localeCompare(ad);
-      });
-      if (!sorted.length) {
-        list.innerHTML = ''; empty.classList.remove('hidden'); return;
-      }
-      empty.classList.add('hidden');
-      list.innerHTML = sorted.map(r => {
-        const imp = getImp(r);
-        const dateStr = r.receipt_date ? new Date(r.receipt_date).toLocaleDateString('en-GB') : '—';
-        const coins = [0,1,2].map(i =>
-          `<i data-lucide="coins" class="coin${i < imp ? ' is-on' : ''}"></i>`
-        ).join('');
-        return `
+      function renderList() {
+        const list = document.getElementById("rcpt-list");
+        const empty = document.getElementById("rcpt-empty");
+        const sorted = [...receipts].sort((a, b) => {
+          const ad = a.receipt_date || "";
+          const bd = b.receipt_date || "";
+          return bd.localeCompare(ad);
+        });
+        if (!sorted.length) {
+          list.innerHTML = "";
+          empty.classList.remove("hidden");
+          return;
+        }
+        empty.classList.add("hidden");
+        list.innerHTML = sorted
+          .map((r) => {
+            const imp = getImp(r);
+            const dateStr = r.receipt_date ? new Date(r.receipt_date).toLocaleDateString("en-GB") : "—";
+            const coins = [0, 1, 2]
+              .map((i) => `<i data-lucide="coins" class="coin${i < imp ? " is-on" : ""}"></i>`)
+              .join("");
+            return `
           <div class="rcpt">
             <a class="rcpt__main" href="/edit.html?id=${r.id}">
               <div class="rcpt__icon"><i data-lucide="receipt"></i></div>
               <div>
-                <div class="rcpt__store">${r.merchant_name || 'Unknown shop'}</div>
+                <div class="rcpt__store">${r.merchant_name || "Unknown shop"}</div>
                 <div class="rcpt__date">${dateStr} · ${r.item_count || 0} items</div>
               </div>
             </a>
@@ -178,46 +213,54 @@
               </button>
             </div>
           </div>`;
-      }).join('');
+          })
+          .join("");
 
-      list.querySelectorAll('.rcpt__coins').forEach(btn => {
-        btn.addEventListener('click', async () => {
-          const id = btn.dataset.id;
-          const r = receipts.find(x => String(x.id) === String(id));
-          if (!r) return;
-          const next = (getImp(r) + 1) % 4;
-          await setImp(r, next);
-          renderList(); ssIcons();
+        list.querySelectorAll(".rcpt__coins").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            const id = btn.dataset.id;
+            const r = receipts.find((x) => String(x.id) === String(id));
+            if (!r) return;
+            const next = (getImp(r) + 1) % 4;
+            await setImp(r, next);
+            renderList();
+            ssIcons();
+          });
         });
+
+        list.querySelectorAll(".rcpt__del").forEach((btn) => {
+          btn.addEventListener("click", async (ev) => {
+            ev.preventDefault();
+            ev.stopPropagation();
+            const id = btn.dataset.id;
+            if (!confirm("Delete this receipt? This cannot be undone.")) return;
+            try {
+              await SS.deleteReceipt(id);
+              receipts = receipts.filter((x) => String(x.id) !== String(id));
+              render();
+            } catch (err) {
+              showError(err.message || "Delete failed");
+            }
+          });
+        });
+      }
+
+      document.getElementById("cal-prev").addEventListener("click", () => {
+        if (--viewMonth < 0) {
+          viewMonth = 11;
+          viewYear--;
+        }
+        render();
+      });
+      document.getElementById("cal-next").addEventListener("click", () => {
+        if (++viewMonth > 11) {
+          viewMonth = 0;
+          viewYear++;
+        }
+        render();
       });
 
-      list.querySelectorAll('.rcpt__del').forEach(btn => {
-        btn.addEventListener('click', async (ev) => {
-          ev.preventDefault();
-          ev.stopPropagation();
-          const id = btn.dataset.id;
-          if (!confirm('Delete this receipt? This cannot be undone.')) return;
-          try {
-            await SS.deleteReceipt(id);
-            receipts = receipts.filter(x => String(x.id) !== String(id));
-            render();
-          } catch (err) {
-            showError(err.message || 'Delete failed');
-          }
-        });
-      });
-    }
-
-    document.getElementById('cal-prev').addEventListener('click', () => {
-      if (--viewMonth < 0) { viewMonth = 11; viewYear--; }
-      render();
-    });
-    document.getElementById('cal-next').addEventListener('click', () => {
-      if (++viewMonth > 11) { viewMonth = 0; viewYear++; }
-      render();
-    });
-
-    load();
-  </script>
-</body>
+      load();
+    </script>
+  </body>
 </html>
