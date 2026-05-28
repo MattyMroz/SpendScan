@@ -7,6 +7,7 @@ from spendscan.db.repositories.receipts import (
     ReceiptItemRecord,
     ReceiptRepository,
 )
+from spendscan.db.repositories.users import UserRepository
 
 __all__ = [
     "DEMO_USER_ID",
@@ -14,4 +15,5 @@ __all__ = [
     "ReceiptImageCreate",
     "ReceiptItemRecord",
     "ReceiptRepository",
+    "UserRepository",
 ]

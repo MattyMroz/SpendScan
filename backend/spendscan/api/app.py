@@ -17,6 +17,7 @@ from spendscan.config import Settings, get_settings
 from spendscan.ocr import OcrService, PaddleOcrConfig
 
 from .routes.analytics import router as analytics_router
+from .routes.auth import router as auth_router
 from .routes.health import router as health_router
 from .routes.receipts import router as receipts_router
 
@@ -90,6 +91,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return response
 
     app.include_router(health_router)
+    app.include_router(auth_router, prefix=resolved_settings.api_prefix)
     app.include_router(receipts_router, prefix=resolved_settings.api_prefix)
     app.include_router(analytics_router, prefix=resolved_settings.api_prefix)
 

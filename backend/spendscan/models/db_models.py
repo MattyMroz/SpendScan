@@ -30,9 +30,10 @@ class User(SQLModel, table=True):
     __tablename__: ClassVar[str] = "users"
 
     id: int | None = Field(default=None, primary_key=True)
-    username: str
-    email: str
+    username: str = Field(sa_column=Column(Text, nullable=False, unique=True))
+    email: str = Field(sa_column=Column(Text, nullable=False, unique=True))
     password_hash: str
+    coins: int = Field(default=0, nullable=False)
     created_at: datetime | None = Field(default=None, sa_column=timestamp_column())
 
 

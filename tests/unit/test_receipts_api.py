@@ -75,6 +75,9 @@ class BrokenSession:
     def exec(self, *_args: object, **_kwargs: object) -> object:
         raise OperationalError("SELECT 1", {}, Exception("connection timeout expired"))
 
+    def get(self, *_args: object, **_kwargs: object) -> object:
+        raise OperationalError("SELECT 1", {}, Exception("connection timeout expired"))
+
 
 def _app(api_client: TestClient) -> FastAPI:
     return cast(FastAPI, api_client.app)

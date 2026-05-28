@@ -57,6 +57,9 @@ class Settings(BaseSettings):
     llama_build_tag: str | None = DEFAULT_LLAMA_BUILD_TAG
     database_url: SecretStr = SecretStr(DEFAULT_DATABASE_URL)
     upload_dir: Path = Field(default=Path("workspace/uploads/receipts"))
+    jwt_secret: SecretStr = SecretStr("dev-only-change-me")
+    jwt_algorithm: str = "HS256"
+    jwt_expires_minutes: int = Field(default=60 * 24, gt=0)
 
     @field_validator("llama_build_tag", mode="before")
     @classmethod
@@ -94,6 +97,11 @@ class Settings(BaseSettings):
     def database_url_value(self) -> str:
         """Return the raw database URL."""
         return self.database_url.get_secret_value().strip()
+
+    @property
+    def jwt_secret_value(self) -> str:
+        """Return the raw JWT signing secret."""
+        return self.jwt_secret.get_secret_value()
 
     @property
     def resolved_upload_dir(self) -> Path:

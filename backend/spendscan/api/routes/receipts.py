@@ -26,8 +26,9 @@ from spendscan.api.schemas import (
     StoredReceiptImageResponse,
     StoredReceiptItemResponse,
 )
+from spendscan.auth import CurrentUser
 from spendscan.config import project_root
-from spendscan.db.repositories import ReceiptDetailRecord, ReceiptImageCreate, ReceiptRepository
+from spendscan.db.repositories import ReceiptDetailRecord, ReceiptImageCreate, ReceiptRepository, UserRepository
 from spendscan.errors import ConfigurationError, ExternalServiceError, OutputValidationError
 from spendscan.pipeline import MultiImageReceiptPipelineResult
 
@@ -129,13 +130,18 @@ async def create_receipt(
     pipeline: ReceiptPipelineDep,
     settings: SettingsDep,
     session: SessionDep,
+    current_user: CurrentUser,
     files: ReceiptUploads,
 ) -> ReceiptDetailResponse:
     """Analyze one receipt made of one or more uploaded images and save it to the database."""
+    if current_user.id is None:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="User id missing")
     uploads = await _save_uploads(files, settings.resolved_upload_dir)
     try:
         pipeline_result = await pipeline.analyze_images(tuple(upload.path for upload in uploads))
-        detail = _save_pipeline_result(session, uploads=uploads, pipeline_result=pipeline_result)
+        detail = _save_pipeline_result(
+            session, uploads=uploads, pipeline_result=pipeline_result, user_id=current_user.id
+        )
     except ConfigurationError as exc:
         _cleanup_uploads(uploads)
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
@@ -156,11 +162,14 @@ async def create_receipt_batch(
     pipeline: ReceiptPipelineDep,
     settings: SettingsDep,
     session: SessionDep,
+    current_user: CurrentUser,
     files: ReceiptUploads,
 ) -> ReceiptBatchCreateResponse:
     """Analyze multiple receipts and save each one, grouping files named like receipt_001_1.png."""
     if not files:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="At least one file is required")
+    if current_user.id is None:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="User id missing")
 
     uploads = await _save_uploads(files, settings.resolved_upload_dir)
     details: list[ReceiptDetailResponse] = []
@@ -170,7 +179,9 @@ async def create_receipt_batch(
             tuple(tuple(upload.path for upload in group) for group in upload_groups)
         )
         for upload_group, pipeline_result in zip(upload_groups, pipeline_results, strict=True):
-            detail = _save_pipeline_result(session, uploads=upload_group, pipeline_result=pipeline_result)
+            detail = _save_pipeline_result(
+                session, uploads=upload_group, pipeline_result=pipeline_result, user_id=current_user.id
+            )
             details.append(_detail_response(detail))
     except ConfigurationError as exc:
         _cleanup_uploads(uploads)
@@ -190,18 +201,23 @@ async def create_receipt_batch(
 @router.get("", response_model=list[ReceiptListItemResponse])
 def list_receipts(
     session: SessionDep,
+    current_user: CurrentUser,
     start_date: Annotated[date | None, Query(description="Inclusive receipt date start filter.")] = None,
     end_date: Annotated[date | None, Query(description="Inclusive receipt date end filter.")] = None,
     merchant_name: Annotated[str | None, Query(description="Case-insensitive merchant name substring.")] = None,
 ) -> list[ReceiptListItemResponse]:
-    """List persisted receipts for the demo user."""
+    """List persisted receipts for the authenticated user."""
+    if current_user.id is None:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="User id missing")
     repository = ReceiptRepository(session)
-    receipts = repository.list_receipts(start_date=start_date, end_date=end_date, merchant_name=merchant_name)
+    receipts = repository.list_receipts(
+        user_id=current_user.id, start_date=start_date, end_date=end_date, merchant_name=merchant_name
+    )
     responses: list[ReceiptListItemResponse] = []
     for receipt in receipts:
         if receipt.id is None:
             continue
-        detail = repository.get_detail(receipt.id)
+        detail = repository.get_detail(receipt.id, user_id=current_user.id)
         if detail is None:
             continue
         responses.append(
@@ -221,18 +237,22 @@ def list_receipts(
 
 
 @router.get("/{receipt_id}", response_model=ReceiptDetailResponse)
-def get_receipt(receipt_id: int, session: SessionDep) -> ReceiptDetailResponse:
+def get_receipt(receipt_id: int, session: SessionDep, current_user: CurrentUser) -> ReceiptDetailResponse:
     """Return one persisted receipt with images and items."""
-    detail = ReceiptRepository(session).get_detail(receipt_id)
+    if current_user.id is None:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="User id missing")
+    detail = ReceiptRepository(session).get_detail(receipt_id, user_id=current_user.id)
     if detail is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Receipt not found")
     return _detail_response(detail)
 
 
 @router.delete("/{receipt_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_receipt(receipt_id: int, session: SessionDep) -> None:
+def delete_receipt(receipt_id: int, session: SessionDep, current_user: CurrentUser) -> None:
     """Delete a persisted receipt and its stored upload files."""
-    detail = ReceiptRepository(session).delete_receipt(receipt_id)
+    if current_user.id is None:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="User id missing")
+    detail = ReceiptRepository(session).delete_receipt(receipt_id, user_id=current_user.id)
     if detail is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Receipt not found")
     _cleanup_stored_receipt_files(detail)
@@ -308,6 +328,7 @@ def _save_pipeline_result(
     *,
     uploads: tuple[StoredUpload, ...],
     pipeline_result: MultiImageReceiptPipelineResult,
+    user_id: int,
 ) -> ReceiptDetailRecord:
     images = tuple(
         ReceiptImageCreate(
@@ -322,7 +343,11 @@ def _save_pipeline_result(
         )
         for result in pipeline_result.images
     )
-    return ReceiptRepository(session).save_analysis(result=pipeline_result.receipt, images=images)
+    detail = ReceiptRepository(session).save_analysis(result=pipeline_result.receipt, images=images, user_id=user_id)
+    coins = int(detail.receipt.total_amount)
+    if coins > 0:
+        UserRepository(session).add_coins(user_id, coins)
+    return detail
 
 
 def _detail_response(detail: ReceiptDetailRecord) -> ReceiptDetailResponse:

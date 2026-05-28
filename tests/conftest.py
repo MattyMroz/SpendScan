@@ -10,6 +10,7 @@ from sqlalchemy.pool import StaticPool
 from sqlmodel import Session, SQLModel, create_engine
 
 from spendscan.api.app import create_app
+from spendscan.auth import create_access_token, hash_password
 from spendscan.config import Settings, get_settings
 from spendscan.db.database import get_session
 from spendscan.models import Category, Receipt, ReceiptImage, ReceiptItem, User
@@ -31,14 +32,25 @@ def db_session() -> Generator[Session]:
 
 @pytest.fixture
 def api_client(db_session: Session, tmp_path: Path) -> Generator[TestClient]:
-    settings = Settings(database_url=SecretStr("sqlite://"), upload_dir=tmp_path / "uploads")
+    settings = Settings(
+        database_url=SecretStr("sqlite://"),
+        upload_dir=tmp_path / "uploads",
+        jwt_secret=SecretStr("test-secret"),
+    )
     app = create_app(settings)
+
+    user = User(username="tester", email="tester@example.com", password_hash=hash_password("Password123!"))
+    db_session.add(user)
+    db_session.commit()
+    db_session.refresh(user)
+    assert user.id is not None
+    token = create_access_token(user_id=user.id, settings=settings)
 
     def override_get_session() -> Generator[Session]:
         yield db_session
 
     app.dependency_overrides[get_session] = override_get_session
     app.dependency_overrides[get_settings] = lambda: settings
-    with TestClient(app) as client:
+    with TestClient(app, headers={"Authorization": f"Bearer {token}"}) as client:
         yield client
     app.dependency_overrides.clear()
