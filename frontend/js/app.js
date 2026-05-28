@@ -16,13 +16,19 @@ const SS = {
     }
   },
   mapReceipt(r) {
+    const items = Array.isArray(r.items)
+      ? r.items.map(item => ({
+        name: item.product_name || item.name || 'Item',
+        price: Number(item.total_price || item.price || 0),
+      }))
+      : Array.from({ length: Number(r.item_count || 0) });
     return {
       id: r.id,
       shop: r.merchant_name || 'Unknown shop',
       date: r.receipt_date || r.created_at || new Date().toISOString(),
       total: Number(r.total_amount || 0),
       currency: r.currency || 'PLN',
-      items: Array.from({ length: Number(r.item_count || 0) }),
+      items,
     };
   },
   async fetchReceipts() {
@@ -36,7 +42,12 @@ const SS = {
   guard() {
     if (!SS.isAuthed()) window.location.href = 'login.html';
   },
-  fmt(n) { return '$' + Number(n).toFixed(2); },
+  fmt(n, currency = 'PLN') {
+    return new Intl.NumberFormat('pl-PL', {
+      style: 'currency',
+      currency,
+    }).format(Number(n || 0));
+  },
 };
 
 $(function () {
