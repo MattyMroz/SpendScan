@@ -53,7 +53,7 @@ def test_thinking_config_for_gemini_respects_budget() -> None:
 
 
 class _SlowGeminiClient(GeminiReceiptClient):
-    def _generate_content(self, model_name: str, ocr_text: str, image_paths: tuple[Path, ...]) -> Any:
+    def _generate_content(self, api_key: str, model_name: str, ocr_text: str, image_paths: tuple[Path, ...]) -> Any:
         time.sleep(self._settings.gemini_timeout_seconds + 5.0)
         return object()
 
@@ -70,4 +70,8 @@ def test_call_api_raises_external_service_error_on_timeout() -> None:
     client = _SlowGeminiClient(settings=settings)
 
     with pytest.raises(ExternalServiceError, match="timeout"):
-        asyncio.run(client._call_api(model_name="gemini-3.1-flash-lite-preview", ocr_text="x", image_paths=()))
+        asyncio.run(
+            client._call_api(
+                api_key="dummy-key", model_name="gemini-3.1-flash-lite-preview", ocr_text="x", image_paths=()
+            )
+        )
