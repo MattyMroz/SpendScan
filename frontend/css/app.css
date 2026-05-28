@@ -1267,11 +1267,53 @@
   color: var(--slate-500);
 }
 
+.cal__list-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: nowrap;
+}
 .cal__list-title {
   font-size: 1.2rem;
   font-weight: 600;
   color: var(--slate-900);
-  margin: 0 0 16px;
+  margin: 0;
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.cal__sort {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.cal__sort-label {
+  font-size: 0.85rem;
+  color: var(--slate-500);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.cal__sort select.input {
+  padding: 8px 32px 8px 12px;
+  font-size: 0.9rem;
+  min-width: 200px;
+  cursor: pointer;
+}
+@media (max-width: 720px) {
+  .cal__hint {
+    display: none;
+  }
+  .cal__sort select.input {
+    min-width: 160px;
+  }
+  .cal__sort-label {
+    display: none;
+  }
 }
 .cal__hint {
   color: var(--slate-500);
@@ -1603,7 +1645,7 @@
 }
 .item {
   display: grid;
-  grid-template-columns: 2fr 70px 90px 90px 36px;
+  grid-template-columns: 2fr 70px 90px 90px 90px 36px;
   gap: 8px;
   align-items: center;
 }
@@ -1772,8 +1814,8 @@
 /* Edit v2: photo + form layout */
 .edit__layout {
   display: grid;
-  grid-template-columns: 320px 1fr;
-  gap: 24px;
+  grid-template-columns: 220px 1fr;
+  gap: 20px;
   align-items: start;
 }
 @media (max-width: 900px) {
@@ -1851,8 +1893,8 @@
 /* Items table styling */
 .item.item--head {
   display: grid;
-  grid-template-columns: 2.4fr 70px 100px 100px 36px;
-  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) 80px 88px 88px 88px 32px;
+  gap: 6px;
   font-size: 0.72rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
@@ -1863,14 +1905,14 @@
 }
 .item {
   display: grid;
-  grid-template-columns: 2.4fr 70px 100px 100px 36px;
-  gap: 8px;
+  grid-template-columns: minmax(0, 1fr) 80px 88px 88px 88px 32px;
+  gap: 6px;
   align-items: center;
 }
 @media (max-width: 700px) {
   .item,
   .item.item--head {
-    grid-template-columns: 1.4fr 60px 80px 80px 34px;
+    grid-template-columns: minmax(0, 1fr) 64px 72px 72px 72px 28px;
     font-size: 0.8rem;
   }
 }

@@ -93,6 +93,7 @@
                   <span>Product</span>
                   <span>Qty</span>
                   <span>Unit price</span>
+                  <span>Discount</span>
                   <span>Total</span>
                   <span></span>
                 </div>
@@ -237,6 +238,7 @@
         <input class="input item__name" type="text"   placeholder="Product name" value="${(it.product_name || "").replace(/"/g, "&quot;")}">
         <input class="input item__qty"  type="number" step="0.001" placeholder="0" value="${fmtNum(it.quantity, 3)}">
         <input class="input item__unit" type="number" step="0.01"  placeholder="0.00" value="${fmtNum(it.unit_price, 2)}">
+        <input class="input item__disc" type="number" step="0.01"  placeholder="0.00" value="${fmtNum(it.discount_amount, 2)}" title="OPUST / RABAT">
         <input class="input item__tot"  type="number" step="0.01"  placeholder="0.00" value="${fmtNum(it.total_price, 2)}">
         <button type="button" class="btn btn--ghost btn--icon item__del" title="Remove"><i data-lucide="x"></i></button>`;
         row.querySelector(".item__del").addEventListener("click", () => {
@@ -253,9 +255,10 @@
         document.querySelectorAll("#items-list .item").forEach((row) => {
           const qty = parseFloat(row.querySelector(".item__qty").value) || 0;
           const unit = parseFloat(row.querySelector(".item__unit").value) || 0;
+          const disc = parseFloat(row.querySelector(".item__disc").value) || 0;
           const tot = parseFloat(row.querySelector(".item__tot").value) || 0;
           itemsSum += tot;
-          const expected = qty * unit;
+          const expected = qty * unit - disc;
           const tooFar = qty > 0 && unit > 0 && Math.abs(expected - tot) > 0.05;
           row.classList.toggle("is-bad", tooFar);
           if (tooFar) mismatches += 1;
@@ -307,6 +310,7 @@
             product_name: row.querySelector(".item__name").value.trim() || "—",
             quantity: parseFloat(row.querySelector(".item__qty").value) || null,
             unit_price: parseFloat(row.querySelector(".item__unit").value) || null,
+            discount_amount: parseFloat(row.querySelector(".item__disc").value) || null,
             total_price: parseFloat(row.querySelector(".item__tot").value) || 0,
           }))
           .filter((it) => (it.product_name && it.product_name !== "—") || it.total_price > 0);

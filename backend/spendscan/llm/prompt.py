@@ -54,6 +54,10 @@ Rules:
 - Total amount is required; if it is unreadable, use "0" and add a warning.
 - Discounts are important. Treat UPST, OPUST, OPUSTY, RABAT, PROMOCJA as discounts.
 - Discount amounts must be positive decimal strings, even when the receipt prints them as negative values.
+- Per-item discount pattern: receipts often print the discount on the line directly below the product, for example:
+  "Milk 2% 1L  1 x 5.99  5.99" then "OPUST -1.00  -1.00" then the next product. In this case the item must be:
+  quantity=1, unit_price=5.99, discount_amount=1.00, total_price=4.99. The relation
+  quantity * unit_price - discount_amount = total_price MUST hold for every item (tolerance 0.01).
 - Item total_price is the final paid line amount after visible discounts.
 - Fill item.discount_amount when a discount belongs to a specific item.
 - Fill total_discount_amount when the receipt shows total discounts, e.g. "OPUSTY LACZNIE".

@@ -42,9 +42,23 @@
           </div>
 
           <div class="card" style="margin-top: 24px">
-            <h3 class="cal__list-title">
-              All receipts <span class="cal__hint">(click coins to mark importance)</span>
-            </h3>
+            <div class="cal__list-head">
+              <h3 class="cal__list-title">
+                All receipts <span class="cal__hint">(click coins to mark importance)</span>
+              </h3>
+              <label class="cal__sort">
+                <span class="cal__sort-label">Sort by</span>
+                <select id="rcpt-sort" class="input">
+                  <option value="date_desc">Date — newest first</option>
+                  <option value="date_asc">Date — oldest first</option>
+                  <option value="amount_desc">Amount — highest first</option>
+                  <option value="amount_asc">Amount — lowest first</option>
+                  <option value="importance_desc">Importance — highest first</option>
+                  <option value="merchant_asc">Shop — A to Z</option>
+                  <option value="items_desc">Items — most first</option>
+                </select>
+              </label>
+            </div>
             <div id="rcpt-list"></div>
             <div id="rcpt-empty" class="hidden" style="text-align: center; padding: 32px; color: var(--slate-500)">
               <i data-lucide="receipt-text" style="width: 40px; height: 40px; color: var(--slate-300)"></i>
@@ -176,10 +190,29 @@
       function renderList() {
         const list = document.getElementById("rcpt-list");
         const empty = document.getElementById("rcpt-empty");
+        const sortKey = document.getElementById("rcpt-sort").value;
         const sorted = [...receipts].sort((a, b) => {
           const ad = a.receipt_date || "";
           const bd = b.receipt_date || "";
-          return bd.localeCompare(ad);
+          const aa = Number(a.total_amount || 0);
+          const ba = Number(b.total_amount || 0);
+          switch (sortKey) {
+            case "date_asc":
+              return ad.localeCompare(bd);
+            case "amount_desc":
+              return ba - aa;
+            case "amount_asc":
+              return aa - ba;
+            case "importance_desc":
+              return getImp(b) - getImp(a) || bd.localeCompare(ad);
+            case "merchant_asc":
+              return (a.merchant_name || "").localeCompare(b.merchant_name || "");
+            case "items_desc":
+              return Number(b.item_count || 0) - Number(a.item_count || 0);
+            case "date_desc":
+            default:
+              return bd.localeCompare(ad);
+          }
         });
         if (!sorted.length) {
           list.innerHTML = "";
@@ -259,6 +292,19 @@
         }
         render();
       });
+
+      document.getElementById("rcpt-sort").addEventListener("change", () => {
+        try {
+          localStorage.setItem("ss_rcpt_sort", document.getElementById("rcpt-sort").value);
+        } catch {}
+        renderList();
+        ssIcons();
+      });
+
+      try {
+        const saved = localStorage.getItem("ss_rcpt_sort");
+        if (saved) document.getElementById("rcpt-sort").value = saved;
+      } catch {}
 
       load();
     </script>
