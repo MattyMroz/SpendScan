@@ -12,7 +12,7 @@ from sqlmodel import Session, col, select
 
 from spendscan.llm import ReceiptAnalysisResult, ReceiptPipelineResult
 from spendscan.llm import ReceiptItem as AnalysisReceiptItem
-from spendscan.models import Category, Receipt, ReceiptImage, ReceiptItem, User
+from spendscan.models import BudgetReceipt, Category, FolderReceipt, Receipt, ReceiptImage, ReceiptItem, User
 
 DEMO_USER_ID: Final[int] = 1
 """Single demo user used until authentication exists."""
@@ -174,6 +174,7 @@ class ReceiptRepository:
         detail = self.get_detail(receipt_id, user_id=user_id)
         if detail is None:
             return None
+        self._delete_receipt_dependents(detail)
         self._session.delete(detail.receipt)
         self._session.commit()
         return detail
@@ -259,6 +260,21 @@ class ReceiptRepository:
         self._session.add(category)
         self._session.flush()
         return category
+
+    def _delete_receipt_dependents(self, detail: ReceiptDetailRecord) -> None:
+        """Delete child rows explicitly so receipt removal does not depend on DB-level cascades."""
+        receipt_id = detail.receipt.id
+        if receipt_id is None:
+            return
+
+        folder_links = self._session.exec(select(FolderReceipt).where(FolderReceipt.receipt_id == receipt_id)).all()
+        budget_links = self._session.exec(select(BudgetReceipt).where(BudgetReceipt.receipt_id == receipt_id)).all()
+
+        for child in (*folder_links, *budget_links, *detail.images):
+            self._session.delete(child)
+        for item in detail.items:
+            self._session.delete(item.item)
+        self._session.flush()
 
 
 def _analysis_from_detail(detail: ReceiptDetailRecord) -> ReceiptAnalysisResult:
