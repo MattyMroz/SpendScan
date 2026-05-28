@@ -11,6 +11,7 @@ from spendscan.analysis.schemas import (
     DailySpend,
     DashboardResponse,
     ShopSpend,
+    SubscriptionSpend,
 )
 from spendscan.llm.schemas import ReceiptAnalysisResult
 
@@ -26,11 +27,18 @@ class AnalysisService:
         period_type: Literal["daily", "weekly", "monthly", "quarterly", "yearly", "all_time"],
         days_in_period: int,
         category_budgets: dict[str, Decimal] | None = None,
+        current_subscriptions: list[SubscriptionSpend] | None = None,
+        previous_subscriptions: list[SubscriptionSpend] | None = None,
     ) -> DashboardResponse:
         """
         Calculates dashboard statistics from a list of receipts for any time period.
         """
-        total_spent = sum((r.total_amount for r in current_receipts), Decimal("0.00"))
+        curr_subs = current_subscriptions or []
+        prev_subs = previous_subscriptions or []
+
+        receipts_total = sum((r.total_amount for r in current_receipts), Decimal("0.00"))
+        subs_total = sum((s.amount for s in curr_subs), Decimal("0.00"))
+        total_spent = receipts_total + subs_total
         receipt_count = len(current_receipts)
 
         if total_spent == Decimal("0.00") or days_in_period <= 0:
@@ -63,7 +71,12 @@ class AnalysisService:
                 cat_name = item.category or "other"
                 category_totals[cat_name] += item.total_price
 
-        prev_total = sum((r.total_amount for r in previous_receipts), Decimal("0.00"))
+        for sub in curr_subs:
+            category_totals[sub.category] += sub.amount
+
+        prev_receipts_total = sum((r.total_amount for r in previous_receipts), Decimal("0.00"))
+        prev_subs_total = sum((s.amount for s in prev_subs), Decimal("0.00"))
+        prev_total = prev_receipts_total + prev_subs_total
         prev_count = len(previous_receipts)
 
         spent_trend: float | None = None
@@ -74,7 +87,6 @@ class AnalysisService:
         if prev_count > 0:
             count_trend = float((receipt_count - prev_count) / prev_count * 100)
 
-        # UNIWERSALNA ŚREDNIA DZIENNA
         daily_average = total_spent / Decimal(str(days_in_period))
         monthly_average: Decimal | None = None
         if days_in_period >= 30:
