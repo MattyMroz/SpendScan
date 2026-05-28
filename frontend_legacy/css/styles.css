@@ -114,12 +114,12 @@ body.auth-bg {
 
   .chart-box {
     position: relative;
-    height: 280px;  
+    height: 280px;
   }
 
   .chart-box canvas {
     position: absolute;
-    inset: 0;    
+    inset: 0;
   }
 
 body {

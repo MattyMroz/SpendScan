@@ -6,9 +6,11 @@ import logging
 import time
 from collections.abc import AsyncIterator, Awaitable, Callable
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.exc import OperationalError
 from starlette.responses import JSONResponse, Response
 
@@ -28,7 +30,7 @@ DATABASE_UNAVAILABLE_MESSAGE = (
 )
 
 
-def create_app(settings: Settings | None = None) -> FastAPI:
+def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915
     """Create configured SpendScan FastAPI app."""
     resolved_settings = settings or get_settings()
 
@@ -94,6 +96,28 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(auth_router, prefix=resolved_settings.api_prefix)
     app.include_router(receipts_router, prefix=resolved_settings.api_prefix)
     app.include_router(analytics_router, prefix=resolved_settings.api_prefix)
+
+    frontend_root = Path(__file__).resolve().parents[3] / "frontend"
+    public_dir = frontend_root / "public"
+    static_css = frontend_root / "css"
+    static_js = frontend_root / "js"
+    assets_dir = Path(__file__).resolve().parents[3] / "assets"
+
+    @app.middleware("http")
+    async def disable_static_cache(request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
+        response = await call_next(request)
+        if request.url.path.startswith(("/static/", "/assets/")) or request.url.path.endswith(".html"):
+            response.headers["Cache-Control"] = "no-store"
+        return response
+
+    if static_css.exists():
+        app.mount("/static/css", StaticFiles(directory=static_css), name="static-css")
+    if static_js.exists():
+        app.mount("/static/js", StaticFiles(directory=static_js), name="static-js")
+    if assets_dir.exists():
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
+    if public_dir.exists():
+        app.mount("/", StaticFiles(directory=public_dir, html=True), name="public")
 
     return app
 

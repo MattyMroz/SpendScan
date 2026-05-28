@@ -1,9 +1,20 @@
 
 const SS = {
-  isAuthed() { return !!localStorage.getItem('ss_user'); },
+  token() { return localStorage.getItem('ss_token'); },
   user() { return JSON.parse(localStorage.getItem('ss_user') || 'null'); },
-  login(email) { localStorage.setItem('ss_user', JSON.stringify({ email })); },
-  logout() { localStorage.removeItem('ss_user'); window.location.href = 'login.html'; },
+  isAuthed() { return !!SS.token(); },
+  setSession(token, user) {
+    localStorage.setItem('ss_token', token);
+    if (user) localStorage.setItem('ss_user', JSON.stringify(user));
+  },
+  clearSession() {
+    localStorage.removeItem('ss_token');
+    localStorage.removeItem('ss_user');
+  },
+  logout() {
+    SS.clearSession();
+    window.location.href = 'login.html';
+  },
   apiBase() {
     return `http://${window.location.hostname || '127.0.0.1'}:8000/api/v1`;
   },
@@ -14,6 +25,50 @@ const SS = {
     } catch {
       return fallbackMessage;
     }
+  },
+  async apiFetch(path, options = {}) {
+    const headers = new Headers(options.headers || {});
+    const token = SS.token();
+    if (token) headers.set('Authorization', `Bearer ${token}`);
+    const response = await fetch(`${SS.apiBase()}${path}`, { ...options, headers });
+    if (response.status === 401) {
+      SS.clearSession();
+      const here = location.pathname.split('/').pop() || 'index.html';
+      if (here !== 'login.html' && here !== 'register.html' && here !== 'index.html') {
+        window.location.href = 'login.html';
+      }
+      throw new Error('Unauthorized');
+    }
+    return response;
+  },
+  async register(username, email, password) {
+    const response = await SS.apiFetch('/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, email, password }),
+    });
+    if (!response.ok) throw new Error(await SS.apiError(response, 'Registration failed'));
+    const data = await response.json();
+    SS.setSession(data.access_token, null);
+    return data;
+  },
+  async login(email, password) {
+    const response = await SS.apiFetch('/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    if (!response.ok) throw new Error(await SS.apiError(response, 'Invalid credentials'));
+    const data = await response.json();
+    SS.setSession(data.access_token, null);
+    return data;
+  },
+  async me() {
+    const response = await SS.apiFetch('/auth/me');
+    if (!response.ok) throw new Error(await SS.apiError(response, 'Failed to load profile'));
+    const user = await response.json();
+    localStorage.setItem('ss_user', JSON.stringify(user));
+    return user;
   },
   mapReceipt(r) {
     const items = Array.isArray(r.items)
@@ -36,7 +91,7 @@ const SS = {
     };
   },
   async fetchReceipts() {
-    const response = await fetch(`${SS.apiBase()}/receipts`);
+    const response = await SS.apiFetch('/receipts');
     if (!response.ok) {
       throw new Error(await SS.apiError(response, 'Failed to load receipts'));
     }
@@ -44,7 +99,7 @@ const SS = {
     return payload.map(SS.mapReceipt);
   },
   async fetchReceipt(id) {
-    const response = await fetch(`${SS.apiBase()}/receipts/${id}`);
+    const response = await SS.apiFetch(`/receipts/${id}`);
     if (!response.ok) {
       throw new Error(await SS.apiError(response, 'Failed to load receipt'));
     }
@@ -52,7 +107,7 @@ const SS = {
     return SS.mapReceipt(payload);
   },
   async deleteReceipt(id) {
-    const response = await fetch(`${SS.apiBase()}/receipts/${id}`, { method: 'DELETE' });
+    const response = await SS.apiFetch(`/receipts/${id}`, { method: 'DELETE' });
     if (!response.ok && response.status !== 204) {
       throw new Error(await SS.apiError(response, 'Failed to delete receipt'));
     }
@@ -71,6 +126,7 @@ const SS = {
 $(function () {
   const path = location.pathname.split('/').pop() || 'index.html';
   const authed = SS.isAuthed();
+  const user = SS.user();
   const links = [
     { href: 'scan.html', icon: 'camera', label: 'Scan' },
     { href: 'stats.html', icon: 'bar-chart', label: 'Statistics' },
@@ -80,8 +136,11 @@ $(function () {
   const linkHtml = links.map(l =>
     `<li class="nav-item"><a class="nav-link ${path === l.href ? 'active' : ''}" href="${l.href}"><i class="bi bi-${l.icon} me-1"></i>${l.label}</a></li>`
   ).join('');
+  const coinsBadge = authed && user
+    ? `<span class="badge bg-warning text-dark me-2" id="ssCoins"><i class="bi bi-coin me-1"></i>${Number(user.coins || 0).toFixed(0)}</span>`
+    : '';
   const right = authed
-    ? `<button id="ssLogout" class="btn btn-outline-light btn-sm"><i class="bi bi-box-arrow-right me-1"></i>Logout</button>`
+    ? `${coinsBadge}<button id="ssLogout" class="btn btn-outline-light btn-sm"><i class="bi bi-box-arrow-right me-1"></i>Logout</button>`
     : `<a href="login.html" class="btn btn-outline-light btn-sm me-2"><i class="bi bi-box-arrow-in-right me-1"></i>Login</a>
        <a href="register.html" class="btn btn-info btn-sm text-dark"><i class="bi bi-person-plus me-1"></i>Register</a>`;
 
@@ -102,4 +161,10 @@ $(function () {
     </nav>`;
   $('#nav-placeholder').html(nav);
   $('#ssLogout').on('click', SS.logout);
+
+  if (authed) {
+    SS.me().then(u => {
+      $('#ssCoins').html(`<i class="bi bi-coin me-1"></i>${Number(u.coins || 0).toFixed(0)}`);
+    }).catch(() => { /* 401 handled by apiFetch */ });
+  }
 });
