@@ -26,7 +26,7 @@ def test_receipt_pipeline_e2e_workspace_receipts() -> None:
 
     assert len(results) == _EXPECTED_RECEIPT_COUNT
     for result in results:
-        assert result.ocr_engine == "qianfan-ocr"
+        assert result.ocr_engine == "paddle-ocr-vl"
         assert result.analysis.currency == "PLN"
         assert result.analysis.raw_ocr_text == result.ocr_text
 

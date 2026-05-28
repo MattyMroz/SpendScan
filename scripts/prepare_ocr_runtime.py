@@ -1,4 +1,4 @@
-"""Prepare Qianfan OCR files and llama.cpp runtime for local testing."""
+"""Prepare PaddleOCR-VL files and llama.cpp runtime for local testing."""
 
 from __future__ import annotations
 

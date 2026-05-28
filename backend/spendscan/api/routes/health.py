@@ -26,7 +26,7 @@ def ready(settings: SettingsDep) -> ReadinessResponse | JSONResponse:
     """Return readiness status for configured OCR/LLM dependencies."""
     checks = {
         "gemini_api_key": bool(settings.gemini_api_key_value),
-        "qianfan_model_dir_parent": settings.resolved_qianfan_model_dir.parent.exists(),
+        "paddle_model_dir_parent": settings.resolved_paddle_model_dir.parent.exists(),
         "llama_cache_dir_parent": settings.resolved_llama_cache_dir.parent.exists(),
     }
     response = ReadinessResponse(ready=all(checks.values()), checks=checks)

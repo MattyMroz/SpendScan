@@ -52,7 +52,6 @@ class Settings(BaseSettings):
     gemini_retry_attempts: int = Field(default=3, ge=1)
     gemini_retry_delay_seconds: float = Field(default=5.0, ge=0)
     gemini_timeout_seconds: float = Field(default=60.0, gt=0)
-    qianfan_model_dir: Path = Field(default=Path("external/models/ocr/qianfan-ocr"))
     paddle_model_dir: Path = Field(default=Path("external/models/ocr/paddle-ocr"))
     llama_cache_dir: Path = Field(default=Path("external/bin/llama"))
     llama_build_tag: str | None = DEFAULT_LLAMA_BUILD_TAG
@@ -71,11 +70,6 @@ class Settings(BaseSettings):
         if isinstance(value, str) and not value.strip():
             return DEFAULT_LLAMA_BUILD_TAG
         return str(value)
-
-    @property
-    def resolved_qianfan_model_dir(self) -> Path:
-        """Return an absolute Qianfan model directory path."""
-        return self._resolve_repo_path(self.qianfan_model_dir)
 
     @property
     def resolved_paddle_model_dir(self) -> Path:

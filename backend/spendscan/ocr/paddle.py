@@ -1,6 +1,6 @@
 """PaddleOCR-VL 1.5 (Q8) engine using GGUF files and llama-server.
 
-Drop-in replacement for the Qianfan OCR engine. Downloads the model
+Downloads the model
 and mmproj from Hugging Face on first use and serves it via llama-server.
 """
 
