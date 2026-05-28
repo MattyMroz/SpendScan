@@ -1,150 +1,151 @@
 # SpendScan
 
-> Aplikacja analizująca wydatki na podstawie zdjęć paragonów.
+> Local-first receipt scanner & expense tracker — paragon → OCR → strukturalne dane → analizy.
 
 [![CI](https://github.com/MattyMroz/SpendScan/actions/workflows/ci.yml/badge.svg)](https://github.com/MattyMroz/SpendScan/actions/workflows/ci.yml)
 [![Python 3.13+](https://img.shields.io/badge/python-3.13%2B-blue)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 
-## Opis
+## Co to robi
 
-SpendScan automatyzuje kontrolę wydatków — robisz zdjęcie paragonu, a aplikacja:
+Robisz zdjęcie paragonu (możesz wielostronicowego), aplikacja:
 
-1. **Rozpoznaje tekst** (OCR)
-2. **Wyodrębnia produkty i ceny**
-3. **Przypisuje kategorie** (Żywność, Chemia, Elektronika itp.)
-4. **Generuje analizy** — dashboard miesięczny, trendy, alerty budżetowe
+1. **OCR** — PaddleOCR-VL 1.5 Q8 GGUF na llama.cpp (lokalnie na GPU, ~2s/strona).
+2. **Strukturyzacja** — Gemini (Flash/Lite/Gemma chain) parsuje OCR + obraz → `merchant`, `items`, `prices`, `total`, `discount`, `category`.
+3. **Persystencja** — PostgreSQL (Docker), pełen audit trail (raw OCR, surowa odpowiedź LLM, oryginalne pliki).
+4. **Analizy** — dashboard miesięczny, top sklepy, agregacje per dzień/kategoria.
 
-## Tech Stack
+Multi-page = **jeden paragon** (zestaw zdjęć trafia jako jeden upload, jeden Gemini call, jeden wpis w DB).
 
-| Warstwa | Technologia |
-|---------|-------------|
-| **Backend** | Python 3.13+, FastAPI |
-| **Frontend** | TBD |
-| **Baza danych** | SQLite (dev) |
-| **Tooling** | uv, ruff, mypy, pytest, pre-commit |
-| **CI/CD** | GitHub Actions |
+## Tech stack
 
-## Struktura projektu
+| Warstwa | Wybór |
+|---|---|
+| **Backend** | Python 3.13, FastAPI, SQLModel, Pydantic v2 |
+| **OCR** | PaddleOCR-VL 1.5 Q8 GGUF + llama-server (b9271) |
+| **LLM** | Google Gemini (Flash 3.1 → Flash Lite → Gemma 4 31B fallback chain) |
+| **DB** | PostgreSQL 18 (Docker) |
+| **Frontend** | Vanilla HTML + CSS + jQuery (rewrite w toku) |
+| **Tooling** | uv, ruff, mypy, pytest |
 
-```
-SpendScan/
-├── backend/spendscan/    # Backend Python
-│   ├── api/              # FastAPI endpoints
-│   ├── ocr/              # Przetwarzanie obrazu + OCR
-│   ├── analysis/         # Analityka wydatków
-│   ├── models/           # Pydantic models + DB schema
-│   └── db/               # Database layer
-├── frontend/             # Frontend (TBD)
-├── tests/                # Testy (unit + integration)
-├── assets/               # Brand assets (logo, ikona)
-├── doc/                  # Dokumentacja projektu
-└── scripts/              # Pomocnicze skrypty
-```
+## Wymagania
 
-## Quick Start
+- **Windows / Linux / WSL2**, Python 3.13+
+- **GPU NVIDIA** z CUDA (testowane RTX 5090, ~3 GB VRAM dla PaddleOCR-VL Q8)
+- **Docker Desktop** (PostgreSQL container)
+- **uv** ([install](https://docs.astral.sh/uv/getting-started/installation/))
+- **Gemini API key** (env `SPENDSCAN_GEMINI_API_KEY`)
 
-### Wymagania
+## Quickstart
 
-- Python ≥3.13
-- [uv](https://docs.astral.sh/uv/getting-started/installation/)
-- Docker Desktop (dla lokalnego PostgreSQL)
-
-### Setup
-
-```bash
-# 1. Klonuj repo
-git clone https://github.com/MattyMroz/SpendScan.git
-cd SpendScan
-
-# 2. Zainstaluj zależności
+```powershell
+# 1. Dependencies
 uv sync
 
-# 3. Zainstaluj pre-commit hooks
-uv run pre-commit install
-
-# 4. Sprawdź że tooling działa
-uv run ruff check .
-uv run mypy backend/
-uv run pytest
-```
-
-### Lokalny PostgreSQL + API
-
-Instrukcja startu/resetu Postgresa w Dockerze, importu schemy i wejscia z telefonu po LAN jest w
-[doc/POSTGRES_DOCKER_RUNBOOK.md](doc/POSTGRES_DOCKER_RUNBOOK.md).
-
-### Lokalny test OCR + Gemini
-
-Runtime OCR i modele nie są commitowane. Lokalnie trafiają do `external/`, a robocze paragony i wyniki do
-`workspace/`.
-
-Szczegółowy runbook, fallback Gemma i lista kategorii są w [doc/RECEIPT_PIPELINE_RUNBOOK.md](doc/RECEIPT_PIPELINE_RUNBOOK.md).
-
-1. Skopiuj env i uzupełnij `SPENDSCAN_GEMINI_API_KEY`:
-
-```powershell
-Copy-Item .env.example .env
-```
-
-2. Przygotuj OCR runtime. Komenda automatycznie pobiera Qianfan OCR z Hugging Face oraz pasującą binarkę
-	`llama.cpp`:
-
-```powershell
+# 2. Pobierz llama.cpp binary + PaddleOCR-VL model (~1.4 GB: 498 MB Q8 + 882 MB mmproj)
 uv run python scripts/prepare_ocr_runtime.py
+
+# 3. Postgres
+docker compose up -d postgres
+
+# 4. Skonfiguruj .env
+copy .env.example .env
+# wypełnij: SPENDSCAN_GEMINI_API_KEY, SPENDSCAN_JWT_SECRET, SPENDSCAN_DATABASE_URL
+
+# 5. Migracje DB
+uv run python -m spendscan.db.migrations
+
+# 6. Start backend (PaddleOCR-VL preloaduje się w lifespan, ~3s)
+uv run uvicorn spendscan.api.app:app --reload
 ```
 
-3. Wrzuć paragony PNG do `workspace/input/`. Lokalny zestaw testowy używa nazw:
+API: <http://127.0.0.1:8000/docs>
 
-```text
-workspace/input/receipt_001.png
-workspace/input/receipt_002.png
-workspace/input/receipt_003.png
+## Architektura
+
+```
+            ┌─────────────────────────────────────────────┐
+  upload    │ FastAPI (lifespan: preload OcrService)      │
+  ───────►  │   POST /api/v1/receipts                     │
+            │     ├── OcrService.recognize(page_1..N)     │
+            │     │     └── llama-server (PaddleOCR-VL)   │
+            │     ├── GeminiReceiptClient.analyze(...)    │
+            │     ├── ReceiptRepository.save(...)         │
+            │     └── return ReceiptAnalysisResult        │
+            └─────────────────────────────────────────────┘
+                    │                            │
+                    ▼                            ▼
+              workspace/uploads/         PostgreSQL
+              (oryginały)                (users, receipts, items, raw_ocr, raw_llm)
 ```
 
-4. Uruchom pełny pipeline OCR -> Gemini -> JSON:
+## Smoke test
+
+Pełen end-to-end test na 3 paragonach (po 2 strony każdy):
 
 ```powershell
-uv run python scripts/run_receipt_e2e.py
+$env:PYTHONPATH="backend"
+uv run python scripts/smoke_paddle.py
 ```
 
-Wyniki zapisują się do `workspace/output/*.json`.
+Output → `workspace/output/smoke/`:
 
-5. Wygeneruj debug PNG: po lewej paragon, po prawej OCR, JSON LLM i podsumowanie:
+- `_report.json` — timing per paragon, per stronę, średnie
+- `_SUMMARY.md` — markdown tabelka
+- `receipt_NNN_ocr.txt` — surowy tekst OCR
+- `receipt_NNN_analysis.json` — Pydantic dump `ReceiptAnalysisResult`
+
+Aktualne wyniki (RTX 5090, 3 paragony Biedronka):
+
+| Metryka | Wartość |
+|---|---|
+| OCR preload (lifespan) | ~2.6s |
+| OCR per strona | ~2.0s |
+| Gemini per paragon | ~12s |
+| Total per paragon | ~16s |
+
+## Struktura
+
+```
+backend/spendscan/
+  api/            FastAPI app, routers, dependencies
+  ocr/            PaddleOCR-VL engine + llama_runtime manager
+  llm/            Gemini client + prompt + validation
+  db/             SQLModel + repositories + migrations
+  pipeline/       Receipt pipeline (OCR → LLM → DB)
+  analysis/       Dashboard aggregations
+external/
+  bin/llama/      llama-server binaries (auto-downloaded)
+  models/ocr/     PaddleOCR-VL GGUF files (~1.4 GB)
+frontend/         HTML/CSS/JS (rewrite w toku)
+scripts/          OCR runtime prep, smoke tests, debug
+tests/            unit + integration (pytest)
+workspace/
+  input/          input data (paired_receipts/ test set)
+  output/         generated artifacts (smoke/, debug/)
+  uploads/        production receipt uploads (per-user UUID dirs)
+```
+
+## Status
+
+- ✅ Backend pipeline (OCR + LLM + DB) działa end-to-end
+- ✅ PaddleOCR-VL migracja z Qianfan (Iteracja B brainstormu)
+- ✅ Lifespan preload — model w VRAM od startu serwera
+- 🚧 Frontend rewrite (Iteracja C-E)
+- 🚧 Auth (JWT + bcrypt, Iteracja A)
+- 🚧 CRUD edycji paragonu/itemów (Iteracja E)
+
+Pełen plan: [BRAINSTORM_SPENDSCAN_FULL_REWRITE_SUMMARY.md](temp/brain_storm/2026-05-28-spendscan-full-rewrite/BRAINSTORM_SPENDSCAN_FULL_REWRITE_SUMMARY.md).
+
+## Dev
 
 ```powershell
-uv run python scripts/render_receipt_debug.py
+uv run pytest tests/unit -q          # 34 unit testy, ~25s
+uv run pytest tests/integration -q   # integracyjne (wymagają PaddleOCR + Gemini)
+uv run ruff check .
+uv run mypy backend/spendscan
 ```
 
-PNG zapisują się do `workspace/output/debug/*_debug.png` i rosną pionowo pod długość OCR/JSON.
+## License
 
-6. Opcjonalnie odpal realny test integracyjny:
-
-```powershell
-$env:SPENDSCAN_RUN_E2E="1"; uv run pytest tests/integration/test_receipt_e2e.py -m integration
-```
-
-Bez `SPENDSCAN_RUN_E2E=1` test integracyjny jest pomijany, żeby CI i zwykłe `uv run pytest` nie pobierały modeli.
-
-## Workflow
-
-Szczegóły w [CONTRIBUTING.md](CONTRIBUTING.md).
-
-**TL;DR:**
-1. Stwórz branch: `git checkout -b feature/<twoj-nick>-<opis>`
-2. Commituj: `feat(scope): opis` (Conventional Commits)
-3. Push + PR → min 1 review → squash merge
-
-## Zespół
-
-| Osoba | Specjalizacja | Obszar |
-|-------|--------------|--------|
-| Mateusz Mróz | EAIBD | OCR + koordynacja |
-| Piotr Marczak | EAIBD | Baza danych |
-| Jakub Bryła | EAIBD | Architektura + analiza danych |
-| Igor Typiński | Inżynieria Oprogramowania | API + frontend |
-| Mateusz Słoń | Technologie Internetowe | Frontend + API |
-
-## Licencja
-
-[MIT](LICENSE)
+MIT — patrz [LICENSE](LICENSE).

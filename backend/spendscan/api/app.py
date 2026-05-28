@@ -4,17 +4,17 @@ from __future__ import annotations
 
 import logging
 import time
-from collections.abc import Awaitable, Callable
-from typing import Annotated
+from collections.abc import AsyncIterator, Awaitable, Callable
+from contextlib import asynccontextmanager
 
-from fastapi import Depends, FastAPI, Request
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from sqlmodel import Session, select
-from starlette.responses import Response
+from sqlalchemy.exc import OperationalError
+from starlette.responses import JSONResponse, Response
 
 from spendscan import __version__
 from spendscan.config import Settings, get_settings
-from spendscan.db.database import get_session
+from spendscan.ocr import OcrService, PaddleOcrConfig
 
 from .routes.analytics import router as analytics_router
 from .routes.health import router as health_router
@@ -22,11 +22,37 @@ from .routes.receipts import router as receipts_router
 
 request_logger = logging.getLogger("uvicorn.error")
 
+DATABASE_UNAVAILABLE_MESSAGE = (
+    "Database is unavailable. Start Docker Desktop and the spendscan-postgres container, then retry."
+)
+
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     """Create configured SpendScan FastAPI app."""
     resolved_settings = settings or get_settings()
-    app = FastAPI(title="SpendScan API", version=__version__)
+
+    @asynccontextmanager
+    async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        ocr = OcrService(PaddleOcrConfig.from_settings(resolved_settings))
+        app.state.ocr_service = ocr
+        request_logger.info("Preloading PaddleOCR-VL llama-server (this may take ~30s)...")
+        start = time.perf_counter()
+        try:
+            await ocr.initialize()
+        except Exception:
+            request_logger.exception("OCR preload failed; engine will be unavailable")
+        else:
+            request_logger.info("OCR ready in %.1fs", time.perf_counter() - start)
+        try:
+            yield
+        finally:
+            request_logger.info("Shutting down OCR engine...")
+            try:
+                await ocr.cleanup()
+            except Exception:
+                request_logger.exception("OCR cleanup raised")
+
+    app = FastAPI(title="SpendScan API", version=__version__, lifespan=lifespan)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
@@ -34,6 +60,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    @app.exception_handler(OperationalError)
+    async def handle_database_operational_error(_: Request, exc: OperationalError) -> JSONResponse:
+        request_logger.warning("Database unavailable: %s", exc)
+        return JSONResponse(
+            status_code=503,
+            content={"detail": DATABASE_UNAVAILABLE_MESSAGE},
+        )
 
     @app.middleware("http")
     async def log_requests(request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
@@ -58,13 +92,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(health_router)
     app.include_router(receipts_router, prefix=resolved_settings.api_prefix)
     app.include_router(analytics_router, prefix=resolved_settings.api_prefix)
-
-    @app.get("/health/db", tags=["health"])
-    def database_health_check(
-        session: Annotated[Session, Depends(get_session)],
-    ) -> dict[str, str]:
-        session.exec(select(1)).one()
-        return {"status": "ok", "database": "connected"}
 
     return app
 

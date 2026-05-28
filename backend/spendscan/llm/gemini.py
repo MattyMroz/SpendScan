@@ -90,12 +90,18 @@ class GeminiReceiptClient:
 
     async def _call_api(self, *, model_name: str, ocr_text: str, image_paths: tuple[Path, ...]) -> str:
         try:
-            response = await asyncio.to_thread(
-                self._generate_content,
-                model_name,
-                ocr_text,
-                image_paths,
+            response = await asyncio.wait_for(
+                asyncio.to_thread(
+                    self._generate_content,
+                    model_name,
+                    ocr_text,
+                    image_paths,
+                ),
+                timeout=self._settings.gemini_timeout_seconds,
             )
+        except TimeoutError as exc:
+            msg = f"Gemini API call for {model_name} exceeded {self._settings.gemini_timeout_seconds:.0f}s timeout"
+            raise ExternalServiceError(msg) from exc
         except Exception as exc:
             msg = f"Gemini API call failed for {model_name}: {exc}"
             raise ExternalServiceError(msg) from exc
@@ -113,7 +119,7 @@ class GeminiReceiptClient:
             temperature=self._settings.gemini_temperature,
             max_output_tokens=self._settings.gemini_max_output_tokens,
             response_mime_type="application/json",
-            thinking_config=_thinking_config(self._settings.gemini_thinking_budget),
+            thinking_config=_thinking_config_for_model(model_name, self._settings.gemini_thinking_budget),
         )
         contents: list[Any] = [build_receipt_prompt(ocr_text)]
         contents.extend(
@@ -136,6 +142,13 @@ def _thinking_config(thinking_budget: int | None) -> types.ThinkingConfig | None
     if thinking_budget is None:
         return None
     return types.ThinkingConfig(thinking_budget=thinking_budget)
+
+
+def _thinking_config_for_model(model_name: str, thinking_budget: int | None) -> types.ThinkingConfig | None:
+    # Gemma family rejects ThinkingConfig with HTTP 400 INVALID_ARGUMENT.
+    if model_name.startswith("gemma"):
+        return None
+    return _thinking_config(thinking_budget)
 
 
 def _resolved_image_paths(*, image_path: Path | None, image_paths: Sequence[Path] | None) -> tuple[Path, ...]:

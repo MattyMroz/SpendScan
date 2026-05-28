@@ -64,7 +64,7 @@ docker exec spendscan-postgres psql -U postgres -d spendscan -v ON_ERROR_STOP=1 
 $env:PYTHONPATH="backend"
 $env:SPENDSCAN_DATABASE_URL="postgresql+psycopg://postgres:postgres@localhost:5432/spendscan"
 $env:SPENDSCAN_UPLOAD_DIR="workspace/uploads/receipts"
-.\.venv\Scripts\python.exe -m uvicorn spendscan.api.app:app --host 0.0.0.0 --port 8000 --reload
+.\.venv\Scripts\python.exe -m uvicorn spendscan.api.app:app --host 0.0.0.0 --port 8000 --reload --reload-dir backend
 ```
 
 Lokalnie:

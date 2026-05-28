@@ -21,8 +21,8 @@ DEFAULT_GEMINI_GEMMA_FALLBACK_MODEL: Final[str] = "gemma-4-31b-it"
 DEFAULT_DATABASE_URL: Final[str] = "postgresql+psycopg://postgres:postgres@localhost:5432/spendscan"
 """Default local PostgreSQL database URL for the demo environment."""
 
-DEFAULT_LLAMA_BUILD_TAG: Final[str] = "b9271"
-"""Pinned llama.cpp build used for the local Qianfan OCR runtime."""
+DEFAULT_LLAMA_BUILD_TAG: Final[str] = "b9383"
+"""Pinned llama.cpp build used for the local PaddleOCR-VL runtime."""
 
 
 def project_root() -> Path:
@@ -50,7 +50,9 @@ class Settings(BaseSettings):
     gemini_thinking_budget: int | None = Field(default=0, ge=0)
     gemini_retry_attempts: int = Field(default=3, ge=1)
     gemini_retry_delay_seconds: float = Field(default=5.0, ge=0)
+    gemini_timeout_seconds: float = Field(default=60.0, gt=0)
     qianfan_model_dir: Path = Field(default=Path("external/models/ocr/qianfan-ocr"))
+    paddle_model_dir: Path = Field(default=Path("external/models/ocr/paddle-ocr"))
     llama_cache_dir: Path = Field(default=Path("external/bin/llama"))
     llama_build_tag: str | None = DEFAULT_LLAMA_BUILD_TAG
     database_url: SecretStr = SecretStr(DEFAULT_DATABASE_URL)
@@ -70,6 +72,11 @@ class Settings(BaseSettings):
     def resolved_qianfan_model_dir(self) -> Path:
         """Return an absolute Qianfan model directory path."""
         return self._resolve_repo_path(self.qianfan_model_dir)
+
+    @property
+    def resolved_paddle_model_dir(self) -> Path:
+        """Return an absolute PaddleOCR-VL model directory path."""
+        return self._resolve_repo_path(self.paddle_model_dir)
 
     @property
     def resolved_llama_cache_dir(self) -> Path:

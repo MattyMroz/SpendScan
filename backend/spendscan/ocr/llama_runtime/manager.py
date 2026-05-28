@@ -135,6 +135,7 @@ class LlamaServerManager:
             str(self.config.n_gpu_layers),
             "--ctx-size",
             str(self.config.n_ctx),
+            "--jinja",
         ]
         if self.config.flash_attn:
             command.extend(["--flash-attn", "on"])

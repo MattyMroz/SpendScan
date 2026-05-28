@@ -4,22 +4,31 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import Depends
+from fastapi import Depends, Request
 from sqlmodel import Session
 
 from spendscan.config import Settings, get_settings
 from spendscan.db import get_session
 from spendscan.llm import GeminiReceiptClient
-from spendscan.ocr import OcrService, QianfanOcrConfig
+from spendscan.ocr import OcrService, PaddleOcrConfig
 from spendscan.pipeline import ReceiptPipeline
 
 SettingsDep = Annotated[Settings, Depends(get_settings)]
 SessionDep = Annotated[Session, Depends(get_session)]
 
 
-def get_receipt_pipeline(settings: SettingsDep) -> ReceiptPipeline:
-    """Create receipt pipeline from current settings."""
-    ocr = OcrService(QianfanOcrConfig.from_settings(settings))
+def get_ocr_service(request: Request, settings: SettingsDep) -> OcrService:
+    """Return the shared OcrService preloaded at app startup."""
+    ocr = getattr(request.app.state, "ocr_service", None)
+    if ocr is None:
+        ocr = OcrService(PaddleOcrConfig.from_settings(settings))
+        request.app.state.ocr_service = ocr
+    return ocr
+
+
+def get_receipt_pipeline(request: Request, settings: SettingsDep) -> ReceiptPipeline:
+    """Create receipt pipeline reusing the shared OcrService."""
+    ocr = get_ocr_service(request, settings)
     llm = GeminiReceiptClient(settings)
     return ReceiptPipeline(ocr=ocr, llm=llm)
 

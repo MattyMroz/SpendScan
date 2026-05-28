@@ -5,6 +5,9 @@ from collections.abc import Sequence
 from decimal import Decimal
 from pathlib import Path
 
+import pytest
+
+from spendscan.errors import ExternalServiceError
 from spendscan.llm import ReceiptAnalysisResult
 from spendscan.ocr import ImageInput, OcrLine, OcrResult
 from spendscan.pipeline import ReceiptPipeline
@@ -18,6 +21,18 @@ class FakeOcr:
             engine="fake-ocr",
             processing_time_ms=1.0,
             image_shape=(100, 100),
+        )
+
+
+class FailingOcr:
+    async def recognize(self, image: ImageInput) -> OcrResult:
+        return OcrResult(
+            text="",
+            lines=[],
+            engine="fake-ocr",
+            processing_time_ms=0.5,
+            image_shape=(0, 0),
+            error=f"engine boom for {Path(str(image)).name}",
         )
 
 
@@ -76,3 +91,47 @@ def test_receipt_pipeline_analyzes_multiple_receipt_groups() -> None:
     assert len(results) == 2
     assert [len(result.images) for result in results] == [2, 2]
     assert "--- PAGE 2: receipt_002_2.png ---" in results[1].receipt.ocr_text
+
+
+def test_receipt_pipeline_raises_when_all_ocr_pages_fail() -> None:
+    pipeline = ReceiptPipeline(ocr=FailingOcr(), llm=FakeLlm())
+
+    with pytest.raises(ExternalServiceError, match="All OCR pages failed"):
+        asyncio.run(pipeline.analyze_images((Path("page_1.png"), Path("page_2.png"))))
+
+
+class _OcrSequence:
+    def __init__(self, results: list[OcrResult]) -> None:
+        self._results = list(results)
+
+    async def recognize(self, image: ImageInput) -> OcrResult:
+        return self._results.pop(0)
+
+
+def test_receipt_pipeline_keeps_partial_ocr_fallback() -> None:
+    llm = FakeLlm()
+    ocr = _OcrSequence(
+        [
+            OcrResult(
+                text="TOTAL 9.99",
+                lines=[OcrLine(text="TOTAL 9.99")],
+                engine="fake-ocr",
+                processing_time_ms=1.0,
+                image_shape=(1, 1),
+            ),
+            OcrResult(
+                text="",
+                lines=[],
+                engine="fake-ocr",
+                processing_time_ms=0.5,
+                image_shape=(0, 0),
+                error="boom",
+            ),
+        ]
+    )
+    pipeline = ReceiptPipeline(ocr=ocr, llm=llm)
+
+    result = asyncio.run(pipeline.analyze_images((Path("page_1.png"), Path("page_2.png"))))
+
+    assert result.receipt.analysis.total_amount == Decimal("0")
+    assert result.receipt.analysis.warnings == ["page 2: boom"]

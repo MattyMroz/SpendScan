@@ -21,13 +21,17 @@ const SS = {
         name: item.product_name || item.name || 'Item',
         price: Number(item.total_price || item.price || 0),
       }))
-      : Array.from({ length: Number(r.item_count || 0) });
+      : null;
+    const itemCount = items
+      ? items.length
+      : Number(r.item_count || 0);
     return {
       id: r.id,
       shop: r.merchant_name || 'Unknown shop',
       date: r.receipt_date || r.created_at || new Date().toISOString(),
       total: Number(r.total_amount || 0),
       currency: r.currency || 'PLN',
+      itemCount,
       items,
     };
   },
@@ -38,6 +42,20 @@ const SS = {
     }
     const payload = await response.json();
     return payload.map(SS.mapReceipt);
+  },
+  async fetchReceipt(id) {
+    const response = await fetch(`${SS.apiBase()}/receipts/${id}`);
+    if (!response.ok) {
+      throw new Error(await SS.apiError(response, 'Failed to load receipt'));
+    }
+    const payload = await response.json();
+    return SS.mapReceipt(payload);
+  },
+  async deleteReceipt(id) {
+    const response = await fetch(`${SS.apiBase()}/receipts/${id}`, { method: 'DELETE' });
+    if (!response.ok && response.status !== 204) {
+      throw new Error(await SS.apiError(response, 'Failed to delete receipt'));
+    }
   },
   guard() {
     if (!SS.isAuthed()) window.location.href = 'login.html';

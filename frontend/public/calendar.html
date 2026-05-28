@@ -276,7 +276,7 @@
             html += `<tr class="group-member">
               <td><span class="group-badge" style="background:${color}"></span>${new Date(r.date).toLocaleDateString()}</td>
               <td>${r.shop}</td>
-              <td>${r.items.length}</td>
+              <td>${r.itemCount}</td>
               <td class="text-end">${SS.fmt(r.total, r.currency)}</td>
               <td>${coinHtml(coins(r.total))}</td>
               <td></td>
@@ -291,7 +291,7 @@
         html += `<tr>
           <td>${new Date(r.date).toLocaleDateString()}</td>
           <td>${r.shop}</td>
-          <td>${r.items.length}</td>
+          <td>${r.itemCount}</td>
           <td class="text-end">${SS.fmt(r.total, r.currency)}</td>
           <td>${coinHtml(coins(r.total))}</td>
           <td></td>

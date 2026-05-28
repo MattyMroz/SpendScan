@@ -4,10 +4,15 @@ from collections.abc import Sequence
 from datetime import date
 from decimal import Decimal
 from pathlib import Path
+from typing import cast
 
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from sqlalchemy.exc import OperationalError
 
+from spendscan.api.app import DATABASE_UNAVAILABLE_MESSAGE
 from spendscan.api.dependencies import get_receipt_pipeline
+from spendscan.db.database import get_session
 from spendscan.llm import ReceiptAnalysisResult, ReceiptItem, ReceiptPipelineResult
 from spendscan.ocr import OcrLine, OcrResult
 from spendscan.pipeline import MultiImageReceiptPipelineResult, ReceiptImagePipelineResult
@@ -66,9 +71,18 @@ class FakePersistentPipeline:
         )
 
 
+class BrokenSession:
+    def exec(self, *_args: object, **_kwargs: object) -> object:
+        raise OperationalError("SELECT 1", {}, Exception("connection timeout expired"))
+
+
+def _app(api_client: TestClient) -> FastAPI:
+    return cast(FastAPI, api_client.app)
+
+
 def test_create_receipt_persists_two_images(api_client: TestClient) -> None:
     fake_pipeline = FakePersistentPipeline()
-    api_client.app.dependency_overrides[get_receipt_pipeline] = lambda: fake_pipeline
+    _app(api_client).dependency_overrides[get_receipt_pipeline] = lambda: fake_pipeline
 
     response = api_client.post(
         "/api/v1/receipts",
@@ -93,7 +107,7 @@ def test_create_receipt_persists_two_images(api_client: TestClient) -> None:
 
 def test_analyze_pages_runs_multi_image_pipeline_without_persisting(api_client: TestClient) -> None:
     fake_pipeline = FakePersistentPipeline()
-    api_client.app.dependency_overrides[get_receipt_pipeline] = lambda: fake_pipeline
+    _app(api_client).dependency_overrides[get_receipt_pipeline] = lambda: fake_pipeline
 
     response = api_client.post(
         "/api/v1/receipts/analyze/pages",
@@ -112,7 +126,7 @@ def test_analyze_pages_runs_multi_image_pipeline_without_persisting(api_client: 
 
 def test_batch_upload_persists_each_file_as_separate_receipt(api_client: TestClient) -> None:
     fake_pipeline = FakePersistentPipeline()
-    api_client.app.dependency_overrides[get_receipt_pipeline] = lambda: fake_pipeline
+    _app(api_client).dependency_overrides[get_receipt_pipeline] = lambda: fake_pipeline
 
     response = api_client.post(
         "/api/v1/receipts/batch",
@@ -136,7 +150,7 @@ def test_batch_upload_persists_each_file_as_separate_receipt(api_client: TestCli
 
 def test_batch_upload_groups_numbered_page_pairs(api_client: TestClient) -> None:
     fake_pipeline = FakePersistentPipeline()
-    api_client.app.dependency_overrides[get_receipt_pipeline] = lambda: fake_pipeline
+    _app(api_client).dependency_overrides[get_receipt_pipeline] = lambda: fake_pipeline
 
     response = api_client.post(
         "/api/v1/receipts/batch",
@@ -158,7 +172,7 @@ def test_batch_upload_groups_numbered_page_pairs(api_client: TestClient) -> None
 
 def test_detail_and_delete_receipt(api_client: TestClient) -> None:
     fake_pipeline = FakePersistentPipeline()
-    api_client.app.dependency_overrides[get_receipt_pipeline] = lambda: fake_pipeline
+    _app(api_client).dependency_overrides[get_receipt_pipeline] = lambda: fake_pipeline
     created = api_client.post(
         "/api/v1/receipts",
         files=[("files", ("receipt.png", b"image", "image/png"))],
@@ -172,3 +186,27 @@ def test_detail_and_delete_receipt(api_client: TestClient) -> None:
     assert delete_response.status_code == 204
     assert api_client.get(f"/api/v1/receipts/{created['id']}").status_code == 404
     assert api_client.get("/api/v1/receipts").json() == []
+
+
+def test_list_receipts_returns_503_when_database_is_unavailable(api_client: TestClient) -> None:
+    def override_get_session() -> BrokenSession:
+        return BrokenSession()
+
+    _app(api_client).dependency_overrides[get_session] = override_get_session
+
+    response = api_client.get("/api/v1/receipts")
+
+    assert response.status_code == 503
+    assert response.json()["detail"] == DATABASE_UNAVAILABLE_MESSAGE
+
+
+def test_health_db_returns_503_when_database_is_unavailable(api_client: TestClient) -> None:
+    def override_get_session() -> BrokenSession:
+        return BrokenSession()
+
+    _app(api_client).dependency_overrides[get_session] = override_get_session
+
+    response = api_client.get("/health/db")
+
+    assert response.status_code == 503
+    assert response.json()["detail"] == DATABASE_UNAVAILABLE_MESSAGE
