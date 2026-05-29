@@ -7,7 +7,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import ClassVar, Final
 
-from sqlalchemy import Column, DateTime, Integer, Numeric, Text, func
+from sqlalchemy import JSON, Column, DateTime, Integer, Numeric, Text, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, SQLModel
 
@@ -18,6 +18,11 @@ QUANTITY_SCALE: Final[int] = 2
 def money_column(nullable: bool = True) -> Column[int]:
     """Return a shared SQL column definition for monetary values stored as cents."""
     return Column(Integer, nullable=nullable)
+
+
+def json_column(nullable: bool = True) -> Column[list[str]]:
+    """Return a JSON column compatible with PostgreSQL and SQLite."""
+    return Column(JSON().with_variant(JSONB, "postgresql"), nullable=nullable)
 
 
 def quantity_column(nullable: bool = True) -> Column[Decimal]:
@@ -80,7 +85,7 @@ class Receipt(SQLModel, table=True):
     total_discount_amount: int | None = Field(default=None, sa_column=money_column())
     payment_method: str | None = None
     raw_ocr_text: str = ""
-    warnings: list[str] = Field(default_factory=list, sa_column=Column(JSONB, nullable=False))
+    warnings: list[str] = Field(default_factory=list, sa_column=json_column(nullable=False))
     error: str | None = None
     created_at: datetime | None = Field(default=None, sa_column=timestamp_column())
 
