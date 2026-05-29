@@ -1,22 +1,28 @@
 """SQLModel database table models."""
 
-# pyright: reportIncompatibleVariableOverride=false
 from __future__ import annotations
 
+# pyright: reportIncompatibleVariableOverride=false
 from datetime import date, datetime
 from decimal import Decimal
 from typing import ClassVar, Final
 
-from sqlalchemy import JSON, Column, DateTime, Numeric, Text, func
+from sqlalchemy import Column, DateTime, Integer, Numeric, Text, func
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, SQLModel
 
-MONEY_PRECISION: Final[int] = 10
-MONEY_SCALE: Final[int] = 2
+QUANTITY_PRECISION: Final[int] = 10
+QUANTITY_SCALE: Final[int] = 2
 
 
-def money_column(nullable: bool = True) -> Column[Decimal]:
-    """Return a shared SQL column definition for monetary values."""
-    return Column(Numeric(MONEY_PRECISION, MONEY_SCALE), nullable=nullable)
+def money_column(nullable: bool = True) -> Column[int]:
+    """Return a shared SQL column definition for monetary values stored as cents."""
+    return Column(Integer, nullable=nullable)
+
+
+def quantity_column(nullable: bool = True) -> Column[Decimal]:
+    """Return a shared SQL column definition for item quantities."""
+    return Column(Numeric(QUANTITY_PRECISION, QUANTITY_SCALE), nullable=nullable)
 
 
 def timestamp_column() -> Column[datetime]:
@@ -68,13 +74,13 @@ class Receipt(SQLModel, table=True):
     merchant_name: str | None = None
     receipt_date: date | None = None
     currency: str = "PLN"
-    subtotal_amount: Decimal | None = Field(default=None, sa_column=money_column())
-    tax_amount: Decimal | None = Field(default=None, sa_column=money_column())
-    total_amount: Decimal = Field(default=Decimal("0.00"), sa_column=money_column(nullable=False))
-    total_discount_amount: Decimal | None = Field(default=None, sa_column=money_column())
+    subtotal_amount: int | None = Field(default=None, sa_column=money_column())
+    tax_amount: int | None = Field(default=None, sa_column=money_column())
+    total_amount: int = Field(default=0, sa_column=money_column(nullable=False))
+    total_discount_amount: int | None = Field(default=None, sa_column=money_column())
     payment_method: str | None = None
     raw_ocr_text: str = ""
-    warnings: list[str] = Field(default_factory=list, sa_column=Column(JSON, nullable=False))
+    warnings: list[str] = Field(default_factory=list, sa_column=Column(JSONB, nullable=False))
     error: str | None = None
     created_at: datetime | None = Field(default=None, sa_column=timestamp_column())
 
@@ -106,10 +112,10 @@ class ReceiptItem(SQLModel, table=True):
     id: int | None = Field(default=None, primary_key=True)
     receipt_id: int = Field(foreign_key="receipts.id")
     product_name: str
-    quantity: Decimal | None = Field(default=None, sa_column=money_column())
-    unit_price: Decimal | None = Field(default=None, sa_column=money_column())
-    total_price: Decimal = Field(sa_column=money_column(nullable=False))
-    discount_amount: Decimal | None = Field(default=None, sa_column=money_column())
+    quantity: Decimal | None = Field(default=None, sa_column=quantity_column())
+    unit_price: int | None = Field(default=None, sa_column=money_column())
+    total_price: int = Field(default=0, sa_column=money_column(nullable=False))
+    discount_amount: int | None = Field(default=None, sa_column=money_column())
     category_id: int | None = Field(default=None, foreign_key="categories.id")
 
 
