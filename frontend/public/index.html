@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="pl">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Scan receipt · SpendScan</title>
+    <title>Skanuj paragon · SpendScan</title>
     <link rel="icon" href="/assets/icon.png" />
     <link rel="stylesheet" href="/static/css/base.css" />
     <link rel="stylesheet" href="/static/css/app.css" />
@@ -15,15 +15,15 @@
       <main class="home-main" id="main">
         <div class="home-inner">
           <div class="home-head">
-            <h1 class="home-title">Scan your receipt</h1>
-            <p class="home-subtitle">Upload photos of your receipts and automatically extract the data.</p>
+            <h1 class="home-title" data-i18n="scan_title">Skanuj paragon</h1>
+            <p class="home-subtitle" data-i18n="scan_subtitle">Prześlij zdjęcia paragonów, a my automatycznie wyodrębnimy dane.</p>
           </div>
 
           <label class="dz" id="dropzone" for="file-upload">
             <input id="file-upload" type="file" accept="image/*" multiple />
             <div class="dz__icon"><i data-lucide="upload"></i></div>
-            <h3 class="dz__title">Click anywhere to choose photos</h3>
-            <p class="dz__hint">or drop them here · multi-page = one receipt</p>
+            <h3 class="dz__title" data-i18n="dz_title">Kliknij, aby wybrać zdjęcia</h3>
+            <p class="dz__hint" data-i18n="dz_hint">lub upuść je tutaj · multi-page = jeden paragon</p>
             <p class="dz__formats">JPG, PNG, WebP</p>
           </label>
 
@@ -37,23 +37,23 @@
             <div class="card">
               <div class="scan__head">
                 <div class="scan__icon" id="scan-icon"><i data-lucide="loader-2" class="spin"></i></div>
-                <h2 class="scan__title" id="scan-title">Uploading receipt…</h2>
-                <p class="scan__sub" id="scan-sub">Please wait, this may take a moment.</p>
+                <h2 class="scan__title" id="scan-title">Przesyłanie paragonu…</h2>
+                <p class="scan__sub" id="scan-sub">Proszę czekać, to może chwilę potrwać.</p>
               </div>
               <div class="scan__bar"><div class="scan__bar-fill" id="scan-fill"></div></div>
               <div class="scan__percent" id="scan-percent">0%</div>
               <div class="scan__stages" id="scan-stages">
                 <div class="scan__stage" data-stage="upload">
-                  <span class="scan__stage-dot"></span><span class="scan__stage-label">Uploading</span>
+                  <span class="scan__stage-dot"></span><span class="scan__stage-label" data-i18n="stage_upload">Przesyłanie</span>
                 </div>
                 <div class="scan__stage" data-stage="ocr">
-                  <span class="scan__stage-dot"></span><span class="scan__stage-label">OCR</span>
+                  <span class="scan__stage-dot"></span><span class="scan__stage-label" data-i18n="stage_ocr">OCR</span>
                 </div>
                 <div class="scan__stage" data-stage="extract">
-                  <span class="scan__stage-dot"></span><span class="scan__stage-label">Extracting</span>
+                  <span class="scan__stage-dot"></span><span class="scan__stage-label" data-i18n="stage_extract">Ekstrakcja</span>
                 </div>
                 <div class="scan__stage" data-stage="done">
-                  <span class="scan__stage-dot"></span><span class="scan__stage-label">Done</span>
+                  <span class="scan__stage-dot"></span><span class="scan__stage-label" data-i18n="stage_done">Gotowe</span>
                 </div>
               </div>
               <div id="scan-alert" class="alert alert--error hidden" style="margin-top: 16px"></div>
@@ -67,7 +67,80 @@
     <script src="/static/js/api.js"></script>
     <script src="/static/js/icons.js"></script>
     <script>
+      // Translations object
+      const translations = {
+        PL: {
+          scan_title: "Skanuj paragon",
+          scan_subtitle: "Prześlij zdjęcia paragonów, a my automatycznie wyodrębnimy dane.",
+          dz_title: "Kliknij, aby wybrać zdjęcia",
+          dz_hint: "lub upuść je tutaj · multi-page = jeden paragon",
+          stage_upload: "Przesyłanie",
+          stage_ocr: "OCR",
+          stage_extract: "Ekstrakcja",
+          stage_done: "Gotowe",
+          uploading: "Przesyłanie paragonu…",
+          uploading_sub: "Wysyłanie obrazów na serwer.",
+          reading_text: "Czytanie tekstu…",
+          reading_text_sub: "OCR wyodrębnia tekst z każdej strony.",
+          extracting: "Ekstrakcja danych…",
+          extracting_sub: "AI strukturyzuje pozycje, ceny i sumy.",
+          done: "Gotowe!",
+          done_sub: "Paragon przetworzony pomyślnie.",
+          retry: "Spróbuj ponownie",
+          back_to_home: "Powrót do domu",
+          something_went_wrong: "Coś poszło nie tak",
+          could_not_process: "Nie mogliśmy przetworzyć Twojego paragonu.",
+        },
+        EN: {
+          scan_title: "Scan your receipt",
+          scan_subtitle: "Upload photos of your receipts and automatically extract the data.",
+          dz_title: "Click anywhere to choose photos",
+          dz_hint: "or drop them here · multi-page = one receipt",
+          stage_upload: "Uploading",
+          stage_ocr: "OCR",
+          stage_extract: "Extracting",
+          stage_done: "Done",
+          uploading: "Uploading receipt…",
+          uploading_sub: "Sending images to the server.",
+          reading_text: "Reading text…",
+          reading_text_sub: "OCR is extracting text from each page.",
+          extracting: "Extracting data…",
+          extracting_sub: "AI is structuring items, prices and totals.",
+          done: "Done!",
+          done_sub: "Receipt processed successfully.",
+          retry: "Try again",
+          back_to_home: "Back to home",
+          something_went_wrong: "Something went wrong",
+          could_not_process: "We could not process your receipt.",
+        },
+      };
+
+      // Set initial language to Polish
+      if (!SS.currentLanguage) {
+        SS.currentLanguage = "PL";
+        localStorage.setItem("ss_language", "PL");
+      }
+
+      function updatePageLanguage() {
+        const lang = SS.currentLanguage;
+        const t = translations[lang];
+
+        document.documentElement.lang = lang === "PL" ? "pl" : "en";
+        document.querySelector("title").textContent = lang === "PL" ? "Skanuj paragon · SpendScan" : "Scan receipt · SpendScan";
+
+        document.querySelectorAll("[data-i18n]").forEach(el => {
+          const key = el.dataset.i18n;
+          if (t[key]) el.textContent = t[key];
+        });
+      }
+
       SS.paintNav("scan");
+      updatePageLanguage();
+
+      // Listen for language changes
+      window.addEventListener("languageChange", () => {
+        updatePageLanguage();
+      });
 
       const dropzone = document.getElementById("dropzone");
       const fileInput = document.getElementById("file-upload");
@@ -129,17 +202,23 @@
           el.classList.toggle("is-active", i === idx);
           el.classList.toggle("is-done", i < idx);
         });
+
+        const lang = SS.currentLanguage;
+        const t = translations[lang];
+
         const titles = {
-          upload: ["Uploading receipt…", "Sending images to the server."],
-          ocr: ["Reading text…", "OCR is extracting text from each page."],
-          extract: ["Extracting data…", "AI is structuring items, prices and totals."],
-          done: ["Done!", "Receipt processed successfully."],
+          upload: [t.uploading, t.uploading_sub],
+          ocr: [t.reading_text, t.reading_text_sub],
+          extract: [t.extracting, t.extracting_sub],
+          done: [t.done, t.done_sub],
         };
-        const [t, s] = titles[name];
-        document.getElementById("scan-title").textContent = t;
-        document.getElementById("scan-sub").textContent = s;
+
+        const [title, sub] = titles[name];
+        document.getElementById("scan-title").textContent = title;
+        document.getElementById("scan-sub").textContent = sub;
         document.getElementById("scan-fill").style.width = percent + "%";
         document.getElementById("scan-percent").textContent = Math.round(percent) + "%";
+
         if (name === "done") {
           const icon = document.getElementById("scan-icon");
           icon.classList.add("is-done");
@@ -168,17 +247,20 @@
           }, 700);
         } catch (err) {
           clearInterval(tick);
-          showScanError(err.message || "Upload failed");
+          showScanError(err.message || translations[SS.currentLanguage].something_went_wrong);
         }
       }
 
       function showScanError(message) {
+        const lang = SS.currentLanguage;
+        const t = translations[lang];
+
         const icon = document.getElementById("scan-icon");
         icon.classList.remove("is-done");
         icon.classList.add("is-error");
         icon.innerHTML = '<i data-lucide="alert-triangle"></i>';
-        document.getElementById("scan-title").textContent = "Something went wrong";
-        document.getElementById("scan-sub").textContent = "We could not process your receipt.";
+        document.getElementById("scan-title").textContent = t.something_went_wrong;
+        document.getElementById("scan-sub").textContent = t.could_not_process;
         document.getElementById("scan-fill").style.width = "100%";
         document.getElementById("scan-fill").classList.add("is-error");
         document.getElementById("scan-percent").textContent = "Failed";
@@ -189,8 +271,8 @@
         actions.className = "home-actions";
         actions.style.marginTop = "24px";
         actions.innerHTML = `
-        <button type="button" class="btn btn--primary btn--lg" id="scan-retry"><i data-lucide="refresh-ccw"></i><span>Try again</span></button>
-        <a href="/" class="btn btn--outline btn--lg"><i data-lucide="home"></i><span>Back to home</span></a>
+        <button type="button" class="btn btn--primary btn--lg" id="scan-retry"><i data-lucide="refresh-ccw"></i><span>${t.retry}</span></button>
+        <a href="/" class="btn btn--outline btn--lg"><i data-lucide="home"></i><span>${t.back_to_home}</span></a>
       `;
         alert.insertAdjacentElement("afterend", actions);
         document.getElementById("scan-retry").addEventListener("click", () => {

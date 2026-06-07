@@ -189,6 +189,7 @@ class ReceiptRepository:
         currency: str | None = None,
         total_amount: Decimal | None = None,
         payment_method: str | None = None,
+        description: str | None = None,
         importance: int | None = None,
         items: list[dict[str, object]] | None = None,
     ) -> ReceiptDetailRecord | None:
@@ -206,6 +207,8 @@ class ReceiptRepository:
             receipt.total_amount = total_amount
         if payment_method is not None:
             receipt.payment_method = payment_method or None
+        if description is not None:
+            receipt.description = description or None
         if importance is not None:
             receipt.importance = max(0, min(3, int(importance)))
         self._session.add(receipt)

@@ -230,6 +230,7 @@ def list_receipts(
                 receipt_date=receipt.receipt_date,
                 currency=receipt.currency,
                 total_amount=receipt.total_amount,
+                description=receipt.description,
                 importance=receipt.importance,
                 image_count=len(detail.images),
                 item_count=len(detail.items),
@@ -282,6 +283,7 @@ def update_receipt(
         currency=payload.currency,
         total_amount=payload.total_amount,
         payment_method=payload.payment_method,
+        description=payload.description,
         importance=payload.importance,
         items=items_payload,
     )
@@ -415,6 +417,7 @@ def _detail_response(detail: ReceiptDetailRecord) -> ReceiptDetailResponse:
         total_amount=detail.receipt.total_amount,
         total_discount_amount=detail.receipt.total_discount_amount,
         payment_method=detail.receipt.payment_method,
+        description=detail.receipt.description,
         raw_ocr_text=detail.receipt.raw_ocr_text,
         warnings=detail.receipt.warnings,
         error=detail.receipt.error,

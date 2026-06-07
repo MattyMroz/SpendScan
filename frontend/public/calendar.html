@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="pl">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Calendar · SpendScan</title>
+    <title>Kalendarz · SpendScan</title>
     <link rel="icon" href="/assets/icon.png" />
     <link rel="stylesheet" href="/static/css/base.css" />
     <link rel="stylesheet" href="/static/css/app.css" />
@@ -15,8 +15,8 @@
       <main class="cal">
         <div class="cal__inner">
           <header class="cal__head">
-            <h1 class="cal__title">Receipt calendar</h1>
-            <p class="cal__sub">Overview of all your scans by day</p>
+            <h1 class="cal__title" data-i18n="calendar_title">Kalendarz paragonów</h1>
+            <p class="cal__sub" data-i18n="calendar_subtitle">Przegląd wszystkich Twoich skanów według dnia</p>
           </header>
 
           <div class="card">
@@ -29,13 +29,13 @@
             </div>
 
             <div class="cal__weekdays">
-              <div class="cal__weekday">Mon</div>
-              <div class="cal__weekday">Tue</div>
-              <div class="cal__weekday">Wed</div>
-              <div class="cal__weekday">Thu</div>
-              <div class="cal__weekday">Fri</div>
-              <div class="cal__weekday">Sat</div>
-              <div class="cal__weekday">Sun</div>
+              <div class="cal__weekday" data-i18n="mon">Pn</div>
+              <div class="cal__weekday" data-i18n="tue">Wt</div>
+              <div class="cal__weekday" data-i18n="wed">Śr</div>
+              <div class="cal__weekday" data-i18n="thu">Cz</div>
+              <div class="cal__weekday" data-i18n="fri">Pt</div>
+              <div class="cal__weekday" data-i18n="sat">So</div>
+              <div class="cal__weekday" data-i18n="sun">Nd</div>
             </div>
 
             <div class="cal__grid" id="cal-grid"></div>
@@ -43,26 +43,26 @@
 
           <div class="card" style="margin-top: 24px">
             <div class="cal__list-head">
-              <h3 class="cal__list-title">
-                All receipts <span class="cal__hint">(click coins to mark importance)</span>
+              <h3 class="cal__list-title" data-i18n="all_receipts">
+                Wszystkie paragony <span class="cal__hint" data-i18n="click_coins">(kliknij monety, aby zmienić ważność)</span>
               </h3>
               <label class="cal__sort">
-                <span class="cal__sort-label">Sort by</span>
+                <span class="cal__sort-label" data-i18n="sort_by">Sortuj według</span>
                 <select id="rcpt-sort" class="input">
-                  <option value="date_desc">Date — newest first</option>
-                  <option value="date_asc">Date — oldest first</option>
-                  <option value="amount_desc">Amount — highest first</option>
-                  <option value="amount_asc">Amount — lowest first</option>
-                  <option value="importance_desc">Importance — highest first</option>
-                  <option value="merchant_asc">Shop — A to Z</option>
-                  <option value="items_desc">Items — most first</option>
+                  <option value="date_desc" data-i18n="sort_date_newest">Data — najnowsze pierwsze</option>
+                  <option value="date_asc" data-i18n="sort_date_oldest">Data — najstarsze pierwsze</option>
+                  <option value="amount_desc" data-i18n="sort_amount_highest">Kwota — najwyższa pierwsze</option>
+                  <option value="amount_asc" data-i18n="sort_amount_lowest">Kwota — najniższa pierwsze</option>
+                  <option value="importance_desc" data-i18n="sort_importance">Ważność — najwyższa pierwsze</option>
+                  <option value="merchant_asc" data-i18n="sort_merchant">Sklep — A do Z</option>
+                  <option value="items_desc" data-i18n="sort_items">Pozycje — najmniej pierwszych</option>
                 </select>
               </label>
             </div>
             <div id="rcpt-list"></div>
             <div id="rcpt-empty" class="hidden" style="text-align: center; padding: 32px; color: var(--slate-500)">
               <i data-lucide="receipt-text" style="width: 40px; height: 40px; color: var(--slate-300)"></i>
-              <p style="margin-top: 8px">No receipts yet. Scan one from the home page.</p>
+              <p style="margin-top: 8px" data-i18n="no_receipts_yet">Brak paragonów. Skanuj jeden ze strony głównej.</p>
             </div>
           </div>
 
@@ -75,10 +75,158 @@
     <script src="/static/js/api.js"></script>
     <script src="/static/js/icons.js"></script>
     <script>
+      // Translations object
+      const translations = {
+        PL: {
+          calendar_title: "Kalendarz paragonów",
+          calendar_subtitle: "Przegląd wszystkich Twoich skanów według dnia",
+          mon: "Pn",
+          tue: "Wt",
+          wed: "Śr",
+          thu: "Cz",
+          fri: "Pt",
+          sat: "So",
+          sun: "Nd",
+          all_receipts: "Wszystkie paragony",
+          click_coins: "(kliknij monety, aby zmienić ważność)",
+          sort_by: "Sortuj według",
+          sort_date_newest: "Data — najnowsze pierwsze",
+          sort_date_oldest: "Data — najstarsze pierwsze",
+          sort_amount_highest: "Kwota — najwyższa pierwsze",
+          sort_amount_lowest: "Kwota — najniższa pierwsze",
+          sort_importance: "Ważność — najwyższa pierwsze",
+          sort_merchant: "Sklep — A do Z",
+          sort_items: "Pozycje — najmniej pierwszych",
+          no_receipts_yet: "Brak paragonów. Skanuj jeden ze strony głównej.",
+          receipt: "paragon",
+          receipts: "paragony",
+          items: "pozycje",
+          unknown_shop: "Nieznany sklep",
+          delete_confirm: "Usunąć ten paragon? Tej operacji nie można cofnąć.",
+          delete_failed: "Usunięcie nie powiodło się",
+          failed_to_load: "Nie udało się załadować paragonów",
+          failed_to_save: "Nie udało się zapisać ważności",
+          change_importance: "Kliknij, aby zmienić ważność",
+          delete_receipt: "Usuń paragon",
+          month_january: "Styczeń",
+          month_february: "Luty",
+          month_march: "Marzec",
+          month_april: "Kwiecień",
+          month_may: "Maj",
+          month_june: "Czerwiec",
+          month_july: "Lipiec",
+          month_august: "Sierpień",
+          month_september: "Wrzesień",
+          month_october: "Październik",
+          month_november: "Listopad",
+          month_december: "Grudzień",
+          scan: "Skanuj",
+          statistics: "Statystyki",
+          calendar: "Kalendarz",
+          about: "O nas",
+          sign_in: "Zaloguj się",
+          sign_up: "Załóż konto",
+          sign_out: "Wyloguj się",
+        },
+        EN: {
+          calendar_title: "Receipt calendar",
+          calendar_subtitle: "Overview of all your scans by day",
+          mon: "Mon",
+          tue: "Tue",
+          wed: "Wed",
+          thu: "Thu",
+          fri: "Fri",
+          sat: "Sat",
+          sun: "Sun",
+          all_receipts: "All receipts",
+          click_coins: "(click coins to mark importance)",
+          sort_by: "Sort by",
+          sort_date_newest: "Date — newest first",
+          sort_date_oldest: "Date — oldest first",
+          sort_amount_highest: "Amount — highest first",
+          sort_amount_lowest: "Amount — lowest first",
+          sort_importance: "Importance — highest first",
+          sort_merchant: "Shop — A to Z",
+          sort_items: "Items — most first",
+          no_receipts_yet: "No receipts yet. Scan one from the home page.",
+          receipt: "receipt",
+          receipts: "receipts",
+          items: "items",
+          unknown_shop: "Unknown shop",
+          delete_confirm: "Delete this receipt? This cannot be undone.",
+          delete_failed: "Delete failed",
+          failed_to_load: "Failed to load receipts",
+          failed_to_save: "Failed to save importance",
+          change_importance: "Click to change importance",
+          delete_receipt: "Delete receipt",
+          month_january: "January",
+          month_february: "February",
+          month_march: "March",
+          month_april: "April",
+          month_may: "May",
+          month_june: "June",
+          month_july: "July",
+          month_august: "August",
+          month_september: "September",
+          month_october: "October",
+          month_november: "November",
+          month_december: "December",
+          scan: "Scan",
+          statistics: "Statistics",
+          calendar: "Calendar",
+          about: "About",
+          sign_in: "Sign in",
+          sign_up: "Sign up",
+          sign_out: "Sign out",
+        },
+      };
+
+      // Set initial language to Polish
+      if (!SS.currentLanguage) {
+        SS.currentLanguage = "PL";
+        localStorage.setItem("ss_language", "PL");
+      }
+
+      function updatePageLanguage() {
+        const lang = SS.currentLanguage;
+        const t = translations[lang];
+
+        document.documentElement.lang = lang === "PL" ? "pl" : "en";
+        document.querySelector("title").textContent = lang === "PL" ? "Kalendarz · SpendScan" : "Calendar · SpendScan";
+
+        document.querySelectorAll("[data-i18n]").forEach(el => {
+          const key = el.dataset.i18n;
+          if (t[key]) {
+            el.textContent = t[key];
+          }
+        });
+      }
+
       SS.guard();
       SS.paintNav("cal");
+      updatePageLanguage();
 
-      const MONTH_NAMES = [
+      // Listen for language changes
+      window.addEventListener("languageChange", () => {
+        updatePageLanguage();
+        render(); // Re-render with new language
+      });
+
+      const MONTH_NAMES_PL = [
+        "Styczeń",
+        "Luty",
+        "Marzec",
+        "Kwiecień",
+        "Maj",
+        "Czerwiec",
+        "Lipiec",
+        "Sierpień",
+        "Wrzesień",
+        "Październik",
+        "Listopad",
+        "Grudzień",
+      ];
+      const MONTH_NAMES_EN = [
         "January",
         "February",
         "March",
@@ -92,6 +240,7 @@
         "November",
         "December",
       ];
+
       let viewYear,
         viewMonth,
         receipts = [];
@@ -111,12 +260,13 @@
         try {
           await SS.updateReceipt(r.id, { importance: val });
         } catch (err) {
-          showError(err.message || "Failed to save importance");
+          const t = translations[SS.currentLanguage];
+          showError(err.message || t.failed_to_save);
         }
       }
 
       function fmtAmt(v) {
-        return Number(v || 0).toLocaleString("en-US", { maximumFractionDigits: 2 }) + " PLN";
+        return Number(v || 0).toLocaleString(SS.currentLanguage === "PL" ? "pl-PL" : "en-US", { maximumFractionDigits: 2 }) + " PLN";
       }
       function showError(msg) {
         const a = document.getElementById("cal-alert");
@@ -130,11 +280,13 @@
           receipts = list;
           render();
         } catch (err) {
-          showError(err.message || "Failed to load receipts");
+          const t = translations[SS.currentLanguage];
+          showError(err.message || t.failed_to_load);
         }
       }
 
       function render() {
+        const MONTH_NAMES = SS.currentLanguage === "PL" ? MONTH_NAMES_PL : MONTH_NAMES_EN;
         document.getElementById("cal-month").textContent = `${MONTH_NAMES[viewMonth]} ${viewYear}`;
         renderGrid();
         renderList();
@@ -149,9 +301,10 @@
         const mondayIndex = (firstDay.getDay() + 6) % 7;
 
         const byDay = new Map();
-        for (const r of receipts) {
-          if (!r.receipt_date) continue;
-          const d = new Date(r.receipt_date);
+          for (const r of receipts) {
+            const receiptDate = r.receipt_date || r.purchase_date;
+            if (!receiptDate) continue;
+            const d = new Date(receiptDate);
           if (d.getFullYear() === viewYear && d.getMonth() === viewMonth) {
             const day = d.getDate();
             const entry = byDay.get(day) || { count: 0, total: 0 };
@@ -161,6 +314,7 @@
           }
         }
 
+        const t = translations[SS.currentLanguage];
         const cells = [];
         for (let i = 0; i < mondayIndex; i++) cells.push(`<div class="cal__cell cal__cell--empty"></div>`);
         for (let d = 1; d <= dim; d++) {
@@ -169,6 +323,7 @@
           const cls = ["cal__cell"];
           if (data) cls.push("cal__cell--has");
           if (isToday) cls.push("cal__cell--today");
+          const receiptText = data && data.count > 1 ? t.receipts : t.receipt;
           cells.push(`
           <div class="${cls.join(" ")}">
             <div class="cal__day-num">${d}</div>
@@ -177,7 +332,7 @@
                 ? `<div class="cal__day-body">
               <i data-lucide="receipt"></i>
               <div class="cal__day-amount">${fmtAmt(data.total)}</div>
-              <div class="cal__day-count">${data.count} receipt${data.count > 1 ? "s" : ""}</div>
+              <div class="cal__day-count">${data.count} ${receiptText}</div>
             </div>`
                 : ""
             }
@@ -191,6 +346,8 @@
         const list = document.getElementById("rcpt-list");
         const empty = document.getElementById("rcpt-empty");
         const sortKey = document.getElementById("rcpt-sort").value;
+        const t = translations[SS.currentLanguage];
+
         const sorted = [...receipts].sort((a, b) => {
           const ad = a.receipt_date || "";
           const bd = b.receipt_date || "";
@@ -223,7 +380,11 @@
         list.innerHTML = sorted
           .map((r) => {
             const imp = getImp(r);
-            const dateStr = r.receipt_date ? new Date(r.receipt_date).toLocaleDateString("en-GB") : "—";
+            const receiptDate = r.receipt_date || r.purchase_date;
+            const dateObj = receiptDate ? new Date(receiptDate) : null;
+            const dateStr = dateObj
+              ? dateObj.toLocaleDateString(SS.currentLanguage === "PL" ? "pl-PL" : "en-GB")
+              : "—";
             const coins = [0, 1, 2]
               .map((i) => `<i data-lucide="coins" class="coin${i < imp ? " is-on" : ""}"></i>`)
               .join("");
@@ -232,16 +393,23 @@
             <a class="rcpt__main" href="/edit.html?id=${r.id}">
               <div class="rcpt__icon"><i data-lucide="receipt"></i></div>
               <div>
-                <div class="rcpt__store">${r.merchant_name || "Unknown shop"}</div>
-                <div class="rcpt__date">${dateStr} · ${r.item_count || 0} items</div>
+                <div class="rcpt__store">${r.merchant_name || t.unknown_shop}</div>
+                ${
+                  r.description
+                    ? `<div class="rcpt__date" style="margin-top: 6px; color: var(--slate-600)">
+                        <i data-lucide="message-square" style="width: 14px; height: 14px; vertical-align: -2px"></i>
+                        ${r.description}
+                      </div>`
+                    : ""
+                }
               </div>
             </a>
             <div class="rcpt__right">
-              <button class="rcpt__coins" type="button" data-id="${r.id}" title="Click to change importance">
+              <button class="rcpt__coins" type="button" data-id="${r.id}" title="${t.change_importance}">
                 ${coins}
               </button>
               <div class="rcpt__amount">${fmtAmt(r.total_amount)}</div>
-              <button class="btn btn--ghost btn--icon rcpt__del" type="button" data-id="${r.id}" title="Delete receipt">
+              <button class="btn btn--ghost btn--icon rcpt__del" type="button" data-id="${r.id}" title="${t.delete_receipt}">
                 <i data-lucide="trash-2"></i>
               </button>
             </div>
@@ -266,13 +434,13 @@
             ev.preventDefault();
             ev.stopPropagation();
             const id = btn.dataset.id;
-            if (!confirm("Delete this receipt? This cannot be undone.")) return;
+            if (!confirm(t.delete_confirm)) return;
             try {
               await SS.deleteReceipt(id);
               receipts = receipts.filter((x) => String(x.id) !== String(id));
               render();
             } catch (err) {
-              showError(err.message || "Delete failed");
+              showError(err.message || t.delete_failed);
             }
           });
         });

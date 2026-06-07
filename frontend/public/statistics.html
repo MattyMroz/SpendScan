@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="pl">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Statistics · SpendScan</title>
+    <title>Statystyki · SpendScan</title>
     <link rel="icon" href="/assets/icon.png" />
     <link rel="stylesheet" href="/static/css/base.css" />
     <link rel="stylesheet" href="/static/css/app.css" />
@@ -15,57 +15,69 @@
       <main class="stats">
         <div class="stats__inner">
           <header class="stats__head">
-            <h1 class="stats__title">Spending statistics</h1>
-            <p class="stats__sub">Overview of your spending and shopping trends</p>
+            <h1 class="stats__title" data-i18n="stats_title">Statystyki wydatków</h1>
+            <p class="stats__sub" data-i18n="stats_subtitle">Przegląd Twoich wydatków i trendów zakupowych</p>
           </header>
 
           <div id="stats-empty" class="card hidden" style="text-align: center; padding: 48px">
             <i data-lucide="bar-chart-3" style="width: 48px; height: 48px; color: var(--slate-400)"></i>
-            <h3 style="margin: 16px 0 8px; color: var(--slate-700)">No receipts yet</h3>
-            <p style="color: var(--slate-500)">Scan your first receipt to see statistics.</p>
+            <h3 style="margin: 16px 0 8px; color: var(--slate-700)" data-i18n="no_receipts">Brak paragonów</h3>
+            <p style="color: var(--slate-500)" data-i18n="scan_first">Skanuj swój pierwszy paragon, aby zobaczyć statystyki.</p>
           </div>
 
           <div id="stats-body" class="hidden">
+            <div class="card" style="margin-bottom: 24px; padding: 20px">
+              <h3 style="margin: 0 0 12px; color: var(--slate-800)" data-i18n="visible_charts">Widoczne wykresy</h3>
+
+              <div style="display: flex; flex-wrap: wrap; gap: 12px">
+                <label><input type="checkbox" class="chart-toggle" data-target="monthly-panel" checked /> <span data-i18n="toggle_monthly">Wydatki miesięczne</span></label>
+                <label><input type="checkbox" class="chart-toggle" data-target="categories-panel" checked /> <span data-i18n="toggle_categories">Kategorie</span></label>
+                <label><input type="checkbox" class="chart-toggle" data-target="daily-panel" checked /> <span data-i18n="toggle_daily">Wydatki dzienne</span></label>
+                <label><input type="checkbox" class="chart-toggle" data-target="shops-panel" checked /> <span data-i18n="toggle_shops">Top sklepy</span></label>
+                <label><input type="checkbox" class="chart-toggle" data-target="weekly-panel" checked /> <span data-i18n="toggle_weekly">Trend tygodniowy</span></label>
+                <label><input type="checkbox" class="chart-toggle" data-target="heatmap-panel" checked /> <span data-i18n="toggle_heatmap">Mapa ciepła</span></label>
+              </div>
+            </div>
             <div class="stats__cards" id="stat-cards"></div>
 
             <div class="stats__grid">
-              <div class="card stats__chart">
-                <h3 class="stats__chart-title">Monthly spending</h3>
+              <div class="card stats__chart" id="monthly-panel">
+                <h3 class="stats__chart-title" data-i18n="monthly_spending">Wydatki miesięczne</h3>
                 <canvas id="chart-monthly"></canvas>
               </div>
-              <div class="card stats__chart">
-                <h3 class="stats__chart-title">Spending categories</h3>
+              <div class="card stats__chart" id="categories-panel">
+                <h3 class="stats__chart-title" data-i18n="spending_categories">Kategorie wydatków</h3>
                 <canvas id="chart-categories"></canvas>
               </div>
             </div>
 
-            <div class="card stats__chart" style="margin-top: 24px">
-              <h3 class="stats__chart-title">Daily spending (this month)</h3>
+            <div class="card stats__chart" id="daily-panel" style="margin-top: 24px">
+              <h3 class="stats__chart-title" data-i18n="daily_spending">Wydatki dzienne (ten miesiąc)</h3>
               <canvas id="chart-weekly"></canvas>
             </div>
 
             <div class="stats__grid" style="margin-top: 24px">
-              <div class="card stats__chart">
-                <h3 class="stats__chart-title">Top 5 shops</h3>
+              <div class="card stats__chart" id="shops-panel">
+                <h3 class="stats__chart-title" data-i18n="top_shops">Top 5 sklepów</h3>
                 <ol id="top-shops" class="shop-list"></ol>
               </div>
-              <div class="card stats__chart">
-                <h3 class="stats__chart-title">Weekly trend (12 weeks)</h3>
+              <div class="card stats__chart" id="weekly-panel">
+                <h3 class="stats__chart-title" data-i18n="weekly_trend">Trend tygodniowy (12 tygodni)</h3>
                 <canvas id="chart-weekly-trend"></canvas>
               </div>
             </div>
 
-            <div class="card stats__chart" style="margin-top: 24px">
-              <h3 class="stats__chart-title">Heatmap (this month)</h3>
+            <div class="card stats__chart" id="heatmap-panel" style="margin-top: 24px">
+              <h3 class="stats__chart-title" data-i18n="heatmap_title">Mapa ciepła (ten miesiąc)</h3>
               <div id="heatmap" class="heatmap"></div>
               <div class="heatmap__legend">
-                <span>Less</span>
+                <span data-i18n="less">Mniej</span>
                 <span class="heatmap__sw heatmap__sw--0"></span>
                 <span class="heatmap__sw heatmap__sw--1"></span>
                 <span class="heatmap__sw heatmap__sw--2"></span>
                 <span class="heatmap__sw heatmap__sw--3"></span>
                 <span class="heatmap__sw heatmap__sw--4"></span>
-                <span>More</span>
+                <span data-i18n="more">Więcej</span>
               </div>
             </div>
           </div>
@@ -80,13 +92,118 @@
     <script src="/static/js/api.js"></script>
     <script src="/static/js/icons.js"></script>
     <script>
+      // Translations object
+      const translations = {
+        PL: {
+          stats_title: "Statystyki wydatków",
+          stats_subtitle: "Przegląd Twoich wydatków i trendów zakupowych",
+          no_receipts: "Brak paragonów",
+          scan_first: "Skanuj swój pierwszy paragon, aby zobaczyć statystyki.",
+          monthly_spending: "Wydatki miesięczne",
+          spending_categories: "Kategorie wydatków",
+          daily_spending: "Wydatki dzienne (ten miesiąc)",
+          top_shops: "Top 5 sklepów",
+          weekly_trend: "Trend tygodniowy (12 tygodni)",
+          heatmap_title: "Mapa ciepła (ten miesiąc)",
+          less: "Mniej",
+          more: "Więcej",
+          total_yearly: "Razem (rocznie)",
+          this_month: "Ten miesiąc",
+          receipts_year: "Paragony (rok)",
+          daily_average: "Średnia dzienna",
+          scanned: "Skanowane",
+          no_previous_data: "Brak poprzednich danych",
+          receipts_label: "paragony",
+          failed_to_load: "Nie udało się załadować statystyk",
+          no_shop_data: "Brak danych sklepów.",
+          scan: "Skanuj",
+          statistics: "Statystyki",
+          calendar: "Kalendarz",
+          about: "O nas",
+          sign_in: "Zaloguj się",
+          sign_up: "Załóż konto",
+          sign_out: "Wyloguj się",
+          visible_charts: "Widoczne wykresy",
+          toggle_monthly: "Wydatki miesięczne",
+          toggle_categories: "Kategorie",
+          toggle_daily: "Wydatki dzienne",
+          toggle_shops: "Top sklepy",
+          toggle_weekly: "Trend tygodniowy",
+          toggle_heatmap: "Mapa ciepła",
+        },
+        EN: {
+          stats_title: "Spending statistics",
+          stats_subtitle: "Overview of your spending and shopping trends",
+          no_receipts: "No receipts yet",
+          scan_first: "Scan your first receipt to see statistics.",
+          monthly_spending: "Monthly spending",
+          spending_categories: "Spending categories",
+          daily_spending: "Daily spending (this month)",
+          top_shops: "Top 5 shops",
+          weekly_trend: "Weekly trend (12 weeks)",
+          heatmap_title: "Heatmap (this month)",
+          less: "Less",
+          more: "More",
+          total_yearly: "Total (yearly)",
+          this_month: "This month",
+          receipts_year: "Receipts (year)",
+          daily_average: "Daily average",
+          scanned: "Scanned",
+          no_previous_data: "No previous data",
+          receipts_label: "receipts",
+          failed_to_load: "Failed to load statistics",
+          no_shop_data: "No shop data yet.",
+          scan: "Scan",
+          statistics: "Statistics",
+          calendar: "Calendar",
+          about: "About",
+          sign_in: "Sign in",
+          sign_up: "Sign up",
+          sign_out: "Sign out",
+          visible_charts: "Visible charts",
+          toggle_monthly: "Monthly spending",
+          toggle_categories: "Categories",
+          toggle_daily: "Daily spending",
+          toggle_shops: "Top shops",
+          toggle_weekly: "Weekly trend",
+          toggle_heatmap: "Heatmap",
+        },
+      };
+
+      // Set initial language to Polish
+      if (!SS.currentLanguage) {
+        SS.currentLanguage = "PL";
+        localStorage.setItem("ss_language", "PL");
+      }
+
+      function updatePageLanguage() {
+        const lang = SS.currentLanguage;
+        const t = translations[lang];
+
+        document.documentElement.lang = lang === "PL" ? "pl" : "en";
+        document.querySelector("title").textContent = lang === "PL" ? "Statystyki · SpendScan" : "Statistics · SpendScan";
+
+        document.querySelectorAll("[data-i18n]").forEach(el => {
+          const key = el.dataset.i18n;
+          if (t[key]) {
+            el.textContent = t[key];
+          }
+        });
+      }
+
       SS.guard();
       SS.paintNav("stats");
+      updatePageLanguage();
+
+      // Listen for language changes
+      window.addEventListener("languageChange", () => {
+        updatePageLanguage();
+      });
 
       const CATEGORY_COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#0ea5e9", "#ec4899", "#14b8a6"];
 
       function fmt(n) {
-        return Number(n || 0).toLocaleString("en-US", { maximumFractionDigits: 2 }) + " PLN";
+        return Number(n || 0).toLocaleString(SS.currentLanguage === "PL" ? "pl-PL" : "en-US", { maximumFractionDigits: 2 }) + " PLN";
       }
 
       function showError(msg) {
@@ -105,38 +222,39 @@
           }
           document.getElementById("stats-body").classList.remove("hidden");
 
+          const t = translations[SS.currentLanguage];
           const cards = [
             {
-              label: "Total (yearly)",
+              label: t.total_yearly,
               value: fmt(yearly.total_spent),
               icon: "shopping-cart",
               tone: "blue",
               sub: yearly.date_range_label,
             },
             {
-              label: "This month",
+              label: t.this_month,
               value: fmt(monthly.total_spent),
               icon: "receipt",
               tone: "green",
               sub:
                 monthly.total_spent_trend == null
-                  ? "No previous data"
-                  : `${monthly.total_spent_trend > 0 ? "+" : ""}${monthly.total_spent_trend.toFixed(1)}% vs last month`,
+                  ? t.no_previous_data
+                  : `${monthly.total_spent_trend > 0 ? "+" : ""}${monthly.total_spent_trend.toFixed(1)}% ${SS.currentLanguage === "PL" ? "vs poprzedni miesiąc" : "vs last month"}`,
               trend: monthly.total_spent_trend == null ? null : monthly.total_spent_trend > 0 ? "up" : "down",
             },
             {
-              label: "Receipts (year)",
+              label: t.receipts_year,
               value: String(yearly.receipt_count),
               icon: "file-text",
               tone: "purple",
-              sub: "Scanned",
+              sub: t.scanned,
             },
             {
-              label: "Daily average",
+              label: t.daily_average,
               value: fmt(monthly.daily_average),
               icon: "trending-up",
               tone: "orange",
-              sub: "This month",
+              sub: t.this_month,
             },
           ];
           document.getElementById("stat-cards").innerHTML = cards
@@ -217,7 +335,7 @@
           renderWeeklyTrend(yearly.daily_breakdown || []);
           renderHeatmap(daily);
         } catch (err) {
-          showError(err.message || "Failed to load statistics");
+          showError(err.message || translations[SS.currentLanguage].failed_to_load);
         }
       })();
 
@@ -235,7 +353,8 @@
         const list = document.getElementById("top-shops");
         const top = (shops || []).slice(0, 5);
         if (!top.length) {
-          list.innerHTML = '<li class="shop-list__empty">No shop data yet.</li>';
+          const t = translations[SS.currentLanguage];
+          list.innerHTML = `<li class="shop-list__empty">${t.no_shop_data}</li>`;
           return;
         }
         const max = Math.max(...top.map((s) => Number(s.amount || 0)));
@@ -311,6 +430,13 @@
         }
         root.innerHTML = cells.join("");
       }
+      document.querySelectorAll(".chart-toggle").forEach((checkbox) => {
+  checkbox.addEventListener("change", () => {
+    const panel = document.getElementById(checkbox.dataset.target);
+    if (!panel) return;
+    panel.style.display = checkbox.checked ? "" : "none";
+  });
+});
     </script>
   </body>
 </html>

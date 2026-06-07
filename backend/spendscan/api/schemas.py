@@ -86,6 +86,7 @@ class ReceiptListItemResponse(BaseModel):
     image_count: int = 0
     item_count: int = 0
     created_at: datetime | None
+    description: str | None = None
 
 
 class ReceiptDetailResponse(BaseModel):
@@ -102,6 +103,7 @@ class ReceiptDetailResponse(BaseModel):
     total_amount: Decimal
     total_discount_amount: Decimal | None
     payment_method: str | None
+    description: str | None = None
     raw_ocr_text: str
     warnings: list[str]
     error: str | None
@@ -132,6 +134,7 @@ class ReceiptUpdateRequest(BaseModel):
     currency: str | None = None
     total_amount: Decimal | None = None
     payment_method: str | None = None
+    description: str | None = None
     importance: int | None = Field(default=None, ge=0, le=3)
     items: list[ReceiptItemUpdate] | None = None
 

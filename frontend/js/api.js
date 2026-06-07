@@ -1,5 +1,6 @@
 const SS = {
   apiBase: `${location.origin}/api/v1`,
+  currentLanguage: localStorage.getItem("ss_language") || "PL",
 
   token() {
     return localStorage.getItem("ss_token");
@@ -22,6 +23,15 @@ const SS = {
   logout() {
     SS.clearSession();
     location.href = "/login.html";
+  },
+
+  setLanguage(lang) {
+    if (!["PL", "EN"].includes(lang)) return;
+    SS.currentLanguage = lang;
+    localStorage.setItem("ss_language", lang);
+    document.documentElement.lang = lang === "PL" ? "pl" : "en";
+    // Dispatch event so pages can listen and update content
+    window.dispatchEvent(new CustomEvent("languageChange", { detail: { language: lang } }));
   },
 
   async api(path, opts = {}) {
@@ -123,6 +133,32 @@ const SS = {
     if (SS.isAuthed()) location.href = "/";
   },
 
+  // Navbar translations
+  navTranslations() {
+    return {
+      PL: {
+        scan: "Skanuj",
+        statistics: "Statystyki",
+        calendar: "Kalendarz",
+        about: "O nas",
+        sign_in: "Zaloguj się",
+        sign_up: "Załóż konto",
+        sign_out: "Wyloguj się",
+        back_to_home: "Powrót do domu",
+      },
+      EN: {
+        scan: "Scan",
+        statistics: "Statistics",
+        calendar: "Calendar",
+        about: "About",
+        sign_in: "Sign in",
+        sign_up: "Sign up",
+        sign_out: "Sign out",
+        back_to_home: "Back to home",
+      },
+    };
+  },
+
   async paintNav(active) {
     const root = document.getElementById("topnav");
     if (!root) return;
@@ -135,24 +171,57 @@ const SS = {
         user = null;
       }
     }
+
+    const navT = SS.navTranslations()[SS.currentLanguage];
+
     const link = (key, href, icon, label) => `
-      <a href="${href}" class="topnav__link${active === key ? " is-active" : ""}">
+      <a href="${href}" class="topnav__link${active === key ? " is-active" : ""}" data-nav-key="${key}">
         <i data-lucide="${icon}"></i><span>${label}</span>
       </a>`;
+
+    const languageSwitcher = `
+      <div style="display: flex; gap: 4px; align-items: center; flex-shrink: 0;">
+        <button type="button" class="topnav__lang-btn" data-lang="PL" style="
+          padding: 6px 12px;
+          border: 1px solid ${SS.currentLanguage === "PL" ? "#078896" : "#ccc"};
+          background: ${SS.currentLanguage === "PL" ? "#078896" : "transparent"};
+          color: ${SS.currentLanguage === "PL" ? "white" : "#078896"};
+          border-radius: 4px;
+          font-weight: 600;
+          font-size: 13px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          min-width: 44px;
+        ">PL</button>
+        <button type="button" class="topnav__lang-btn" data-lang="EN" style="
+          padding: 6px 12px;
+          border: 1px solid ${SS.currentLanguage === "EN" ? "#078896" : "#ccc"};
+          background: ${SS.currentLanguage === "EN" ? "#078896" : "transparent"};
+          color: ${SS.currentLanguage === "EN" ? "white" : "#078896"};
+          border-radius: 4px;
+          font-weight: 600;
+          font-size: 13px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          min-width: 44px;
+        ">EN</button>
+      </div>`;
+
     const coinsHtml =
       isAuthed && user
         ? `
       <div class="topnav__user">
         <span class="topnav__username">${user.username || ""}</span>
         <button type="button" class="btn btn--ghost btn--sm" id="ss-logout">
-          <i data-lucide="log-out"></i><span>Sign out</span>
+          <i data-lucide="log-out"></i><span>${navT.sign_out}</span>
         </button>
       </div>`
         : `
       <div class="topnav__user">
-        <a href="/login.html" class="topnav__link"><i data-lucide="log-in"></i><span>Sign in</span></a>
-        <a href="/register.html" class="topnav__cta"><i data-lucide="user-plus"></i><span>Sign up</span></a>
+        <a href="/login.html" class="topnav__link"><i data-lucide="log-in"></i><span>${navT.sign_in}</span></a>
+        <a href="/register.html" class="topnav__cta"><i data-lucide="user-plus"></i><span>${navT.sign_up}</span></a>
       </div>`;
+
     root.innerHTML = `
       <div class="topnav__inner">
         <a href="/" class="topnav__brand">
@@ -160,14 +229,25 @@ const SS = {
           <img class="wordmark" src="/assets/logo.png" alt="SpendScan">
         </a>
         <div class="topnav__links">
-          ${link("scan", "/", "receipt-text", "Scan")}
-          ${link("stats", "/statistics.html", "bar-chart-3", "Statistics")}
-          ${link("cal", "/calendar.html", "calendar-days", "Calendar")}
-          ${link("about", "/about.html", "info", "About")}
+          ${link("scan", "/", "receipt-text", navT.scan)}
+          ${link("stats", "/statistics.html", "bar-chart-3", navT.statistics)}
+          ${link("cal", "/calendar.html", "calendar-days", navT.calendar)}
+          ${link("about", "/about.html", "info", navT.about)}
           <span class="topnav__divider"></span>
           ${coinsHtml}
         </div>
+        ${languageSwitcher}
       </div>`;
+
+    // Add language button event listeners
+    document.querySelectorAll(".topnav__lang-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        const lang = btn.dataset.lang;
+        SS.setLanguage(lang);
+        SS.paintNav(active); // Refresh nav to update button states
+      });
+    });
+
     document.getElementById("ss-logout")?.addEventListener("click", () => SS.logout());
     if (window.ssIcons) window.ssIcons();
   },

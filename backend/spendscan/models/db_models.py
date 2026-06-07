@@ -73,6 +73,7 @@ class Receipt(SQLModel, table=True):
     total_amount: Decimal = Field(default=Decimal("0.00"), sa_column=money_column(nullable=False))
     total_discount_amount: Decimal | None = Field(default=None, sa_column=money_column())
     payment_method: str | None = None
+    description: str | None = Field(default=None, sa_column=Column(Text, nullable=True))
     raw_ocr_text: str = ""
     warnings: list[str] = Field(default_factory=list, sa_column=Column(JSON, nullable=False))
     error: str | None = None

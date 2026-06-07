@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="en">
+<html lang="pl">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>About · SpendScan</title>
+    <title>O nas · SpendScan</title>
     <link rel="icon" href="/assets/icon.png" />
     <link rel="stylesheet" href="/static/css/base.css" />
     <link rel="stylesheet" href="/static/css/app.css" />
@@ -15,17 +15,17 @@
       <main class="about">
         <div class="about__inner">
           <header class="about__head">
-            <h1 class="about__title">About SpendScan</h1>
+            <h1 class="about__title" data-i18n="about_title">O nas SpendScan</h1>
           </header>
 
           <div class="card about__card">
             <div class="about__intro">
               <div class="about__intro-icon"><i data-lucide="users"></i></div>
               <div>
-                <h2 class="about__intro-title">Our team</h2>
-                <p class="about__intro-text">
-                  SpendScan is a project built by a team of Computer Science students at Lodz University of Technology
-                  for the IT Project Management course.
+                <h2 class="about__intro-title" data-i18n="our_team">Nasz zespół</h2>
+                <p class="about__intro-text" data-i18n="about_intro">
+                  SpendScan to projekt stworzony przez zespół studentów Informatyki na Politechnice Łódzkiej
+                  na zajęcia z Zarządzania Projektami IT.
                 </p>
               </div>
             </div>
@@ -34,10 +34,10 @@
               <table class="about__table">
                 <thead>
                   <tr>
-                    <th>Name and surname</th>
-                    <th>Student ID</th>
-                    <th>Specialization</th>
-                    <th>Responsibilities</th>
+                    <th data-i18n="table_name">Imię i nazwisko</th>
+                    <th data-i18n="table_student_id">Numer indeksu</th>
+                    <th data-i18n="table_specialization">Specjalizacja</th>
+                    <th data-i18n="table_responsibilities">Obowiązki</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -45,37 +45,37 @@
                     <td>Mateusz Mróz</td>
                     <td>251190</td>
                     <td>EAIDB</td>
-                    <td>OCR + coordination</td>
+                    <td data-i18n="resp_ocr">OCR + koordynacja</td>
                   </tr>
                   <tr>
                     <td>Piotr Marczak</td>
                     <td>251184</td>
                     <td>EAIBD</td>
-                    <td>Database</td>
+                    <td data-i18n="resp_database">Baza danych</td>
                   </tr>
                   <tr>
                     <td>Jakub Bryła</td>
                     <td>251130</td>
                     <td>EAIBD</td>
-                    <td>Architecture + data analysis</td>
+                    <td data-i18n="resp_architecture">Architektura + analiza danych</td>
                   </tr>
                   <tr>
                     <td>Igor Typiński</td>
                     <td>251137</td>
                     <td>IO</td>
-                    <td>API + frontend</td>
+                    <td data-i18n="resp_api_frontend">API + frontend</td>
                   </tr>
                   <tr>
                     <td>Mateusz Słoń</td>
                     <td>251221</td>
                     <td>TI</td>
-                    <td>Frontend + API</td>
+                    <td data-i18n="resp_frontend_api">Frontend + API</td>
                   </tr>
                 </tbody>
               </table>
             </div>
 
-            <p class="about__footer">SpendScan © 2026. All rights reserved.</p>
+            <p class="about__footer" data-i18n="copyright">SpendScan © 2026. Wszelkie prawa zastrzeżone.</p>
           </div>
         </div>
       </main>
@@ -85,7 +85,82 @@
     <script src="/static/js/api.js"></script>
     <script src="/static/js/icons.js"></script>
     <script>
+      // Translations object
+      const translations = {
+        PL: {
+          about_title: "O nas SpendScan",
+          our_team: "Nasz zespół",
+          about_intro: "SpendScan to projekt stworzony przez zespół studentów Informatyki na Politechnice Łódzkiej na zajęcia z Zarządzania Projektami IT.",
+          table_name: "Imię i nazwisko",
+          table_student_id: "Numer indeksu",
+          table_specialization: "Specjalizacja",
+          table_responsibilities: "Obowiązki",
+          resp_ocr: "OCR + koordynacja",
+          resp_database: "Baza danych",
+          resp_architecture: "Architektura + analiza danych",
+          resp_api_frontend: "API + frontend",
+          resp_frontend_api: "Frontend + API",
+          copyright: "SpendScan © 2026. Wszelkie prawa zastrzeżone.",
+          scan: "Skanuj",
+          statistics: "Statystyki",
+          calendar: "Kalendarz",
+          about: "O nas",
+          sign_in: "Zaloguj się",
+          sign_up: "Załóż konto",
+          sign_out: "Wyloguj się",
+        },
+        EN: {
+          about_title: "About SpendScan",
+          our_team: "Our team",
+          about_intro: "SpendScan is a project built by a team of Computer Science students at Lodz University of Technology for the IT Project Management course.",
+          table_name: "Name and surname",
+          table_student_id: "Student ID",
+          table_specialization: "Specialization",
+          table_responsibilities: "Responsibilities",
+          resp_ocr: "OCR + coordination",
+          resp_database: "Database",
+          resp_architecture: "Architecture + data analysis",
+          resp_api_frontend: "API + frontend",
+          resp_frontend_api: "Frontend + API",
+          copyright: "SpendScan © 2026. All rights reserved.",
+          scan: "Scan",
+          statistics: "Statistics",
+          calendar: "Calendar",
+          about: "About",
+          sign_in: "Sign in",
+          sign_up: "Sign up",
+          sign_out: "Sign out",
+        },
+      };
+
+      // Set initial language to Polish
+      if (!SS.currentLanguage) {
+        SS.currentLanguage = "PL";
+        localStorage.setItem("ss_language", "PL");
+      }
+
+      function updatePageLanguage() {
+        const lang = SS.currentLanguage;
+        const t = translations[lang];
+
+        document.documentElement.lang = lang === "PL" ? "pl" : "en";
+        document.querySelector("title").textContent = lang === "PL" ? "O nas · SpendScan" : "About · SpendScan";
+
+        document.querySelectorAll("[data-i18n]").forEach(el => {
+          const key = el.dataset.i18n;
+          if (t[key]) {
+            el.textContent = t[key];
+          }
+        });
+      }
+
       SS.paintNav("about");
+      updatePageLanguage();
+
+      // Listen for language changes
+      window.addEventListener("languageChange", () => {
+        updatePageLanguage();
+      });
     </script>
   </body>
 </html>
