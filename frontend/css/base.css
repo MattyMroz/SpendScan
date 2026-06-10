@@ -17,8 +17,8 @@ body {
     "Helvetica Neue",
     Arial,
     sans-serif;
-  color: #0f172a;
-  background: #ffffff;
+  color: var(--text-primary);
+  background: var(--surface);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
 }

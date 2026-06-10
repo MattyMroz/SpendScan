@@ -24,7 +24,7 @@ body.auth-bg {
   border-radius: 16px;
   padding: 60px 20px;
   text-align: center;
-  background: #fff;
+  background: var(--surface);
   cursor: pointer;
   transition: all .2s;
 }
@@ -39,7 +39,7 @@ body.auth-bg {
   gap: 6px;
 }
 .cal-cell {
-  background: #fff;
+  background: var(--surface);
   border-radius: 8px;
   padding: 8px;
   min-height: 80px;
@@ -53,7 +53,7 @@ body.auth-bg {
   text-align: center;
   font-weight: 600;
   padding: 6px;
-  color: #64748b;
+  color: var(--text-secondary);
 }
 .team-card {
   border: none;
@@ -65,7 +65,7 @@ body.auth-bg {
 .stat-card {
   border: none;
   border-radius: 12px;
-  color: #fff;
+  color: var(--text-primary);
   box-shadow: 0 4px 16px rgba(0,0,0,.1);
 }
 .stat-card.bg-grad-1 { background: linear-gradient(135deg, #0d6efd, #0dcaf0); }
@@ -80,7 +80,7 @@ body.auth-bg {
 
     .cal-cell.selected {
       background: #0d6efd !important;
-      color: #fff !important;
+      color: var(--text-primary) !important;
       outline: 2px solid #084fc7;
       border-radius: 8px;
     }

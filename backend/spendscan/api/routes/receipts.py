@@ -34,6 +34,8 @@ from spendscan.db.repositories import ReceiptDetailRecord, ReceiptImageCreate, R
 from spendscan.errors import ConfigurationError, ExternalServiceError, OutputValidationError
 from spendscan.pipeline import MultiImageReceiptPipelineResult
 
+from spendscan.db.repositories import FolderRepository
+
 router = APIRouter(prefix="/receipts", tags=["receipts"])
 _UPLOAD_CHUNK_BYTES: Final[int] = 1024 * 1024
 _PAIRED_RECEIPT_NAME_RE: Final[re.Pattern[str]] = re.compile(r"^(?P<receipt>.+_\d+)_(?P<page>\d+)$")
@@ -210,18 +212,39 @@ def list_receipts(
 ) -> list[ReceiptListItemResponse]:
     """List persisted receipts for the authenticated user."""
     if current_user.id is None:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="User id missing")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="User id missing",
+        )
+
     repository = ReceiptRepository(session)
+    folder_repo = FolderRepository(session)
+
     receipts = repository.list_receipts(
-        user_id=current_user.id, start_date=start_date, end_date=end_date, merchant_name=merchant_name
+        user_id=current_user.id,
+        start_date=start_date,
+        end_date=end_date,
+        merchant_name=merchant_name,
     )
+
     responses: list[ReceiptListItemResponse] = []
+
     for receipt in receipts:
         if receipt.id is None:
             continue
-        detail = repository.get_detail(receipt.id, user_id=current_user.id)
+
+        detail = repository.get_detail(
+            receipt.id,
+            user_id=current_user.id,
+        )
+
         if detail is None:
             continue
+
+        folder_ids = folder_repo.get_receipt_folder_ids(
+            receipt.id,
+        )
+
         responses.append(
             ReceiptListItemResponse(
                 id=receipt.id,
@@ -235,8 +258,10 @@ def list_receipts(
                 image_count=len(detail.images),
                 item_count=len(detail.items),
                 created_at=receipt.created_at,
+                folder_ids=folder_ids,
             )
         )
+
     return responses
 
 

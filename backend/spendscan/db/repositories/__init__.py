@@ -16,4 +16,7 @@ __all__ = [
     "ReceiptItemRecord",
     "ReceiptRepository",
     "UserRepository",
+    "FolderRepository",
 ]
+
+from spendscan.db.repositories.folders import FolderRepository

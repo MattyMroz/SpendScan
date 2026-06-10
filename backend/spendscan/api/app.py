@@ -23,6 +23,8 @@ from .routes.auth import router as auth_router
 from .routes.health import router as health_router
 from .routes.receipts import router as receipts_router
 
+from .routes.folders import router as folders_router
+
 request_logger = logging.getLogger("uvicorn.error")
 
 DATABASE_UNAVAILABLE_MESSAGE = (
@@ -96,6 +98,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915
     app.include_router(auth_router, prefix=resolved_settings.api_prefix)
     app.include_router(receipts_router, prefix=resolved_settings.api_prefix)
     app.include_router(analytics_router, prefix=resolved_settings.api_prefix)
+    app.include_router(folders_router, prefix=resolved_settings.api_prefix)
 
     frontend_root = Path(__file__).resolve().parents[3] / "frontend"
     public_dir = frontend_root / "public"

@@ -76,17 +76,22 @@ class ReceiptListItemResponse(BaseModel):
     """Persisted receipt list item response."""
 
     model_config = ConfigDict(extra="forbid")
+
     id: int
     status: str
     merchant_name: str | None
     receipt_date: date | None
     currency: str
     total_amount: Decimal
+
     importance: int = 0
     image_count: int = 0
     item_count: int = 0
+
     created_at: datetime | None
     description: str | None = None
+
+    folder_ids: list[int] = []
 
 
 class ReceiptDetailResponse(BaseModel):

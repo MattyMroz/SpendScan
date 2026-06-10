@@ -46,6 +46,20 @@
               <h3 class="cal__list-title" data-i18n="all_receipts">
                 Wszystkie paragony <span class="cal__hint" data-i18n="click_coins">(kliknij monety, aby zmienić ważność)</span>
               </h3>
+              <div class="groups-menu">
+                <button
+                  id="groups-menu-btn"
+                  class="btn btn--primary"
+                >
+                  <i data-lucide="folders"></i>
+                  Moje grupy
+                </button>
+
+                <div
+                  id="groups-menu-list"
+                  class="groups-menu__list"
+                ></div>
+              </div>
               <label class="cal__sort">
                 <span class="cal__sort-label" data-i18n="sort_by">Sortuj według</span>
                 <select id="rcpt-sort" class="input">
@@ -68,6 +82,63 @@
 
           <div id="cal-alert" class="alert alert--error hidden" style="margin-top: 16px"></div>
         </div>
+        <div id="folder-modal" class="modal hidden">
+        <div class="modal__backdrop"></div>
+
+        <div class="modal__content">
+          <h3>Nowa grupa</h3>
+
+          <input
+            id="folder-name"
+            class="input"
+            type="text"
+            placeholder="Wpisz nazwę grupy..."
+          />
+
+          <div class="modal__actions">
+            <button
+              id="folder-cancel"
+              class="btn btn--ghost"
+            >
+              Anuluj
+            </button>
+
+            <button
+              id="folder-save"
+              class="btn btn--primary"
+            >
+              Utwórz
+            </button>
+          </div>
+        </div>
+      </div>
+      <div id="delete-folder-modal" class="modal hidden">
+        <div class="modal__backdrop"></div>
+
+        <div class="modal__content">
+          <h3>Usuń grupę</h3>
+
+          <p id="delete-folder-text">
+            Czy na pewno chcesz usunąć tę grupę?
+          </p>
+
+          <div class="modal__actions">
+            <button
+              id="delete-folder-cancel"
+              class="btn btn--ghost"
+            >
+              Anuluj
+            </button>
+
+            <button
+              id="delete-folder-confirm"
+              class="btn btn--danger"
+            >
+              Usuń
+            </button>
+          </div>
+        </div>
+      </div>
       </main>
     </div>
 
@@ -242,8 +313,11 @@
       ];
 
       let viewYear,
-        viewMonth,
-        receipts = [];
+      viewMonth,
+      receipts = [],
+      folders = [];
+
+      let folderToDelete = null;
 
       const today = new Date();
       viewYear = today.getFullYear();
@@ -276,8 +350,14 @@
 
       async function load() {
         try {
-          const list = await SS.listReceipts();
+          const [list, folderList] = await Promise.all([
+            SS.listReceipts(),
+            SS.listFolders(),
+          ]);
+
           receipts = list;
+          folders = folderList;
+
           render();
         } catch (err) {
           const t = translations[SS.currentLanguage];
@@ -286,10 +366,21 @@
       }
 
       function render() {
-        const MONTH_NAMES = SS.currentLanguage === "PL" ? MONTH_NAMES_PL : MONTH_NAMES_EN;
-        document.getElementById("cal-month").textContent = `${MONTH_NAMES[viewMonth]} ${viewYear}`;
+        const MONTH_NAMES =
+          SS.currentLanguage === "PL"
+            ? MONTH_NAMES_PL
+            : MONTH_NAMES_EN;
+
+        document.getElementById(
+          "cal-month"
+        ).textContent =
+          `${MONTH_NAMES[viewMonth]} ${viewYear}`;
+
+        renderGroupsMenu();
+
         renderGrid();
         renderList();
+
         ssIcons();
       }
 
@@ -390,10 +481,36 @@
               .join("");
             return `
           <div class="rcpt">
-            <a class="rcpt__main" href="/edit.html?id=${r.id}">
+            <div class="rcpt__main">
               <div class="rcpt__icon"><i data-lucide="receipt"></i></div>
               <div>
-                <div class="rcpt__store">${r.merchant_name || t.unknown_shop}</div>
+                <a
+                  class="rcpt__store-link"
+                  href="/edit.html?id=${r.id}"
+                >
+                  <div class="rcpt__store">
+                    ${r.merchant_name || t.unknown_shop}
+                  </div>
+                </a>
+                ${
+                  r.folder_ids?.length
+                    ? `
+                      <div class="rcpt-badges">
+                        ${r.folder_ids
+                          .map((id) => {
+                            const folder = folders.find(
+                              (f) => f.id === id
+                            );
+
+                            return folder
+                              ? `<span class="rcpt-badge">${folder.name}</span>`
+                              : "";
+                          })
+                          .join("")}
+                      </div>
+                    `
+                    : ""
+                }
                 ${
                   r.description
                     ? `<div class="rcpt__date" style="margin-top: 6px; color: var(--slate-600)">
@@ -403,11 +520,52 @@
                     : ""
                 }
               </div>
-            </a>
+            </div>
             <div class="rcpt__right">
               <button class="rcpt__coins" type="button" data-id="${r.id}" title="${t.change_importance}">
                 ${coins}
               </button>
+              <div class="folder-dropdown">
+                <button
+                  type="button"
+                  class="folder-dropdown__btn"
+                  data-receipt="${r.id}"
+                >
+                  Grupy ▼
+                </button>
+
+                <div class="folder-dropdown__menu">
+                  ${
+                    folders.length === 0
+                      ? `
+                        <div class="folder-dropdown__empty">
+                          Brak grup.
+                          <br>
+                          Utwórz pierwszą grupę w „Moje grupy”.
+                        </div>
+                      `
+                      : folders
+                          .map((f) => {
+                            const checked =
+                              r.folder_ids?.includes(f.id);
+
+                            return `
+                              <label class="folder-dropdown__item">
+                                <input
+                                  type="checkbox"
+                                  class="folder-checkbox"
+                                  data-folder="${f.id}"
+                                  data-receipt="${r.id}"
+                                  ${checked ? "checked" : ""}
+                                />
+                                ${f.name}
+                              </label>
+                            `;
+                          })
+                          .join("")
+                  }
+                </div>
+              </div>
               <div class="rcpt__amount">${fmtAmt(r.total_amount)}</div>
               <button class="btn btn--ghost btn--icon rcpt__del" type="button" data-id="${r.id}" title="${t.delete_receipt}">
                 <i data-lucide="trash-2"></i>
@@ -444,7 +602,182 @@
             }
           });
         });
+
+        list.querySelectorAll(".folder-checkbox")
+        .forEach((checkbox) => {
+          checkbox.addEventListener(
+            "change",
+            async () => {
+              const folderId =
+                checkbox.dataset.folder;
+
+              const receiptId =
+                checkbox.dataset.receipt;
+
+              const receipt =
+                receipts.find(
+                  (r) =>
+                    String(r.id) ===
+                    String(receiptId)
+                );
+
+              if (!receipt) return;
+
+              receipt.folder_ids =
+                receipt.folder_ids || [];
+
+              try {
+                if (checkbox.checked) {
+                  await SS.addReceiptToFolder(
+                    folderId,
+                    receiptId
+                  );
+
+                  const id = Number(folderId);
+
+                  if (
+                    !receipt.folder_ids.includes(id)
+                  ) {
+                    receipt.folder_ids.push(id);
+                  }
+                } else {
+                  await SS.removeReceiptFromFolder(
+                    folderId,
+                    receiptId
+                  );
+
+                  receipt.folder_ids =
+                    receipt.folder_ids.filter(
+                      (id) =>
+                        id !== Number(folderId)
+                    );
+                }
+
+                renderList();
+                ssIcons();
+              } catch (err) {
+                alert(err.message);
+              }
+            }
+          );
+        });
       }
+
+
+      function renderGroupsMenu() {
+        const menu =
+          document.getElementById(
+            "groups-menu-list"
+          );
+
+        if (!menu) return;
+
+        menu.innerHTML = `
+          <button
+            class="groups-menu__create"
+            id="groups-create"
+          >
+            ➕ Utwórz grupę
+          </button>
+
+          ${folders
+            .map(
+              (f) => `
+                <div
+                  class="groups-menu__row"
+                >
+                  <span>${f.name}</span>
+
+                  <button
+                    class="groups-menu__delete"
+                    data-folder="${f.id}"
+                  >
+                    <i data-lucide="trash-2"></i>
+                  </button>
+                </div>
+              `
+            )
+            .join("")}
+        `;
+
+        document
+          .getElementById(
+            "groups-create"
+          )
+          ?.addEventListener(
+            "click",
+            async () => {
+              document
+                .getElementById("folder-modal")
+                ?.classList.remove("hidden");
+
+              document
+                .getElementById("folder-name")
+                ?.focus();
+            }
+          );
+
+        menu
+          .querySelectorAll(
+            ".groups-menu__delete"
+          )
+          .forEach((btn) => {
+            btn.addEventListener(
+              "click",
+              async () => {
+                const folderId =
+                  btn.dataset.folder;
+
+                folderToDelete = folderId;
+
+                const folder =
+                  folders.find(
+                    (f) => String(f.id) === String(folderId)
+                  );
+
+                document.getElementById(
+                  "delete-folder-text"
+                ).textContent =
+                  `Czy na pewno chcesz usunąć grupę "${folder?.name}"?`;
+
+                document
+                  .getElementById(
+                    "delete-folder-modal"
+                  )
+                  .classList.remove("hidden");
+              }
+            );
+          });
+      }
+      document
+        .getElementById("folder-cancel")
+        ?.addEventListener("click", () => {
+          document
+            .getElementById("folder-modal")
+            ?.classList.add("hidden");
+        });
+
+      document
+        .getElementById("folder-save")
+        ?.addEventListener("click", async () => {
+          const input =
+            document.getElementById("folder-name");
+
+          const name =
+            input.value.trim();
+
+          if (!name) return;
+
+          await SS.createFolder(name);
+
+          input.value = "";
+
+          document
+            .getElementById("folder-modal")
+            ?.classList.add("hidden");
+
+          await load();
+        });
 
       document.getElementById("cal-prev").addEventListener("click", () => {
         if (--viewMonth < 0) {
@@ -473,6 +806,50 @@
         const saved = localStorage.getItem("ss_rcpt_sort");
         if (saved) document.getElementById("rcpt-sort").value = saved;
       } catch {}
+
+      document
+  .getElementById("folder-cancel")
+  ?.addEventListener("click", () => {
+    document
+      .getElementById("folder-modal")
+      .classList.add("hidden");
+  });
+
+    document
+  .getElementById(
+    "delete-folder-cancel"
+  )
+  ?.addEventListener("click", () => {
+    document
+      .getElementById(
+        "delete-folder-modal"
+      )
+      .classList.add("hidden");
+
+    folderToDelete = null;
+  });
+
+  document
+    .getElementById(
+      "delete-folder-confirm"
+    )
+    ?.addEventListener("click", async () => {
+      if (!folderToDelete) return;
+
+      await SS.deleteFolder(
+        folderToDelete
+      );
+
+      folderToDelete = null;
+
+      document
+        .getElementById(
+          "delete-folder-modal"
+        )
+        .classList.add("hidden");
+
+      await load();
+    });
 
       load();
     </script>

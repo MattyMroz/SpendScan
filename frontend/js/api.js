@@ -125,6 +125,67 @@ const SS = {
     if (!res.ok && res.status !== 204) throw new Error("Delete failed");
   },
 
+  async listFolders() {
+    const res = await SS.api("/folders");
+    if (!res.ok) throw new Error("Failed to load folders");
+    return res.json();
+  },
+
+  async createFolder(name) {
+    const res = await SS.api("/folders", {
+      method: "POST",
+      body: JSON.stringify({ name }),
+    });
+
+    if (!res.ok) throw new Error("Failed to create folder");
+    return res.json();
+  },
+
+  async addReceiptToFolder(folderId, receiptId) {
+    const res = await SS.api(`/folders/${folderId}/receipts/${receiptId}`, {
+      method: "POST",
+    });
+
+    if (!res.ok) throw new Error("Failed to assign receipt");
+  },
+
+  async removeReceiptFromFolder(
+    folderId,
+    receiptId
+  ) {
+    const res = await SS.api(
+      `/folders/${folderId}/receipts/${receiptId}`,
+      {
+        method: "DELETE",
+      }
+    );
+
+    if (!res.ok) {
+      throw new Error(
+        "Failed to remove folder"
+      );
+    }
+
+    return true;
+  },
+
+  async deleteFolder(folderId) {
+    const res = await SS.api(
+      `/folders/${folderId}`,
+      {
+        method: "DELETE",
+      }
+    );
+
+    if (!res.ok) {
+      throw new Error(
+        "Failed to delete folder"
+      );
+    }
+
+    return true;
+  },
+
   guard() {
     if (!SS.isAuthed()) location.href = "/login.html";
   },
@@ -207,6 +268,16 @@ const SS = {
         ">EN</button>
       </div>`;
 
+    const themeSwitcher = `
+      <button
+        type="button"
+        id="theme-toggle"
+        class="theme-toggle"
+      >
+        <i data-lucide="moon"></i>
+      </button>
+    `;
+
     const coinsHtml =
       isAuthed && user
         ? `
@@ -236,6 +307,7 @@ const SS = {
           <span class="topnav__divider"></span>
           ${coinsHtml}
         </div>
+        ${themeSwitcher}
         ${languageSwitcher}
       </div>`;
 
@@ -248,9 +320,41 @@ const SS = {
       });
     });
 
+    const themeBtn = document.getElementById("theme-toggle");
+
+    if (themeBtn) {
+      const dark = document.body.classList.contains("dark");
+
+      themeBtn.innerHTML = dark
+        ? '<i data-lucide="sun"></i>'
+        : '<i data-lucide="moon"></i>';
+
+      if (window.ssIcons) window.ssIcons();
+
+      themeBtn.addEventListener("click", () => {
+        document.body.classList.toggle("dark");
+
+        const isDark = document.body.classList.contains("dark");
+
+        localStorage.setItem("ss_theme", isDark ? "dark" : "light");
+
+        themeBtn.innerHTML = isDark
+          ? '<i data-lucide="sun"></i>'
+          : '<i data-lucide="moon"></i>';
+
+        if (window.ssIcons) window.ssIcons();
+      });
+    }
+
     document.getElementById("ss-logout")?.addEventListener("click", () => SS.logout());
     if (window.ssIcons) window.ssIcons();
   },
 };
+
+const savedTheme = localStorage.getItem("ss_theme");
+
+if (savedTheme === "dark") {
+  document.body.classList.add("dark");
+}
 
 window.SS = SS;
