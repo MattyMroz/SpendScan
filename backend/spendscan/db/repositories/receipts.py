@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import date
 from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 from typing import Final
 
@@ -16,6 +17,32 @@ from spendscan.models import BudgetReceipt, Category, FolderReceipt, Receipt, Re
 
 DEMO_USER_ID: Final[int] = 1
 """Single demo user used until authentication exists."""
+
+CENTS_PER_UNIT: Final[int] = 100
+
+
+def decimal_to_cents(value: Decimal | None) -> int | None:
+    """Convert a decimal currency value to integer cents."""
+    if value is None:
+        return None
+    return int((value * CENTS_PER_UNIT).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
+
+
+def required_decimal_to_cents(value: Decimal) -> int:
+    """Convert a required decimal currency value to integer cents."""
+    return decimal_to_cents(value) or 0
+
+
+def cents_to_decimal(value: int | None) -> Decimal | None:
+    """Convert integer cents to decimal currency value."""
+    if value is None:
+        return None
+    return Decimal(value) / CENTS_PER_UNIT
+
+
+def required_cents_to_decimal(value: int) -> Decimal:
+    """Convert required integer cents to decimal currency value."""
+    return Decimal(value) / CENTS_PER_UNIT
 
 
 @dataclass(frozen=True, slots=True)
@@ -81,10 +108,10 @@ class ReceiptRepository:
             merchant_name=analysis.merchant_name,
             receipt_date=analysis.receipt_date,
             currency=analysis.currency,
-            subtotal_amount=analysis.subtotal_amount,
-            tax_amount=analysis.tax_amount,
-            total_amount=analysis.total_amount,
-            total_discount_amount=analysis.total_discount_amount,
+            subtotal_amount=decimal_to_cents(analysis.subtotal_amount),
+            tax_amount=decimal_to_cents(analysis.tax_amount),
+            total_amount=required_decimal_to_cents(analysis.total_amount),
+            total_discount_amount=decimal_to_cents(analysis.total_discount_amount),
             payment_method=analysis.payment_method,
             raw_ocr_text=result.ocr_text,
             warnings=analysis.warnings,
@@ -119,9 +146,9 @@ class ReceiptRepository:
                     receipt_id=receipt.id,
                     product_name=item.name,
                     quantity=item.quantity,
-                    unit_price=item.unit_price,
-                    total_price=item.total_price,
-                    discount_amount=item.discount_amount,
+                    unit_price=decimal_to_cents(item.unit_price),
+                    total_price=required_decimal_to_cents(item.total_price),
+                    discount_amount=decimal_to_cents(item.discount_amount),
                     category_id=category.id if category is not None else None,
                 )
             )
@@ -286,9 +313,9 @@ def _analysis_from_detail(detail: ReceiptDetailRecord) -> ReceiptAnalysisResult:
         AnalysisReceiptItem(
             name=item.item.product_name,
             quantity=item.item.quantity,
-            unit_price=item.item.unit_price,
-            total_price=item.item.total_price,
-            discount_amount=item.item.discount_amount,
+            unit_price=cents_to_decimal(item.item.unit_price),
+            total_price=required_cents_to_decimal(item.item.total_price),
+            discount_amount=cents_to_decimal(item.item.discount_amount),
             category=item.category_name,
         )
         for item in detail.items
@@ -297,10 +324,10 @@ def _analysis_from_detail(detail: ReceiptDetailRecord) -> ReceiptAnalysisResult:
         merchant_name=receipt.merchant_name,
         receipt_date=receipt.receipt_date,
         currency=receipt.currency,
-        subtotal_amount=receipt.subtotal_amount,
-        tax_amount=receipt.tax_amount,
-        total_amount=receipt.total_amount,
-        total_discount_amount=receipt.total_discount_amount,
+        subtotal_amount=cents_to_decimal(receipt.subtotal_amount),
+        tax_amount=cents_to_decimal(receipt.tax_amount),
+        total_amount=required_cents_to_decimal(receipt.total_amount),
+        total_discount_amount=cents_to_decimal(receipt.total_discount_amount),
         payment_method=receipt.payment_method,
         items=items,
         warnings=receipt.warnings,
