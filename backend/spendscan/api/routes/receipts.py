@@ -34,6 +34,11 @@ from spendscan.db.repositories import FolderRepository, ReceiptDetailRecord, Rec
 from spendscan.errors import ConfigurationError, ExternalServiceError, OutputValidationError
 from spendscan.pipeline import MultiImageReceiptPipelineResult
 
+from spendscan.db.repositories.receipts import (
+    cents_to_decimal,
+    required_cents_to_decimal,
+)
+
 router = APIRouter(prefix="/receipts", tags=["receipts"])
 _UPLOAD_CHUNK_BYTES: Final[int] = 1024 * 1024
 _PAIRED_RECEIPT_NAME_RE: Final[re.Pattern[str]] = re.compile(r"^(?P<receipt>.+_\d+)_(?P<page>\d+)$")
@@ -250,7 +255,7 @@ def list_receipts(
                 merchant_name=receipt.merchant_name,
                 receipt_date=receipt.receipt_date,
                 currency=receipt.currency,
-                total_amount=receipt.total_amount,
+                total_amount=required_cents_to_decimal(receipt.total_amount),
                 description=receipt.description,
                 importance=receipt.importance,
                 image_count=len(detail.images),
@@ -435,10 +440,18 @@ def _detail_response(detail: ReceiptDetailRecord) -> ReceiptDetailResponse:
         merchant_name=detail.receipt.merchant_name,
         receipt_date=detail.receipt.receipt_date,
         currency=detail.receipt.currency,
-        subtotal_amount=detail.receipt.subtotal_amount,
-        tax_amount=detail.receipt.tax_amount,
-        total_amount=detail.receipt.total_amount,
-        total_discount_amount=detail.receipt.total_discount_amount,
+        subtotal_amount=cents_to_decimal(
+            detail.receipt.subtotal_amount,
+        ),
+        tax_amount=cents_to_decimal(
+            detail.receipt.tax_amount,
+        ),
+        total_amount=required_cents_to_decimal(
+            detail.receipt.total_amount,
+        ),
+        total_discount_amount=cents_to_decimal(
+            detail.receipt.total_discount_amount,
+        ),
         payment_method=detail.receipt.payment_method,
         description=detail.receipt.description,
         raw_ocr_text=detail.receipt.raw_ocr_text,
@@ -466,9 +479,15 @@ def _detail_response(detail: ReceiptDetailRecord) -> ReceiptDetailResponse:
                 id=_required_id(item.item.id, "receipt item"),
                 product_name=item.item.product_name,
                 quantity=item.item.quantity,
-                unit_price=item.item.unit_price,
-                total_price=item.item.total_price,
-                discount_amount=item.item.discount_amount,
+                unit_price=cents_to_decimal(
+                    item.item.unit_price,
+                ),
+                total_price=required_cents_to_decimal(
+                    item.item.total_price,
+                ),
+                discount_amount=cents_to_decimal(
+                    item.item.discount_amount,
+                ),
                 category=item.category_name,
             )
             for item in detail.items

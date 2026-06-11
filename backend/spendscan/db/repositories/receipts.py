@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import date
+from decimal import Decimal
 from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 from typing import Final
@@ -230,7 +231,7 @@ class ReceiptRepository:
         if currency is not None and currency.strip():
             receipt.currency = currency.strip().upper()
         if total_amount is not None:
-            receipt.total_amount = total_amount
+            receipt.total_amount = required_decimal_to_cents(total_amount)
         if payment_method is not None:
             receipt.payment_method = payment_method or None
         if description is not None:

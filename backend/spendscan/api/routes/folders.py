@@ -4,6 +4,8 @@ from spendscan.api.dependencies import SessionDep
 from spendscan.auth import CurrentUser
 from spendscan.db.repositories import FolderRepository
 
+from spendscan.models import Folder, FolderReceipt
+
 router = APIRouter(prefix="/folders", tags=["folders"])
 
 
@@ -11,8 +13,10 @@ router = APIRouter(prefix="/folders", tags=["folders"])
 def list_folders(
     session: SessionDep,
     current_user: CurrentUser,
-):
+) -> list[Folder]:
     repo = FolderRepository(session)
+
+    assert current_user.id is not None
 
     return repo.list_folders(
         user_id=current_user.id,
@@ -21,11 +25,13 @@ def list_folders(
 
 @router.post("")
 def create_folder(
-    payload: dict,
+    payload: dict[str, str],
     session: SessionDep,
     current_user: CurrentUser,
-):
+) -> Folder:
     repo = FolderRepository(session)
+
+    assert current_user.id is not None
 
     return repo.create_folder(
         user_id=current_user.id,
@@ -40,7 +46,7 @@ def assign_receipt(
     receipt_id: int,
     session: SessionDep,
     current_user: CurrentUser,
-):
+) -> FolderReceipt:
     repo = FolderRepository(session)
 
     try:
@@ -61,7 +67,7 @@ def remove_receipt(
     receipt_id: int,
     session: SessionDep,
     current_user: CurrentUser,
-):
+) -> dict[str, bool]:
     repo = FolderRepository(session)
 
     repo.remove_receipt(
@@ -77,7 +83,7 @@ def delete_folder(
     folder_id: int,
     session: SessionDep,
     current_user: CurrentUser,
-):
+) -> dict[str, bool]:
     repo = FolderRepository(session)
 
     repo.delete_folder(
