@@ -20,10 +20,9 @@ from spendscan.ocr import OcrService, PaddleOcrConfig
 
 from .routes.analytics import router as analytics_router
 from .routes.auth import router as auth_router
+from .routes.folders import router as folders_router
 from .routes.health import router as health_router
 from .routes.receipts import router as receipts_router
-
-from .routes.folders import router as folders_router
 
 request_logger = logging.getLogger("uvicorn.error")
 

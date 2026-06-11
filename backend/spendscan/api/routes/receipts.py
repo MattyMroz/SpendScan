@@ -30,11 +30,9 @@ from spendscan.api.schemas import (
 )
 from spendscan.auth import CurrentUser
 from spendscan.config import project_root
-from spendscan.db.repositories import ReceiptDetailRecord, ReceiptImageCreate, ReceiptRepository
+from spendscan.db.repositories import FolderRepository, ReceiptDetailRecord, ReceiptImageCreate, ReceiptRepository
 from spendscan.errors import ConfigurationError, ExternalServiceError, OutputValidationError
 from spendscan.pipeline import MultiImageReceiptPipelineResult
-
-from spendscan.db.repositories import FolderRepository
 
 router = APIRouter(prefix="/receipts", tags=["receipts"])
 _UPLOAD_CHUNK_BYTES: Final[int] = 1024 * 1024

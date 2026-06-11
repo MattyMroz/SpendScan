@@ -11,12 +11,12 @@ from spendscan.db.repositories.users import UserRepository
 
 __all__ = [
     "DEMO_USER_ID",
+    "FolderRepository",
     "ReceiptDetailRecord",
     "ReceiptImageCreate",
     "ReceiptItemRecord",
     "ReceiptRepository",
     "UserRepository",
-    "FolderRepository",
 ]
 
 from spendscan.db.repositories.folders import FolderRepository
