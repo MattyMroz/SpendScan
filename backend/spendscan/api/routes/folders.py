@@ -3,7 +3,6 @@ from fastapi import APIRouter, HTTPException
 from spendscan.api.dependencies import SessionDep
 from spendscan.auth import CurrentUser
 from spendscan.db.repositories import FolderRepository
-
 from spendscan.models import Folder, FolderReceipt
 
 router = APIRouter(prefix="/folders", tags=["folders"])
@@ -16,7 +15,11 @@ def list_folders(
 ) -> list[Folder]:
     repo = FolderRepository(session)
 
-    assert current_user.id is not None
+    if current_user.id is None:
+        raise HTTPException(
+            status_code=400,
+            detail="User not found",
+        )
 
     return repo.list_folders(
         user_id=current_user.id,
@@ -31,7 +34,11 @@ def create_folder(
 ) -> Folder:
     repo = FolderRepository(session)
 
-    assert current_user.id is not None
+    if current_user.id is None:
+        raise HTTPException(
+            status_code=400,
+            detail="User not found",
+        )
 
     return repo.create_folder(
         user_id=current_user.id,
