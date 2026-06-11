@@ -1,52 +1,188 @@
 <!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Login — SpendScan</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-  <link href="../css/styles.css" rel="stylesheet">
-</head>
-<body class="auth-bg d-flex align-items-center">
-  <div id="nav-placeholder" class="position-absolute top-0 start-0 end-0"></div>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Zaloguj się · SpendScan</title>
+    <link rel="icon" href="/assets/icon.png" />
+    <link rel="stylesheet" href="/static/css/base.css" />
+    <link rel="stylesheet" href="/static/css/app.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <nav class="topnav" id="topnav"></nav>
 
-  <div class="container py-5 d-flex justify-content-center">
-    <div class="card auth-card p-4 mt-5">
-      <div class="text-center mb-4">
-        <div class="brand-logo"><i class="bi bi-receipt-cutoff"></i> SpendScan</div>
-        <p class="text-muted">Sign in to your account</p>
-      </div>
-      <form id="loginForm">
-        <div class="mb-3">
-          <label class="form-label">Email</label>
-          <input type="email" class="form-control" id="email" required>
+      <main class="auth-wrap">
+        <div class="auth">
+          <a class="auth__back" href="/">
+            <i data-lucide="arrow-left"></i><span data-i18n="back_to_home">Powrót do domu</span>
+          </a>
+          <div class="auth__brand">
+            <img class="icon" src="/assets/icon.png" alt="" />
+            <img class="wordmark" src="/assets/logo.png" alt="SpendScan" />
+          </div>
+
+          <div class="card">
+            <h1 class="auth__title" data-i18n="signin_title">Zaloguj się</h1>
+            <p class="auth__subtitle" data-i18n="signin_subtitle">Witaj ponownie!</p>
+
+            <form id="login-form">
+              <div class="field">
+                <label class="field__label" for="email" data-i18n="email_label">Email</label>
+                <div class="field__wrap">
+                  <i class="field__icon" data-lucide="mail"></i>
+                  <input
+                    class="input input--with-icon"
+                    type="email"
+                    id="email"
+                    required
+                    autocomplete="email"
+                    data-i18n-placeholder="email_placeholder"
+                    placeholder="ty@example.com"
+                  />
+                </div>
+              </div>
+
+              <div class="field">
+                <label class="field__label" for="password" data-i18n="password_label">Hasło</label>
+                <div class="field__wrap">
+                  <i class="field__icon" data-lucide="lock"></i>
+                  <input
+                    class="input input--with-icon"
+                    type="password"
+                    id="password"
+                    required
+                    autocomplete="current-password"
+                    data-i18n-placeholder="password_placeholder"
+                    placeholder="••••••••"
+                  />
+                </div>
+              </div>
+
+              <div id="alert" class="alert alert--error hidden"></div>
+
+              <button class="btn btn--primary btn--lg btn--block" type="submit" id="submit">
+                <i data-lucide="log-in"></i><span data-i18n="signin_button">Zaloguj się</span>
+              </button>
+            </form>
+
+            <p class="auth__footer">
+              <span data-i18n="no_account">Nie masz konta?</span>
+              <a class="link-blue" href="/register.html" data-i18n="signup_link">Załóż konto</a>
+            </p>
+          </div>
         </div>
-        <div class="mb-3">
-          <label class="form-label">Password</label>
-          <input type="password" class="form-control" id="password" required minlength="4">
-        </div>
-        <div id="err" class="alert alert-danger d-none"></div>
-        <button type="submit" class="btn btn-primary w-100"><i class="bi bi-box-arrow-in-right"></i> Login</button>
-        <p class="text-center mt-3 mb-0 small">No account? <a href="register.html">Register</a></p>
-      </form>
+      </main>
     </div>
-  </div>
 
-  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="../js/app.js"></script>
-  <script>
-    $('#loginForm').on('submit', function (e) {
-      e.preventDefault();
-      const email = $('#email').val().trim();
-      const pw = $('#password').val();
-      if (!email || pw.length < 4) {
-        return $('#err').removeClass('d-none').text('Invalid credentials');
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <script src="/static/js/api.js"></script>
+    <script src="/static/js/icons.js"></script>
+    <script>
+      const translations = {
+        PL: {
+          back_to_home: "Powrót do domu",
+          signin_title: "Zaloguj się",
+          signin_subtitle: "Witaj ponownie!",
+          email_label: "Email",
+          email_placeholder: "ty@example.com",
+          password_label: "Hasło",
+          password_placeholder: "••••••••",
+          signin_button: "Zaloguj się",
+          no_account: "Nie masz konta?",
+          signup_link: "Załóż konto",
+          signing_in: "Logowanie…",
+          login_failed: "Logowanie nie powiodło się",
+          scan: "Skanuj",
+          statistics: "Statystyki",
+          calendar: "Kalendarz",
+          about: "O nas",
+          sign_in: "Zaloguj się",
+          sign_up: "Załóż konto",
+          sign_out: "Wyloguj się",
+        },
+        EN: {
+          back_to_home: "Back to home",
+          signin_title: "Sign in",
+          signin_subtitle: "Welcome back!",
+          email_label: "Email",
+          email_placeholder: "you@example.com",
+          password_label: "Password",
+          password_placeholder: "••••••••",
+          signin_button: "Sign in",
+          no_account: "Don't have an account?",
+          signup_link: "Sign up",
+          signing_in: "Signing in…",
+          login_failed: "Login failed",
+          scan: "Scan",
+          statistics: "Statistics",
+          calendar: "Calendar",
+          about: "About",
+          sign_in: "Sign in",
+          sign_up: "Sign up",
+          sign_out: "Sign out",
+        },
+      };
+
+      if (!SS.currentLanguage) {
+        SS.currentLanguage = "PL";
+        localStorage.setItem("ss_language", "PL");
       }
-      SS.login(email);
-      window.location.href = 'scan.html';
-    });
-  </script>
-</body>
+
+      function updatePageLanguage() {
+        const lang = SS.currentLanguage;
+        const t = translations[lang];
+
+        document.documentElement.lang = lang === "PL" ? "pl" : "en";
+        document.querySelector("title").textContent = lang === "PL" ? "Zaloguj się · SpendScan" : "Sign in · SpendScan";
+
+        document.querySelectorAll("[data-i18n]").forEach((el) => {
+          const key = el.dataset.i18n;
+          if (t[key]) el.textContent = t[key];
+        });
+
+        document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
+          const key = el.dataset.i18nPlaceholder;
+          if (t[key]) el.placeholder = t[key];
+        });
+      }
+
+      SS.guestOnly();
+      SS.paintNav();
+      updatePageLanguage();
+      ssIcons();
+
+      window.addEventListener("languageChange", () => {
+        updatePageLanguage();
+        ssIcons();
+      });
+
+      const form = document.getElementById("login-form");
+      const alertBox = document.getElementById("alert");
+      const submit = document.getElementById("submit");
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        alertBox.classList.add("hidden");
+        submit.disabled = true;
+
+        const t = translations[SS.currentLanguage];
+        submit.innerHTML = `<i data-lucide="loader-2" class="spin"></i><span>${t.signing_in}</span>`;
+        ssIcons();
+
+        try {
+          await SS.login(document.getElementById("email").value, document.getElementById("password").value);
+          await SS.me().catch(() => {});
+          location.href = "/";
+        } catch (err) {
+          const currentT = translations[SS.currentLanguage];
+          alertBox.textContent = err.message || currentT.login_failed;
+          alertBox.classList.remove("hidden");
+          submit.disabled = false;
+          submit.innerHTML = `<i data-lucide="log-in"></i><span>${currentT.signin_button}</span>`;
+          ssIcons();
+        }
+      });
+    </script>
+  </body>
 </html>

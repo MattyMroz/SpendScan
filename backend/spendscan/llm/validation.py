@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import json
+import pathlib
 import re
+import time
 from decimal import Decimal
 from typing import Final
 
+from loguru import logger
 from pydantic import ValidationError
 
 from spendscan.errors import OutputValidationError
@@ -23,11 +26,23 @@ class ReceiptOutputValidator:
 
     def validate(self, raw_text: str, *, raw_ocr_text: str) -> ReceiptAnalysisResult:
         """Validate raw JSON text into a receipt analysis result."""
+        extracted = _extract_json(raw_text)
         try:
-            payload = json.loads(_extract_json(raw_text))
-        except json.JSONDecodeError as exc:
-            msg = f"Gemini returned invalid JSON: {exc.msg}"
-            raise OutputValidationError(msg) from exc
+            payload = json.loads(extracted)
+        except json.JSONDecodeError:
+            try:
+                payload = json.loads(_escape_stray_backslashes(extracted))
+            except json.JSONDecodeError:
+                stripped = re.sub(r'\\(?!["\\/bfnrtu])', "", extracted)
+                try:
+                    payload = json.loads(stripped)
+                except json.JSONDecodeError as exc:
+                    dump = pathlib.Path("workspace/output/debug") / f"gemini_bad_{int(time.time())}.txt"
+                    dump.parent.mkdir(parents=True, exist_ok=True)
+                    dump.write_text(extracted, encoding="utf-8")
+                    logger.warning("Gemini raw output dumped to {}", dump)
+                    msg = f"Gemini returned invalid JSON: {exc.msg}"
+                    raise OutputValidationError(msg) from exc
 
         if not isinstance(payload, dict):
             msg = "Gemini JSON must be an object"
@@ -163,3 +178,28 @@ def _extract_json(raw_text: str) -> str:
     if start == -1 or end == -1 or end <= start:
         return text
     return text[start : end + 1]
+
+
+_VALID_JSON_ESCAPES: Final[frozenset[str]] = frozenset('"\\/bfnrt')
+_HEX_DIGITS: Final[frozenset[str]] = frozenset("0123456789abcdefABCDEF")
+
+
+def _escape_stray_backslashes(text: str) -> str:
+    """Double any backslash that does not start a valid JSON escape sequence."""
+    out: list[str] = []
+    i = 0
+    length = len(text)
+    while i < length:
+        char = text[i]
+        if char == "\\":
+            nxt = text[i + 1] if i + 1 < length else ""
+            if nxt in _VALID_JSON_ESCAPES or (
+                nxt == "u" and i + 5 < length and all(c in _HEX_DIGITS for c in text[i + 2 : i + 6])
+            ):
+                out.append(char)
+            else:
+                out.append("\\\\")
+        else:
+            out.append(char)
+        i += 1
+    return "".join(out)

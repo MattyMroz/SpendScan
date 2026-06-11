@@ -5,18 +5,18 @@ from __future__ import annotations
 import asyncio
 from typing import Any
 
+from .paddle import PaddleOcrConfig, PaddleOcrEngine
 from .protocols import OcrEngine
-from .qianfan import QianfanOcrConfig, QianfanOcrEngine
 from .types import ImageInput, OcrResult
 
 
 class OcrService:
-    """Small async facade over the sync Qianfan OCR engine."""
+    """Small async facade over the sync PaddleOCR-VL engine."""
 
     __slots__ = ("_engine", "_init_lock", "config")
 
-    def __init__(self, config: QianfanOcrConfig | None = None, *, engine: OcrEngine | None = None) -> None:
-        self.config = config or QianfanOcrConfig.from_settings()
+    def __init__(self, config: PaddleOcrConfig | None = None, *, engine: OcrEngine | None = None) -> None:
+        self.config = config or PaddleOcrConfig.from_settings()
         self._engine: OcrEngine | None = engine
         self._init_lock = asyncio.Lock()
 
@@ -30,7 +30,7 @@ class OcrService:
         async with self._init_lock:
             if self._engine is not None:
                 return
-            engine = QianfanOcrEngine(self.config)
+            engine = PaddleOcrEngine(self.config)
             await asyncio.to_thread(engine.initialize, **kwargs)
             self._engine = engine
 

@@ -9,6 +9,7 @@ from decimal import Decimal
 from pathlib import Path
 from typing import Protocol
 
+from spendscan.errors import ExternalServiceError
 from spendscan.llm import GeminiReceiptClient, ReceiptAnalysisResult, ReceiptPipelineResult
 from spendscan.ocr import ImageInput, OcrResult, OcrService
 
@@ -87,6 +88,9 @@ class ReceiptPipeline:
         image_results = tuple(collected_results)
         ocr_text = _combined_ocr_text(image_results)
         ocr_errors = [f"page {result.page_number}: {result.ocr.error}" for result in image_results if result.ocr.error]
+        if ocr_errors and len(ocr_errors) == len(image_results):
+            msg = "All OCR pages failed: " + "; ".join(ocr_errors)
+            raise ExternalServiceError(msg)
         if ocr_errors:
             analysis = ReceiptAnalysisResult(
                 total_amount=Decimal("0"),

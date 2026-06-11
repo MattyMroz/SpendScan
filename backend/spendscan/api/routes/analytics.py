@@ -5,10 +5,11 @@ from __future__ import annotations
 from datetime import date, timedelta
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, HTTPException, Query, status
 
 from spendscan.analysis import AnalysisService, DashboardResponse
 from spendscan.api.dependencies import SessionDep
+from spendscan.auth import CurrentUser
 from spendscan.db.repositories import ReceiptRepository
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
@@ -18,17 +19,24 @@ PeriodType = Literal["daily", "weekly", "monthly", "quarterly", "yearly", "all_t
 @router.get("/dashboard", response_model=DashboardResponse)
 def dashboard(
     session: SessionDep,
+    current_user: CurrentUser,
     period_type: Annotated[PeriodType, Query(description="Dashboard period type.")] = "monthly",
     reference_date: Annotated[date | None, Query(description="Date inside the requested period.")] = None,
 ) -> DashboardResponse:
     """Return dashboard statistics calculated from persisted receipts."""
+    if current_user.id is None:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="User id missing")
     resolved_reference_date = reference_date or date.today()
     current_start, current_end = _period_bounds(period_type, resolved_reference_date)
     previous_start, previous_end = _previous_period_bounds(period_type, current_start)
     repository = ReceiptRepository(session)
     return AnalysisService().generate_dashboard(
-        current_receipts=repository.list_analysis_results(start_date=current_start, end_date=current_end),
-        previous_receipts=repository.list_analysis_results(start_date=previous_start, end_date=previous_end),
+        current_receipts=repository.list_analysis_results(
+            start_date=current_start, end_date=current_end, user_id=current_user.id
+        ),
+        previous_receipts=repository.list_analysis_results(
+            start_date=previous_start, end_date=previous_end, user_id=current_user.id
+        ),
         date_range_label=f"{current_start.isoformat()} - {current_end.isoformat()}",
         period_type=period_type,
         days_in_period=(current_end - current_start).days + 1,

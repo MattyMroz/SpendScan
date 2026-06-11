@@ -41,8 +41,8 @@ class User(SQLModel, table=True):
     __tablename__: ClassVar[str] = "users"
 
     id: int | None = Field(default=None, primary_key=True)
-    username: str
-    email: str
+    username: str = Field(sa_column=Column(Text, nullable=False, unique=True))
+    email: str = Field(sa_column=Column(Text, nullable=False, unique=True))
     password_hash: str
     created_at: datetime | None = Field(default=None, sa_column=timestamp_column())
 
@@ -84,9 +84,11 @@ class Receipt(SQLModel, table=True):
     total_amount: int = Field(default=0, sa_column=money_column(nullable=False))
     total_discount_amount: int | None = Field(default=None, sa_column=money_column())
     payment_method: str | None = None
+    description: str | None = Field(default=None, sa_column=Column(Text, nullable=True))
     raw_ocr_text: str = ""
     warnings: list[str] = Field(default_factory=list, sa_column=json_column(nullable=False))
     error: str | None = None
+    importance: int = Field(default=0, nullable=False)
     created_at: datetime | None = Field(default=None, sa_column=timestamp_column())
 
 

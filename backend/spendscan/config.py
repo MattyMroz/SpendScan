@@ -6,7 +6,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Final
 
-from pydantic import Field, SecretStr
+from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 DEFAULT_GEMINI_MODEL: Final[str] = "gemini-3.1-flash-lite-preview"
@@ -21,8 +21,8 @@ DEFAULT_GEMINI_GEMMA_FALLBACK_MODEL: Final[str] = "gemma-4-31b-it"
 DEFAULT_DATABASE_URL: Final[str] = "postgresql+psycopg://postgres:postgres@localhost:5432/spendscan"
 """Default local PostgreSQL database URL for the demo environment."""
 
-DEFAULT_LLAMA_BUILD_TAG: Final[str] = "b9271"
-"""Pinned llama.cpp build used for the local Qianfan OCR runtime."""
+DEFAULT_LLAMA_BUILD_TAG: Final[str] = "b9383"
+"""Pinned llama.cpp build used for the local PaddleOCR-VL runtime."""
 
 
 def project_root() -> Path:
@@ -42,6 +42,7 @@ class Settings(BaseSettings):
 
     api_prefix: str = "/api/v1"
     gemini_api_key: SecretStr | None = None
+    gemini_api_key_backup: SecretStr | None = None
     gemini_model: str = DEFAULT_GEMINI_MODEL
     gemini_fallback_model: str = DEFAULT_GEMINI_FALLBACK_MODEL
     gemini_gemma_fallback_model: str = DEFAULT_GEMINI_GEMMA_FALLBACK_MODEL
@@ -50,16 +51,30 @@ class Settings(BaseSettings):
     gemini_thinking_budget: int | None = Field(default=0, ge=0)
     gemini_retry_attempts: int = Field(default=3, ge=1)
     gemini_retry_delay_seconds: float = Field(default=5.0, ge=0)
-    qianfan_model_dir: Path = Field(default=Path("external/models/ocr/qianfan-ocr"))
+    gemini_timeout_seconds: float = Field(default=60.0, gt=0)
+    paddle_model_dir: Path = Field(default=Path("external/models/ocr/paddle-ocr"))
     llama_cache_dir: Path = Field(default=Path("external/bin/llama"))
     llama_build_tag: str | None = DEFAULT_LLAMA_BUILD_TAG
     database_url: SecretStr = SecretStr(DEFAULT_DATABASE_URL)
     upload_dir: Path = Field(default=Path("workspace/uploads/receipts"))
+    jwt_secret: SecretStr = SecretStr("dev-only-change-me")
+    jwt_algorithm: str = "HS256"
+    jwt_expires_minutes: int = Field(default=60 * 24, gt=0)
+
+    @field_validator("llama_build_tag", mode="before")
+    @classmethod
+    def normalize_llama_build_tag(cls, value: object) -> str:
+        """Treat a blank env value as the project's pinned llama.cpp build."""
+        if value is None:
+            return DEFAULT_LLAMA_BUILD_TAG
+        if isinstance(value, str) and not value.strip():
+            return DEFAULT_LLAMA_BUILD_TAG
+        return str(value)
 
     @property
-    def resolved_qianfan_model_dir(self) -> Path:
-        """Return an absolute Qianfan model directory path."""
-        return self._resolve_repo_path(self.qianfan_model_dir)
+    def resolved_paddle_model_dir(self) -> Path:
+        """Return an absolute PaddleOCR-VL model directory path."""
+        return self._resolve_repo_path(self.paddle_model_dir)
 
     @property
     def resolved_llama_cache_dir(self) -> Path:
@@ -74,9 +89,21 @@ class Settings(BaseSettings):
         return self.gemini_api_key.get_secret_value().strip()
 
     @property
+    def gemini_api_key_backup_value(self) -> str:
+        """Return the raw backup Gemini API key or an empty string."""
+        if self.gemini_api_key_backup is None:
+            return ""
+        return self.gemini_api_key_backup.get_secret_value().strip()
+
+    @property
     def database_url_value(self) -> str:
         """Return the raw database URL."""
         return self.database_url.get_secret_value().strip()
+
+    @property
+    def jwt_secret_value(self) -> str:
+        """Return the raw JWT signing secret."""
+        return self.jwt_secret.get_secret_value()
 
     @property
     def resolved_upload_dir(self) -> Path:

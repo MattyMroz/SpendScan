@@ -1,344 +1,857 @@
 <!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Calendar — SpendScan</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-  <link href="../css/styles.css" rel="stylesheet">
-</head>
-<body>
-  <div id="nav-placeholder"></div>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Kalendarz · SpendScan</title>
+    <link rel="icon" href="/assets/icon.png" />
+    <link rel="stylesheet" href="/static/css/base.css" />
+    <link rel="stylesheet" href="/static/css/app.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <nav class="topnav" id="topnav"></nav>
 
-  <main class="container py-4">
-    <h2 class="mb-4"><i class="bi bi-calendar3 text-warning"></i> Calendar &amp; History</h2>
+      <main class="cal">
+        <div class="cal__inner">
+          <header class="cal__head">
+            <h1 class="cal__title" data-i18n="calendar_title">Kalendarz paragonów</h1>
+            <p class="cal__sub" data-i18n="calendar_subtitle">Przegląd wszystkich Twoich skanów według dnia</p>
+          </header>
 
-    <div class="card shadow-sm mb-3">
-      <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-          <button class="btn btn-outline-secondary btn-sm" id="prevM"><i class="bi bi-chevron-left"></i></button>
-          <h5 id="monthLabel" class="mb-0"></h5>
-          <button class="btn btn-outline-secondary btn-sm" id="nextM"><i class="bi bi-chevron-right"></i></button>
-        </div>
-        <div class="cal-grid mb-2">
-          <div class="cal-head">Mon</div><div class="cal-head">Tue</div><div class="cal-head">Wed</div>
-          <div class="cal-head">Thu</div><div class="cal-head">Fri</div><div class="cal-head">Sat</div><div class="cal-head">Sun</div>
-        </div>
-        <div class="cal-grid" id="calGrid"></div>
-      </div>
-    </div>
+          <div class="card">
+            <div class="cal__nav">
+              <h2 class="cal__month" id="cal-month"></h2>
+              <div class="cal__nav-btns">
+                <button class="cal__nav-btn" id="cal-prev" type="button"><i data-lucide="chevron-left"></i></button>
+                <button class="cal__nav-btn" id="cal-next" type="button"><i data-lucide="chevron-right"></i></button>
+              </div>
+            </div>
 
-    <div id="groupBar" class="card border-primary shadow-sm mb-4 d-none">
-      <div class="card-body py-3">
-        <div class="d-flex align-items-center gap-3 flex-wrap">
-          <span class="text-primary fw-semibold">
-            <i class="bi bi-collection me-1"></i>
-            <span id="selCount">0</span> day(s) selected
-          </span>
-          <button class="btn btn-sm btn-outline-secondary ms-auto" id="clearSelBtn">
-            <i class="bi bi-x-lg"></i> Clear
-          </button>
-          <button class="btn btn-sm btn-primary" id="showGroupFormBtn">
-            <i class="bi bi-folder-plus me-1"></i> Group selected days
-          </button>
+            <div class="cal__weekdays">
+              <div class="cal__weekday" data-i18n="mon">Pn</div>
+              <div class="cal__weekday" data-i18n="tue">Wt</div>
+              <div class="cal__weekday" data-i18n="wed">Śr</div>
+              <div class="cal__weekday" data-i18n="thu">Cz</div>
+              <div class="cal__weekday" data-i18n="fri">Pt</div>
+              <div class="cal__weekday" data-i18n="sat">So</div>
+              <div class="cal__weekday" data-i18n="sun">Nd</div>
+            </div>
+
+            <div class="cal__grid" id="cal-grid"></div>
+          </div>
+
+          <div class="card" style="margin-top: 24px">
+            <div class="cal__list-head">
+              <h3 class="cal__list-title" data-i18n="all_receipts">
+                Wszystkie paragony <span class="cal__hint" data-i18n="click_coins">(kliknij monety, aby zmienić ważność)</span>
+              </h3>
+              <div class="groups-menu">
+                <button
+                  id="groups-menu-btn"
+                  class="btn btn--primary"
+                >
+                  <i data-lucide="folders"></i>
+                  Moje grupy
+                </button>
+
+                <div
+                  id="groups-menu-list"
+                  class="groups-menu__list"
+                ></div>
+              </div>
+              <label class="cal__sort">
+                <span class="cal__sort-label" data-i18n="sort_by">Sortuj według</span>
+                <select id="rcpt-sort" class="input">
+                  <option value="date_desc" data-i18n="sort_date_newest">Data — najnowsze pierwsze</option>
+                  <option value="date_asc" data-i18n="sort_date_oldest">Data — najstarsze pierwsze</option>
+                  <option value="amount_desc" data-i18n="sort_amount_highest">Kwota — najwyższa pierwsze</option>
+                  <option value="amount_asc" data-i18n="sort_amount_lowest">Kwota — najniższa pierwsze</option>
+                  <option value="importance_desc" data-i18n="sort_importance">Ważność — najwyższa pierwsze</option>
+                  <option value="merchant_asc" data-i18n="sort_merchant">Sklep — A do Z</option>
+                  <option value="items_desc" data-i18n="sort_items">Pozycje — najmniej pierwszych</option>
+                </select>
+              </label>
+            </div>
+            <div id="rcpt-list"></div>
+            <div id="rcpt-empty" class="hidden" style="text-align: center; padding: 32px; color: var(--slate-500)">
+              <i data-lucide="receipt-text" style="width: 40px; height: 40px; color: var(--slate-300)"></i>
+              <p style="margin-top: 8px" data-i18n="no_receipts_yet">Brak paragonów. Skanuj jeden ze strony głównej.</p>
+            </div>
+          </div>
+
+          <div id="cal-alert" class="alert alert--error hidden" style="margin-top: 16px"></div>
         </div>
-        <div id="groupForm" class="mt-3 d-none">
-          <div class="input-group" style="max-width:380px">
-            <input type="text" id="groupNameInput" class="form-control form-control-sm"
-              placeholder="e.g. Business trip, Holiday…" maxlength="40">
-            <button class="btn btn-success btn-sm" id="confirmGroupBtn">
-              <i class="bi bi-check-lg me-1"></i>Create group
+        <div id="folder-modal" class="modal hidden">
+        <div class="modal__backdrop"></div>
+
+        <div class="modal__content">
+          <h3>Nowa grupa</h3>
+
+          <input
+            id="folder-name"
+            class="input"
+            type="text"
+            placeholder="Wpisz nazwę grupy..."
+          />
+
+          <div class="modal__actions">
+            <button
+              id="folder-cancel"
+              class="btn btn--ghost"
+            >
+              Anuluj
+            </button>
+
+            <button
+              id="folder-save"
+              class="btn btn--primary"
+            >
+              Utwórz
             </button>
           </div>
-          <div id="groupNameError" class="text-danger small mt-1 d-none">Please enter a name.</div>
         </div>
       </div>
-    </div>
+      <div id="delete-folder-modal" class="modal hidden">
+        <div class="modal__backdrop"></div>
 
-    <div class="card shadow-sm">
-      <div class="card-body">
-        <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
-          <h5 class="mb-0 me-auto">Receipts</h5>
-          <select class="form-select form-select-sm" id="rangeSel" style="width:auto">
-            <option value="all">All time</option>
-            <option value="month">This month</option>
-            <option value="week">Last 7 days</option>
-          </select>
-          <select class="form-select form-select-sm" id="sortSel" style="width:auto">
-            <option value="date">Sort: Date</option>
-            <option value="price">Sort: Price</option>
-            <option value="coins">Sort: Coins</option>
-          </select>
-        </div>
-        <div class="table-responsive">
-          <table class="table align-middle">
-            <thead><tr><th>Date</th><th>Shop</th><th>Items</th><th class="text-end">Total</th><th>Coins</th><th></th></tr></thead>
-            <tbody id="rcpBody"></tbody>
-          </table>
+        <div class="modal__content">
+          <h3>Usuń grupę</h3>
+
+          <p id="delete-folder-text">
+            Czy na pewno chcesz usunąć tę grupę?
+          </p>
+
+          <div class="modal__actions">
+            <button
+              id="delete-folder-cancel"
+              class="btn btn--ghost"
+            >
+              Anuluj
+            </button>
+
+            <button
+              id="delete-folder-confirm"
+              class="btn btn--danger"
+            >
+              Usuń
+            </button>
+          </div>
         </div>
       </div>
+      </main>
     </div>
-  </main>
 
-  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="../js/app.js"></script>
-  <script>
-    SS.guard();
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <script src="/static/js/api.js"></script>
+    <script src="/static/js/icons.js"></script>
+    <script>
+      // Translations object
+      const translations = {
+        PL: {
+          calendar_title: "Kalendarz paragonów",
+          calendar_subtitle: "Przegląd wszystkich Twoich skanów według dnia",
+          mon: "Pn",
+          tue: "Wt",
+          wed: "Śr",
+          thu: "Cz",
+          fri: "Pt",
+          sat: "So",
+          sun: "Nd",
+          all_receipts: "Wszystkie paragony",
+          click_coins: "(kliknij monety, aby zmienić ważność)",
+          sort_by: "Sortuj według",
+          sort_date_newest: "Data — najnowsze pierwsze",
+          sort_date_oldest: "Data — najstarsze pierwsze",
+          sort_amount_highest: "Kwota — najwyższa pierwsze",
+          sort_amount_lowest: "Kwota — najniższa pierwsze",
+          sort_importance: "Ważność — najwyższa pierwsze",
+          sort_merchant: "Sklep — A do Z",
+          sort_items: "Pozycje — najmniej pierwszych",
+          no_receipts_yet: "Brak paragonów. Skanuj jeden ze strony głównej.",
+          receipt: "paragon",
+          receipts: "paragony",
+          items: "pozycje",
+          unknown_shop: "Nieznany sklep",
+          delete_confirm: "Usunąć ten paragon? Tej operacji nie można cofnąć.",
+          delete_failed: "Usunięcie nie powiodło się",
+          failed_to_load: "Nie udało się załadować paragonów",
+          failed_to_save: "Nie udało się zapisać ważności",
+          change_importance: "Kliknij, aby zmienić ważność",
+          delete_receipt: "Usuń paragon",
+          month_january: "Styczeń",
+          month_february: "Luty",
+          month_march: "Marzec",
+          month_april: "Kwiecień",
+          month_may: "Maj",
+          month_june: "Czerwiec",
+          month_july: "Lipiec",
+          month_august: "Sierpień",
+          month_september: "Wrzesień",
+          month_october: "Październik",
+          month_november: "Listopad",
+          month_december: "Grudzień",
+          scan: "Skanuj",
+          statistics: "Statystyki",
+          calendar: "Kalendarz",
+          about: "O nas",
+          sign_in: "Zaloguj się",
+          sign_up: "Załóż konto",
+          sign_out: "Wyloguj się",
+        },
+        EN: {
+          calendar_title: "Receipt calendar",
+          calendar_subtitle: "Overview of all your scans by day",
+          mon: "Mon",
+          tue: "Tue",
+          wed: "Wed",
+          thu: "Thu",
+          fri: "Fri",
+          sat: "Sat",
+          sun: "Sun",
+          all_receipts: "All receipts",
+          click_coins: "(click coins to mark importance)",
+          sort_by: "Sort by",
+          sort_date_newest: "Date — newest first",
+          sort_date_oldest: "Date — oldest first",
+          sort_amount_highest: "Amount — highest first",
+          sort_amount_lowest: "Amount — lowest first",
+          sort_importance: "Importance — highest first",
+          sort_merchant: "Shop — A to Z",
+          sort_items: "Items — most first",
+          no_receipts_yet: "No receipts yet. Scan one from the home page.",
+          receipt: "receipt",
+          receipts: "receipts",
+          items: "items",
+          unknown_shop: "Unknown shop",
+          delete_confirm: "Delete this receipt? This cannot be undone.",
+          delete_failed: "Delete failed",
+          failed_to_load: "Failed to load receipts",
+          failed_to_save: "Failed to save importance",
+          change_importance: "Click to change importance",
+          delete_receipt: "Delete receipt",
+          month_january: "January",
+          month_february: "February",
+          month_march: "March",
+          month_april: "April",
+          month_may: "May",
+          month_june: "June",
+          month_july: "July",
+          month_august: "August",
+          month_september: "September",
+          month_october: "October",
+          month_november: "November",
+          month_december: "December",
+          scan: "Scan",
+          statistics: "Statistics",
+          calendar: "Calendar",
+          about: "About",
+          sign_in: "Sign in",
+          sign_up: "Sign up",
+          sign_out: "Sign out",
+        },
+      };
 
-    let view = new Date();
-    let selectedDates = new Set(); 
-    let expandedGroups = new Set();
+      // Set initial language to Polish
+      if (!SS.currentLanguage) {
+        SS.currentLanguage = "PL";
+        localStorage.setItem("ss_language", "PL");
+      }
 
-    function toISO(y, m, d) {
-      return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-    }
+      function updatePageLanguage() {
+        const lang = SS.currentLanguage;
+        const t = translations[lang];
 
-    function loadGroups() {
-      try { return JSON.parse(localStorage.getItem('ss_groups') || '[]'); } catch { return []; }
-    }
-    function saveGroups(groups) {
-      localStorage.setItem('ss_groups', JSON.stringify(groups));
-    }
+        document.documentElement.lang = lang === "PL" ? "pl" : "en";
+        document.querySelector("title").textContent = lang === "PL" ? "Kalendarz · SpendScan" : "Calendar · SpendScan";
 
-    const PALETTE = ['#0d6efd','#198754','#dc3545','#fd7e14','#6f42c1','#0dcaf0','#d63384'];
-    function groupColor(idx) { return PALETTE[idx % PALETTE.length]; }
+        document.querySelectorAll("[data-i18n]").forEach(el => {
+          const key = el.dataset.i18n;
+          if (t[key]) {
+            el.textContent = t[key];
+          }
+        });
+      }
 
-    function coins(total) { return total < 20 ? 3 : total < 50 ? 2 : total < 100 ? 1 : 0; }
-    function coinHtml(n) {
-      let h = '';
-      for (let i = 0; i < 3; i++) h += `<i class="bi bi-coin coin ${i < n ? '' : 'empty'}"></i> `;
-      return h;
-    }
+      SS.guard();
+      SS.paintNav("cal");
+      updatePageLanguage();
 
-    function renderCal() {
-      const y = view.getFullYear(), m = view.getMonth();
-      $('#monthLabel').text(view.toLocaleString('default', { month: 'long', year: 'numeric' }));
-
-      const first = new Date(y, m, 1);
-      const startDow = (first.getDay() + 6) % 7;
-      const daysInMonth = new Date(y, m + 1, 0).getDate();
-
-      const recs = SS.receipts();
-      const totals = {};
-      recs.forEach(r => {
-        const d = new Date(r.date);
-        if (d.getFullYear() === y && d.getMonth() === m)
-          totals[d.getDate()] = (totals[d.getDate()] || 0) + r.total;
+      // Listen for language changes
+      window.addEventListener("languageChange", () => {
+        updatePageLanguage();
+        render(); // Re-render with new language
       });
 
-      const groups = loadGroups();
-      const groupedDates = new Set(groups.flatMap(g => g.dates));
+      const MONTH_NAMES_PL = [
+        "Styczeń",
+        "Luty",
+        "Marzec",
+        "Kwiecień",
+        "Maj",
+        "Czerwiec",
+        "Lipiec",
+        "Sierpień",
+        "Wrzesień",
+        "Październik",
+        "Listopad",
+        "Grudzień",
+      ];
+      const MONTH_NAMES_EN = [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+      ];
 
-      let html = '';
-      for (let i = 0; i < startDow; i++) html += '<div class="cal-cell empty"></div>';
-      for (let d = 1; d <= daysInMonth; d++) {
-        const iso = toISO(y, m, d);
-        const t = totals[d];
-        const isSelected = selectedDates.has(iso);
-        const isGrouped  = groupedDates.has(iso);
-        html += `<div class="cal-cell ${t ? 'has-spend' : ''} ${isSelected ? 'selected' : ''} ${isGrouped && !isSelected ? 'in-group' : ''}"
-                      data-iso="${iso}">
-          <div class="fw-semibold">${d}</div>
-          ${t ? `<div class="amt">${SS.fmt(t)}</div>` : ''}
-        </div>`;
+      let viewYear,
+      viewMonth,
+      receipts = [],
+      folders = [];
+
+      let folderToDelete = null;
+
+      const today = new Date();
+      viewYear = today.getFullYear();
+      viewMonth = today.getMonth();
+
+      function importanceKey() {
+        return "ss_importance";
       }
-      $('#calGrid').html(html);
-    }
-
-    $(document).on('click', '.cal-cell:not(.empty)', function () {
-      const iso = $(this).data('iso');
-      if (selectedDates.has(iso)) {
-        selectedDates.delete(iso);
-        $(this).removeClass('selected');
-      } else {
-        selectedDates.add(iso);
-        $(this).addClass('selected');
+      function getImp(r) {
+        return Math.max(0, Math.min(3, Number(r.importance || 0)));
       }
-      updateGroupBar();
-    });
-
-    function updateGroupBar() {
-      const n = selectedDates.size;
-      if (n === 0) {
-        $('#groupBar').addClass('d-none');
-        $('#groupForm').addClass('d-none');
-      } else {
-        $('#groupBar').removeClass('d-none');
-        $('#selCount').text(n);
-      }
-    }
-
-    $('#clearSelBtn').on('click', () => {
-      selectedDates.clear();
-      updateGroupBar();
-      renderCal();
-    });
-
-    $('#showGroupFormBtn').on('click', () => {
-      $('#groupForm').toggleClass('d-none');
-      if (!$('#groupForm').hasClass('d-none')) $('#groupNameInput').focus();
-    });
-
-    $('#confirmGroupBtn').on('click', createGroup);
-    $('#groupNameInput').on('keydown', e => { if (e.key === 'Enter') createGroup(); });
-
-    function createGroup() {
-      const name = $('#groupNameInput').val().trim();
-      if (!name) { $('#groupNameError').removeClass('d-none'); return; }
-      $('#groupNameError').addClass('d-none');
-
-      const groups = loadGroups();
-      groups.push({ id: Date.now(), name, dates: [...selectedDates] });
-      saveGroups(groups);
-
-      selectedDates.clear();
-      $('#groupBar').addClass('d-none');
-      $('#groupForm').addClass('d-none');
-      $('#groupNameInput').val('');
-
-      renderCal();
-      renderList();
-    }
-
-    function renderList() {
-      let recs = SS.receipts().slice();
-      const range = $('#rangeSel').val();
-      const now = new Date();
-
-      if (range === 'month') {
-        recs = recs.filter(r => {
-          const d = new Date(r.date);
-          return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-        });
-      } else if (range === 'week') {
-        const cutoff = Date.now() - 7 * 86400000;
-        recs = recs.filter(r => new Date(r.date).getTime() >= cutoff);
+      async function setImp(r, val) {
+        r.importance = val;
+        try {
+          await SS.updateReceipt(r.id, { importance: val });
+        } catch (err) {
+          const t = translations[SS.currentLanguage];
+          showError(err.message || t.failed_to_save);
+        }
       }
 
-      const sort = $('#sortSel').val();
-      recs.sort((a, b) =>
-        sort === 'price' ? b.total - a.total :
-        sort === 'coins' ? coins(b.total) - coins(a.total) :
-        new Date(b.date) - new Date(a.date));
-
-      const groups = loadGroups();
-
-      function recISO(r) { return r.date ? r.date.slice(0, 10) : ''; }
-      function groupForRec(r) {
-        const iso = recISO(r);
-        return groups.findIndex(g => g.dates.includes(iso));
+      function fmtAmt(v) {
+        return Number(v || 0).toLocaleString(SS.currentLanguage === "PL" ? "pl-PL" : "en-US", { maximumFractionDigits: 2 }) + " PLN";
+      }
+      function showError(msg) {
+        const a = document.getElementById("cal-alert");
+        a.textContent = msg;
+        a.classList.remove("hidden");
       }
 
-      if (!recs.length) {
-        $('#rcpBody').html('<tr><td colspan="6" class="text-center text-muted py-4">No receipts yet — go scan one!</td></tr>');
-        return;
+      async function load() {
+        try {
+          const [list, folderList] = await Promise.all([
+            SS.listReceipts(),
+            SS.listFolders(),
+          ]);
+
+          receipts = list;
+          folders = folderList;
+
+          render();
+        } catch (err) {
+          const t = translations[SS.currentLanguage];
+          showError(err.message || t.failed_to_load);
+        }
       }
 
-      const rendered = new Set();
-      let html = '';
+      function render() {
+        const MONTH_NAMES =
+          SS.currentLanguage === "PL"
+            ? MONTH_NAMES_PL
+            : MONTH_NAMES_EN;
 
-      groups.forEach((g, gi) => {
-        const members = recs.filter(r => g.dates.includes(recISO(r)));
-        if (!members.length) return;
+        document.getElementById(
+          "cal-month"
+        ).textContent =
+          `${MONTH_NAMES[viewMonth]} ${viewYear}`;
 
-        const groupTotal = members.reduce((s, r) => s + r.total, 0);
-        const color = groupColor(gi);
-        const isExpanded = expandedGroups.has(g.id);
-        const chevron = isExpanded ? 'bi-chevron-down' : 'bi-chevron-right';
+        renderGroupsMenu();
 
-        html += `<tr class="group-header" data-gid="${g.id}">
-          <td colspan="4">
-            <span class="group-badge" style="background:${color}"></span>
-            <i class="bi ${chevron} me-1 small"></i>
-            <strong>${g.name}</strong>
-            <span class="text-muted fw-normal ms-2 small">${members.length} receipt(s)</span>
-          </td>
-          <td class="text-end fw-semibold">${SS.fmt(groupTotal)}</td>
-          <td>
-            <button class="btn btn-link btn-sm text-danger p-0 delete-group-btn" data-gid="${g.id}" title="Delete group">
-              <i class="bi bi-trash3"></i>
-            </button>
-          </td>
-        </tr>`;
+        renderGrid();
+        renderList();
 
-        if (isExpanded) {
-          members.forEach(r => {
-            rendered.add(r);
-            html += `<tr class="group-member">
-              <td><span class="group-badge" style="background:${color}"></span>${new Date(r.date).toLocaleDateString()}</td>
-              <td>${r.shop}</td>
-              <td>${r.items.length}</td>
-              <td class="text-end">${SS.fmt(r.total)}</td>
-              <td>${coinHtml(coins(r.total))}</td>
-              <td></td>
-            </tr>`;
-          });
+        ssIcons();
+      }
+
+      function renderGrid() {
+        const grid = document.getElementById("cal-grid");
+        const firstDay = new Date(viewYear, viewMonth, 1);
+        const lastDay = new Date(viewYear, viewMonth + 1, 0);
+        const dim = lastDay.getDate();
+        const mondayIndex = (firstDay.getDay() + 6) % 7;
+
+        const byDay = new Map();
+          for (const r of receipts) {
+            const receiptDate = r.receipt_date || r.purchase_date;
+            if (!receiptDate) continue;
+            const d = new Date(receiptDate);
+          if (d.getFullYear() === viewYear && d.getMonth() === viewMonth) {
+            const day = d.getDate();
+            const entry = byDay.get(day) || { count: 0, total: 0 };
+            entry.count += 1;
+            entry.total += Number(r.total_amount || 0);
+            byDay.set(day, entry);
+          }
         }
 
-        members.forEach(r => rendered.add(r));
+        const t = translations[SS.currentLanguage];
+        const cells = [];
+        for (let i = 0; i < mondayIndex; i++) cells.push(`<div class="cal__cell cal__cell--empty"></div>`);
+        for (let d = 1; d <= dim; d++) {
+          const isToday = d === today.getDate() && viewMonth === today.getMonth() && viewYear === today.getFullYear();
+          const data = byDay.get(d);
+          const cls = ["cal__cell"];
+          if (data) cls.push("cal__cell--has");
+          if (isToday) cls.push("cal__cell--today");
+          const receiptText = data && data.count > 1 ? t.receipts : t.receipt;
+          cells.push(`
+          <div class="${cls.join(" ")}">
+            <div class="cal__day-num">${d}</div>
+            ${
+              data
+                ? `<div class="cal__day-body">
+              <i data-lucide="receipt"></i>
+              <div class="cal__day-amount">${fmtAmt(data.total)}</div>
+              <div class="cal__day-count">${data.count} ${receiptText}</div>
+            </div>`
+                : ""
+            }
+          </div>
+        `);
+        }
+        grid.innerHTML = cells.join("");
+      }
+
+      function renderList() {
+        const list = document.getElementById("rcpt-list");
+        const empty = document.getElementById("rcpt-empty");
+        const sortKey = document.getElementById("rcpt-sort").value;
+        const t = translations[SS.currentLanguage];
+
+        const sorted = [...receipts].sort((a, b) => {
+          const ad = a.receipt_date || "";
+          const bd = b.receipt_date || "";
+          const aa = Number(a.total_amount || 0);
+          const ba = Number(b.total_amount || 0);
+          switch (sortKey) {
+            case "date_asc":
+              return ad.localeCompare(bd);
+            case "amount_desc":
+              return ba - aa;
+            case "amount_asc":
+              return aa - ba;
+            case "importance_desc":
+              return getImp(b) - getImp(a) || bd.localeCompare(ad);
+            case "merchant_asc":
+              return (a.merchant_name || "").localeCompare(b.merchant_name || "");
+            case "items_desc":
+              return Number(b.item_count || 0) - Number(a.item_count || 0);
+            case "date_desc":
+            default:
+              return bd.localeCompare(ad);
+          }
+        });
+        if (!sorted.length) {
+          list.innerHTML = "";
+          empty.classList.remove("hidden");
+          return;
+        }
+        empty.classList.add("hidden");
+        list.innerHTML = sorted
+          .map((r) => {
+            const imp = getImp(r);
+            const receiptDate = r.receipt_date || r.purchase_date;
+            const dateObj = receiptDate ? new Date(receiptDate) : null;
+            const dateStr = dateObj
+              ? dateObj.toLocaleDateString(SS.currentLanguage === "PL" ? "pl-PL" : "en-GB")
+              : "—";
+            const coins = [0, 1, 2]
+              .map((i) => `<i data-lucide="coins" class="coin${i < imp ? " is-on" : ""}"></i>`)
+              .join("");
+            return `
+          <div class="rcpt">
+            <div class="rcpt__main">
+              <div class="rcpt__icon"><i data-lucide="receipt"></i></div>
+              <div>
+                <a
+                  class="rcpt__store-link"
+                  href="/edit.html?id=${r.id}"
+                >
+                  <div class="rcpt__store">
+                    ${r.merchant_name || t.unknown_shop}
+                  </div>
+                </a>
+                ${
+                  r.folder_ids?.length
+                    ? `
+                      <div class="rcpt-badges">
+                        ${r.folder_ids
+                          .map((id) => {
+                            const folder = folders.find(
+                              (f) => f.id === id
+                            );
+
+                            return folder
+                              ? `<span class="rcpt-badge">${folder.name}</span>`
+                              : "";
+                          })
+                          .join("")}
+                      </div>
+                    `
+                    : ""
+                }
+                ${
+                  r.description
+                    ? `<div class="rcpt__date" style="margin-top: 6px; color: var(--slate-600)">
+                        <i data-lucide="message-square" style="width: 14px; height: 14px; vertical-align: -2px"></i>
+                        ${r.description}
+                      </div>`
+                    : ""
+                }
+              </div>
+            </div>
+            <div class="rcpt__right">
+              <button class="rcpt__coins" type="button" data-id="${r.id}" title="${t.change_importance}">
+                ${coins}
+              </button>
+              <div class="folder-dropdown">
+                <button
+                  type="button"
+                  class="folder-dropdown__btn"
+                  data-receipt="${r.id}"
+                >
+                  Grupy ▼
+                </button>
+
+                <div class="folder-dropdown__menu">
+                  ${
+                    folders.length === 0
+                      ? `
+                        <div class="folder-dropdown__empty">
+                          Brak grup.
+                          <br>
+                          Utwórz pierwszą grupę w „Moje grupy”.
+                        </div>
+                      `
+                      : folders
+                          .map((f) => {
+                            const checked =
+                              r.folder_ids?.includes(f.id);
+
+                            return `
+                              <label class="folder-dropdown__item">
+                                <input
+                                  type="checkbox"
+                                  class="folder-checkbox"
+                                  data-folder="${f.id}"
+                                  data-receipt="${r.id}"
+                                  ${checked ? "checked" : ""}
+                                />
+                                ${f.name}
+                              </label>
+                            `;
+                          })
+                          .join("")
+                  }
+                </div>
+              </div>
+              <div class="rcpt__amount">${fmtAmt(r.total_amount)}</div>
+              <button class="btn btn--ghost btn--icon rcpt__del" type="button" data-id="${r.id}" title="${t.delete_receipt}">
+                <i data-lucide="trash-2"></i>
+              </button>
+            </div>
+          </div>`;
+          })
+          .join("");
+
+        list.querySelectorAll(".rcpt__coins").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            const id = btn.dataset.id;
+            const r = receipts.find((x) => String(x.id) === String(id));
+            if (!r) return;
+            const next = (getImp(r) + 1) % 4;
+            await setImp(r, next);
+            renderList();
+            ssIcons();
+          });
+        });
+
+        list.querySelectorAll(".rcpt__del").forEach((btn) => {
+          btn.addEventListener("click", async (ev) => {
+            ev.preventDefault();
+            ev.stopPropagation();
+            const id = btn.dataset.id;
+            if (!confirm(t.delete_confirm)) return;
+            try {
+              await SS.deleteReceipt(id);
+              receipts = receipts.filter((x) => String(x.id) !== String(id));
+              render();
+            } catch (err) {
+              showError(err.message || t.delete_failed);
+            }
+          });
+        });
+
+        list.querySelectorAll(".folder-checkbox")
+        .forEach((checkbox) => {
+          checkbox.addEventListener(
+            "change",
+            async () => {
+              const folderId =
+                checkbox.dataset.folder;
+
+              const receiptId =
+                checkbox.dataset.receipt;
+
+              const receipt =
+                receipts.find(
+                  (r) =>
+                    String(r.id) ===
+                    String(receiptId)
+                );
+
+              if (!receipt) return;
+
+              receipt.folder_ids =
+                receipt.folder_ids || [];
+
+              try {
+                if (checkbox.checked) {
+                  await SS.addReceiptToFolder(
+                    folderId,
+                    receiptId
+                  );
+
+                  const id = Number(folderId);
+
+                  if (
+                    !receipt.folder_ids.includes(id)
+                  ) {
+                    receipt.folder_ids.push(id);
+                  }
+                } else {
+                  await SS.removeReceiptFromFolder(
+                    folderId,
+                    receiptId
+                  );
+
+                  receipt.folder_ids =
+                    receipt.folder_ids.filter(
+                      (id) =>
+                        id !== Number(folderId)
+                    );
+                }
+
+                renderList();
+                ssIcons();
+              } catch (err) {
+                alert(err.message);
+              }
+            }
+          );
+        });
+      }
+
+
+      function renderGroupsMenu() {
+        const menu =
+          document.getElementById(
+            "groups-menu-list"
+          );
+
+        if (!menu) return;
+
+        menu.innerHTML = `
+          <button
+            class="groups-menu__create"
+            id="groups-create"
+          >
+            ➕ Utwórz grupę
+          </button>
+
+          ${folders
+            .map(
+              (f) => `
+                <div
+                  class="groups-menu__row"
+                >
+                  <span>${f.name}</span>
+
+                  <button
+                    class="groups-menu__delete"
+                    data-folder="${f.id}"
+                  >
+                    <i data-lucide="trash-2"></i>
+                  </button>
+                </div>
+              `
+            )
+            .join("")}
+        `;
+
+        document
+          .getElementById(
+            "groups-create"
+          )
+          ?.addEventListener(
+            "click",
+            async () => {
+              document
+                .getElementById("folder-modal")
+                ?.classList.remove("hidden");
+
+              document
+                .getElementById("folder-name")
+                ?.focus();
+            }
+          );
+
+        menu
+          .querySelectorAll(
+            ".groups-menu__delete"
+          )
+          .forEach((btn) => {
+            btn.addEventListener(
+              "click",
+              async () => {
+                const folderId =
+                  btn.dataset.folder;
+
+                folderToDelete = folderId;
+
+                const folder =
+                  folders.find(
+                    (f) => String(f.id) === String(folderId)
+                  );
+
+                document.getElementById(
+                  "delete-folder-text"
+                ).textContent =
+                  `Czy na pewno chcesz usunąć grupę "${folder?.name}"?`;
+
+                document
+                  .getElementById(
+                    "delete-folder-modal"
+                  )
+                  .classList.remove("hidden");
+              }
+            );
+          });
+      }
+      document
+        .getElementById("folder-cancel")
+        ?.addEventListener("click", () => {
+          document
+            .getElementById("folder-modal")
+            ?.classList.add("hidden");
+        });
+
+      document
+        .getElementById("folder-save")
+        ?.addEventListener("click", async () => {
+          const input =
+            document.getElementById("folder-name");
+
+          const name =
+            input.value.trim();
+
+          if (!name) return;
+
+          await SS.createFolder(name);
+
+          input.value = "";
+
+          document
+            .getElementById("folder-modal")
+            ?.classList.add("hidden");
+
+          await load();
+        });
+
+      document.getElementById("cal-prev").addEventListener("click", () => {
+        if (--viewMonth < 0) {
+          viewMonth = 11;
+          viewYear--;
+        }
+        render();
+      });
+      document.getElementById("cal-next").addEventListener("click", () => {
+        if (++viewMonth > 11) {
+          viewMonth = 0;
+          viewYear++;
+        }
+        render();
       });
 
-      recs.filter(r => !rendered.has(r)).forEach(r => {
-        html += `<tr>
-          <td>${new Date(r.date).toLocaleDateString()}</td>
-          <td>${r.shop}</td>
-          <td>${r.items.length}</td>
-          <td class="text-end">${SS.fmt(r.total)}</td>
-          <td>${coinHtml(coins(r.total))}</td>
-          <td></td>
-        </tr>`;
+      document.getElementById("rcpt-sort").addEventListener("change", () => {
+        try {
+          localStorage.setItem("ss_rcpt_sort", document.getElementById("rcpt-sort").value);
+        } catch {}
+        renderList();
+        ssIcons();
       });
 
-      $('#rcpBody').html(html);
-    }
+      try {
+        const saved = localStorage.getItem("ss_rcpt_sort");
+        if (saved) document.getElementById("rcpt-sort").value = saved;
+      } catch {}
 
-    $(document).on('click', '.group-header', function (e) {
-      if ($(e.target).closest('.delete-group-btn').length) return; // let delete handle it
-      const gid = +$(this).data('gid');
-      if (expandedGroups.has(gid)) expandedGroups.delete(gid);
-      else expandedGroups.add(gid);
-      renderList();
+      document
+  .getElementById("folder-cancel")
+  ?.addEventListener("click", () => {
+    document
+      .getElementById("folder-modal")
+      .classList.add("hidden");
+  });
+
+    document
+  .getElementById(
+    "delete-folder-cancel"
+  )
+  ?.addEventListener("click", () => {
+    document
+      .getElementById(
+        "delete-folder-modal"
+      )
+      .classList.add("hidden");
+
+    folderToDelete = null;
+  });
+
+  document
+    .getElementById(
+      "delete-folder-confirm"
+    )
+    ?.addEventListener("click", async () => {
+      if (!folderToDelete) return;
+
+      await SS.deleteFolder(
+        folderToDelete
+      );
+
+      folderToDelete = null;
+
+      document
+        .getElementById(
+          "delete-folder-modal"
+        )
+        .classList.add("hidden");
+
+      await load();
     });
 
-    $(document).on('click', '.delete-group-btn', function (e) {
-      e.stopPropagation();
-      const gid = +$(this).data('gid');
-      const groups = loadGroups().filter(g => g.id !== gid);
-      saveGroups(groups);
-      expandedGroups.delete(gid);
-      renderCal();
-      renderList();
-    });
-
-    $('#prevM').on('click', () => { view.setMonth(view.getMonth() - 1); renderCal(); });
-    $('#nextM').on('click', () => { view.setMonth(view.getMonth() + 1); renderCal(); });
-    $('#rangeSel, #sortSel').on('change', renderList);
-
-    renderCal();
-    renderList();
-  </script>
-
-  <footer class="bg-dark text-muted border-top border-secondary border-opacity-25 py-4 mt-auto">
-    <div class="container d-flex flex-column flex-md-row align-items-center justify-content-between gap-3">
-      <div class="d-flex align-items-center gap-2">
-        <i class="bi bi-receipt-cutoff text-info fs-5"></i>
-        <span class="text-white fw-semibold">SpendScan</span>
-        <span class="small ms-2">© 2026</span>
-      </div>
-      <div class="d-flex gap-4 small">
-        <span class="text-white">Privacy</span>
-        <span class="text-white">Terms</span>
-        <span class="text-white">Contact</span>
-      </div>
-      <div class="d-flex gap-3">
-        <span class="text-white fs-5"><i class="bi bi-twitter-x"></i></span>
-        <span class="text-white fs-5"><i class="bi bi-github"></i></span>
-        <span class="text-white fs-5"><i class="bi bi-envelope"></i></span>
-      </div>
-    </div>
-  </footer>
-
-</body>
+      load();
+    </script>
+  </body>
 </html>

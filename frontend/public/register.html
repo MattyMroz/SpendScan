@@ -1,56 +1,242 @@
 <!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Register — SpendScan</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-  <link href="../css/styles.css" rel="stylesheet">
-</head>
-<body class="auth-bg d-flex align-items-center">
-  <div id="nav-placeholder" class="position-absolute top-0 start-0 end-0"></div>
+<html lang="pl">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Załóż konto · SpendScan</title>
+    <link rel="icon" href="/assets/icon.png" />
+    <link rel="stylesheet" href="/static/css/base.css" />
+    <link rel="stylesheet" href="/static/css/app.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <nav class="topnav" id="topnav"></nav>
 
-  <div class="container py-5 d-flex justify-content-center">
-    <div class="card auth-card p-4 mt-5">
-      <div class="text-center mb-4">
-        <div class="brand-logo"><i class="bi bi-receipt-cutoff"></i> SpendScan</div>
-        <p class="text-muted">Create your account</p>
-      </div>
-      <form id="regForm">
-        <div class="mb-3">
-          <label class="form-label">Email</label>
-          <input type="email" class="form-control" id="email" required>
+      <main class="auth-wrap">
+        <div class="auth">
+          <a class="auth__back" href="/">
+            <i data-lucide="arrow-left"></i><span data-i18n="back_to_home">Powrót do domu</span>
+          </a>
+
+          <div class="auth__brand">
+            <img class="icon" src="/assets/icon.png" alt="" />
+            <img class="wordmark" src="/assets/logo.png" alt="SpendScan" />
+          </div>
+
+          <div class="card">
+            <h1 class="auth__title" data-i18n="signup_title">Załóż konto</h1>
+            <p class="auth__subtitle" data-i18n="signup_subtitle">Utwórz darmowe konto.</p>
+
+            <form id="reg-form">
+              <div class="field">
+                <label class="field__label" for="username" data-i18n="username_label">Nazwa użytkownika</label>
+                <div class="field__wrap">
+                  <i class="field__icon" data-lucide="user"></i>
+                  <input
+                    class="input input--with-icon"
+                    type="text"
+                    id="username"
+                    required
+                    minlength="3"
+                    maxlength="50"
+                    autocomplete="username"
+                    data-i18n-placeholder="username_placeholder"
+                    placeholder="twojanazwa"
+                  />
+                </div>
+              </div>
+
+              <div class="field">
+                <label class="field__label" for="email" data-i18n="email_label">Email</label>
+                <div class="field__wrap">
+                  <i class="field__icon" data-lucide="mail"></i>
+                  <input
+                    class="input input--with-icon"
+                    type="email"
+                    id="email"
+                    required
+                    autocomplete="email"
+                    data-i18n-placeholder="email_placeholder"
+                    placeholder="ty@example.com"
+                  />
+                </div>
+              </div>
+
+              <div class="field">
+                <label class="field__label" for="password" data-i18n="password_label">Hasło</label>
+                <div class="field__wrap">
+                  <i class="field__icon" data-lucide="lock"></i>
+                  <input
+                    class="input input--with-icon"
+                    type="password"
+                    id="password"
+                    required
+                    minlength="8"
+                    autocomplete="new-password"
+                    data-i18n-placeholder="password_placeholder"
+                    placeholder="co najmniej 8 znaków"
+                  />
+                </div>
+              </div>
+
+              <div class="field">
+                <label class="field__label" for="confirm" data-i18n="confirm_label">Potwierdź hasło</label>
+                <div class="field__wrap">
+                  <i class="field__icon" data-lucide="lock"></i>
+                  <input
+                    class="input input--with-icon"
+                    type="password"
+                    id="confirm"
+                    required
+                    minlength="8"
+                    autocomplete="new-password"
+                    data-i18n-placeholder="confirm_placeholder"
+                    placeholder="powtórz hasło"
+                  />
+                </div>
+              </div>
+
+              <div id="alert" class="alert alert--error hidden"></div>
+
+              <button class="btn btn--primary btn--lg btn--block" type="submit" id="submit">
+                <i data-lucide="user-plus"></i><span data-i18n="signup_button">Załóż konto</span>
+              </button>
+            </form>
+
+            <p class="auth__footer">
+              <span data-i18n="have_account">Masz już konto?</span>
+              <a class="link-blue" href="/login.html" data-i18n="signin_link">Zaloguj się</a>
+            </p>
+          </div>
         </div>
-        <div class="mb-3">
-          <label class="form-label">Password</label>
-          <input type="password" class="form-control" id="password" required minlength="4">
-        </div>
-        <div class="mb-3">
-          <label class="form-label">Confirm password</label>
-          <input type="password" class="form-control" id="password2" required minlength="4">
-        </div>
-        <div id="err" class="alert alert-danger d-none"></div>
-        <button type="submit" class="btn btn-primary w-100"><i class="bi bi-person-plus"></i> Create account</button>
-        <p class="text-center mt-3 mb-0 small">Already have an account? <a href="login.html">Login</a></p>
-      </form>
+      </main>
     </div>
-  </div>
 
-  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="../js/app.js"></script>
-  <script>
-    $('#regForm').on('submit', function (e) {
-      e.preventDefault();
-      const email = $('#email').val().trim();
-      const pw = $('#password').val();
-      const pw2 = $('#password2').val();
-      if (!email || pw.length < 4) return $('#err').removeClass('d-none').text('Invalid input');
-      if (pw !== pw2) return $('#err').removeClass('d-none').text('Passwords do not match');
-      SS.login(email);
-      window.location.href = 'scan.html';
-    });
-  </script>
-</body>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <script src="/static/js/api.js"></script>
+    <script src="/static/js/icons.js"></script>
+    <script>
+      const translations = {
+        PL: {
+          back_to_home: "Powrót do domu",
+          signup_title: "Załóż konto",
+          signup_subtitle: "Utwórz darmowe konto.",
+          username_label: "Nazwa użytkownika",
+          email_label: "Email",
+          password_label: "Hasło",
+          confirm_label: "Potwierdź hasło",
+          username_placeholder: "twojanazwa",
+          email_placeholder: "ty@example.com",
+          password_placeholder: "co najmniej 8 znaków",
+          confirm_placeholder: "powtórz hasło",
+          signup_button: "Załóż konto",
+          have_account: "Masz już konto?",
+          signin_link: "Zaloguj się",
+          passwords_not_match: "Hasła się nie zgadzają",
+          creating_account: "Tworzenie konta…",
+          registration_failed: "Rejestracja nie powiodła się",
+          scan: "Skanuj",
+          statistics: "Statystyki",
+          calendar: "Kalendarz",
+          about: "O nas",
+          sign_in: "Zaloguj się",
+          sign_up: "Załóż konto",
+          sign_out: "Wyloguj się",
+        },
+        EN: {
+          back_to_home: "Back to home",
+          signup_title: "Sign up",
+          signup_subtitle: "Create your free account.",
+          username_label: "Username",
+          email_label: "Email",
+          password_label: "Password",
+          confirm_label: "Confirm password",
+          username_placeholder: "yourusername",
+          email_placeholder: "you@example.com",
+          password_placeholder: "at least 8 characters",
+          confirm_placeholder: "repeat password",
+          signup_button: "Create account",
+          have_account: "Already have an account?",
+          signin_link: "Sign in",
+          passwords_not_match: "Passwords do not match",
+          creating_account: "Creating account…",
+          registration_failed: "Registration failed",
+          scan: "Scan",
+          statistics: "Statistics",
+          calendar: "Calendar",
+          about: "About",
+          sign_in: "Sign in",
+          sign_up: "Sign up",
+          sign_out: "Sign out",
+        },
+      };
+
+      if (!SS.currentLanguage) {
+        SS.currentLanguage = "PL";
+        localStorage.setItem("ss_language", "PL");
+      }
+
+      function updatePageLanguage() {
+        const lang = SS.currentLanguage;
+        const t = translations[lang];
+
+        document.documentElement.lang = lang === "PL" ? "pl" : "en";
+        document.querySelector("title").textContent = lang === "PL" ? "Załóż konto · SpendScan" : "Sign up · SpendScan";
+
+        document.querySelectorAll("[data-i18n]").forEach((el) => {
+          const key = el.dataset.i18n;
+          if (t[key]) el.textContent = t[key];
+        });
+
+        document.querySelectorAll("[data-i18n-placeholder]").forEach((el) => {
+          const key = el.dataset.i18nPlaceholder;
+          if (t[key]) el.placeholder = t[key];
+        });
+      }
+
+      SS.guestOnly();
+      SS.paintNav();
+      updatePageLanguage();
+
+      window.addEventListener("languageChange", () => {
+        updatePageLanguage();
+      });
+
+      const form = document.getElementById("reg-form");
+      const alertBox = document.getElementById("alert");
+      const submit = document.getElementById("submit");
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        alertBox.classList.add("hidden");
+
+        const pw = document.getElementById("password").value;
+        const cf = document.getElementById("confirm").value;
+        const t = translations[SS.currentLanguage];
+
+        if (pw !== cf) {
+          alertBox.textContent = t.passwords_not_match;
+          alertBox.classList.remove("hidden");
+          return;
+        }
+
+        submit.disabled = true;
+        submit.innerHTML = `<i data-lucide="loader-2" class="spin"></i><span>${t.creating_account}</span>`;
+        ssIcons();
+
+        try {
+          await SS.register(document.getElementById("username").value, document.getElementById("email").value, pw);
+          await SS.me().catch(() => {});
+          location.href = "/";
+        } catch (err) {
+          const currentT = translations[SS.currentLanguage];
+          alertBox.textContent = err.message || currentT.registration_failed;
+          alertBox.classList.remove("hidden");
+          submit.disabled = false;
+          submit.innerHTML = `<i data-lucide="user-plus"></i><span>${currentT.signup_button}</span>`;
+          ssIcons();
+        }
+      });
+    </script>
+  </body>
 </html>

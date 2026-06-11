@@ -12,7 +12,7 @@ from sqlmodel import Session, col, select
 
 from spendscan.llm import ReceiptAnalysisResult, ReceiptPipelineResult
 from spendscan.llm import ReceiptItem as AnalysisReceiptItem
-from spendscan.models import Category, Receipt, ReceiptImage, ReceiptItem, User
+from spendscan.models import BudgetReceipt, Category, FolderReceipt, Receipt, ReceiptImage, ReceiptItem, User
 
 DEMO_USER_ID: Final[int] = 1
 """Single demo user used until authentication exists."""
@@ -200,9 +200,64 @@ class ReceiptRepository:
         detail = self.get_detail(receipt_id, user_id=user_id)
         if detail is None:
             return None
+        self._delete_receipt_dependents(detail)
         self._session.delete(detail.receipt)
         self._session.commit()
         return detail
+
+    def update_receipt(
+        self,
+        receipt_id: int,
+        *,
+        user_id: int,
+        merchant_name: str | None = None,
+        receipt_date: date | None = None,
+        currency: str | None = None,
+        total_amount: Decimal | None = None,
+        payment_method: str | None = None,
+        description: str | None = None,
+        importance: int | None = None,
+        items: list[dict[str, object]] | None = None,
+    ) -> ReceiptDetailRecord | None:
+        """Patch editable fields of a receipt and optionally replace its items."""
+        receipt = self._session.get(Receipt, receipt_id)
+        if receipt is None or receipt.user_id != user_id:
+            return None
+        if merchant_name is not None:
+            receipt.merchant_name = merchant_name or None
+        if receipt_date is not None:
+            receipt.receipt_date = receipt_date
+        if currency is not None and currency.strip():
+            receipt.currency = currency.strip().upper()
+        if total_amount is not None:
+            receipt.total_amount = required_decimal_to_cents(total_amount)
+        if payment_method is not None:
+            receipt.payment_method = payment_method or None
+        if description is not None:
+            receipt.description = description or None
+        if importance is not None:
+            receipt.importance = max(0, min(3, int(importance)))
+        self._session.add(receipt)
+
+        if items is not None:
+            existing = self._session.exec(select(ReceiptItem).where(ReceiptItem.receipt_id == receipt_id)).all()
+            for old in existing:
+                self._session.delete(old)
+            self._session.flush()
+            for payload in items:
+                self._session.add(
+                    ReceiptItem(
+                        receipt_id=receipt_id,
+                        product_name=str(payload.get("product_name") or "").strip() or "—",
+                        quantity=payload.get("quantity"),
+                        unit_price=payload.get("unit_price"),
+                        total_price=payload.get("total_price"),
+                        discount_amount=payload.get("discount_amount"),
+                    )
+                )
+
+        self._session.commit()
+        return self.get_detail(receipt_id, user_id=user_id)
 
     def list_analysis_results(
         self,
@@ -234,6 +289,21 @@ class ReceiptRepository:
         self._session.add(category)
         self._session.flush()
         return category
+
+    def _delete_receipt_dependents(self, detail: ReceiptDetailRecord) -> None:
+        """Delete child rows explicitly so receipt removal does not depend on DB-level cascades."""
+        receipt_id = detail.receipt.id
+        if receipt_id is None:
+            return
+
+        folder_links = self._session.exec(select(FolderReceipt).where(FolderReceipt.receipt_id == receipt_id)).all()
+        budget_links = self._session.exec(select(BudgetReceipt).where(BudgetReceipt.receipt_id == receipt_id)).all()
+
+        for child in (*folder_links, *budget_links, *detail.images):
+            self._session.delete(child)
+        for item in detail.items:
+            self._session.delete(item.item)
+        self._session.flush()
 
 
 def _analysis_from_detail(detail: ReceiptDetailRecord) -> ReceiptAnalysisResult:

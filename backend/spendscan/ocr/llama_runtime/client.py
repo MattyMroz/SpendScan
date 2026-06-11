@@ -69,6 +69,8 @@ class LlamaClient:
         *,
         max_tokens: int = 4096,
         temperature: float = 0.0,
+        repeat_penalty: float | None = None,
+        repeat_last_n: int | None = None,
     ) -> ChatCompletion:
         """Send a chat completion request to llama-server."""
         payload: dict[str, object] = {
@@ -76,6 +78,10 @@ class LlamaClient:
             "max_tokens": max_tokens,
             "temperature": temperature,
         }
+        if repeat_penalty is not None:
+            payload["repeat_penalty"] = repeat_penalty
+        if repeat_last_n is not None:
+            payload["repeat_last_n"] = repeat_last_n
         try:
             response = self._client.post(_CHAT_ENDPOINT, json=payload)
             response.raise_for_status()
