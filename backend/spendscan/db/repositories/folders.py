@@ -8,11 +8,7 @@ class FolderRepository:
         self._session = session
 
     def list_folders(self, *, user_id: int) -> list[Folder]:
-        statement = (
-            select(Folder)
-            .where(Folder.user_id == user_id)
-            .order_by(Folder.name)
-        )
+        statement = select(Folder).where(Folder.user_id == user_id).order_by(Folder.name)
         return list(self._session.exec(statement).all())
 
     def create_folder(
@@ -65,10 +61,7 @@ class FolderRepository:
         self,
         receipt_id: int,
     ) -> list[int]:
-        statement = (
-            select(FolderReceipt.folder_id)
-            .where(FolderReceipt.receipt_id == receipt_id)
-        )
+        statement = select(FolderReceipt.folder_id).where(FolderReceipt.receipt_id == receipt_id)
 
         return list(self._session.exec(statement).all())
 
@@ -94,11 +87,7 @@ class FolderRepository:
         *,
         folder_id: int,
     ) -> None:
-        links = self._session.exec(
-            select(FolderReceipt).where(
-                FolderReceipt.folder_id == folder_id
-            )
-        ).all()
+        links = self._session.exec(select(FolderReceipt).where(FolderReceipt.folder_id == folder_id)).all()
 
         for link in links:
             self._session.delete(link)

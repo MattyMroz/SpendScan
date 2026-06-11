@@ -71,6 +71,7 @@ def remove_receipt(
 
     return {"success": True}
 
+
 @router.delete("/{folder_id}")
 def delete_folder(
     folder_id: int,
