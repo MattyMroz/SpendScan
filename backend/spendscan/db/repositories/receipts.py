@@ -308,6 +308,7 @@ class ReceiptRepository:
 
 def _analysis_from_detail(detail: ReceiptDetailRecord) -> ReceiptAnalysisResult:
     receipt = detail.receipt
+
     items = [
         AnalysisReceiptItem(
             name=item.item.product_name,
@@ -319,6 +320,7 @@ def _analysis_from_detail(detail: ReceiptDetailRecord) -> ReceiptAnalysisResult:
         )
         for item in detail.items
     ]
+
     return ReceiptAnalysisResult(
         merchant_name=receipt.merchant_name,
         receipt_date=receipt.receipt_date,

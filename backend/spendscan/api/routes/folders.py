@@ -17,8 +17,8 @@ def list_folders(
 
     if current_user.id is None:
         raise HTTPException(
-            status_code=400,
-            detail="User not found",
+            status_code=401,
+            detail="User ID is missing",
         )
 
     return repo.list_folders(
@@ -36,8 +36,8 @@ def create_folder(
 
     if current_user.id is None:
         raise HTTPException(
-            status_code=400,
-            detail="User not found",
+            status_code=401,
+            detail="User ID is missing",
         )
 
     return repo.create_folder(
