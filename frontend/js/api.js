@@ -186,6 +186,22 @@ const SS = {
     return true;
   },
 
+  async updateFolder(folderId, description) {
+    const res = await SS.api(
+      `/folders/${folderId}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({ description }),
+      }
+    );
+
+    if (!res.ok) {
+      throw new Error("Failed to update folder");
+    }
+
+    return res.json();
+  },
+
   guard() {
     if (!SS.isAuthed()) location.href = "/login.html";
   },

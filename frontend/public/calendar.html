@@ -139,6 +139,24 @@
           </div>
         </div>
       </div>
+      <div id="comment-folder-modal" class="modal hidden">
+        <div class="modal__backdrop"></div>
+        <div class="modal__content">
+          <h3>Komentarz do grupy</h3>
+          <p id="comment-folder-name" style="margin: 0 0 12px; color: var(--text-secondary); font-size: 14px;"></p>
+          <textarea
+            id="comment-folder-text"
+            class="input"
+            rows="4"
+            placeholder="Wpisz komentarz do grupy..."
+            style="width: 100%; resize: vertical; font-family: inherit; font-size: 14px;"
+          ></textarea>
+          <div class="modal__actions">
+            <button id="comment-folder-cancel" class="btn btn--ghost">Anuluj</button>
+            <button id="comment-folder-save" class="btn btn--primary">Zapisz</button>
+          </div>
+        </div>
+      </div>
       </main>
     </div>
 
@@ -686,14 +704,27 @@
                 <div
                   class="groups-menu__row"
                 >
-                  <span>${f.name}</span>
+                <span class="groups-menu__name">
+                  ${f.name}
+                  ${f.description ? `<span class="groups-menu__has-comment" title="${f.description}">💬</span>` : ''}
+                </span>
 
+                <div class="groups-menu__actions">
+                  <button
+                    class="groups-menu__comment"
+                    data-folder="${f.id}"
+                    data-description="${(f.description || '').replace(/"/g, '&quot;')}"
+                    title="Dodaj komentarz"
+                  >
+                    <i data-lucide="message-square-plus"></i>
+                  </button>
                   <button
                     class="groups-menu__delete"
                     data-folder="${f.id}"
                   >
                     <i data-lucide="trash-2"></i>
                   </button>
+                </div>
                 </div>
               `
             )
@@ -747,6 +778,22 @@
                   .classList.remove("hidden");
               }
             );
+          });
+          menu
+          .querySelectorAll(".groups-menu__comment")
+          .forEach((btn) => {
+            btn.addEventListener("click", (e) => {
+              e.stopPropagation();
+              const folderId = btn.dataset.folder;
+              const folder = folders.find((f) => String(f.id) === String(folderId));
+
+              document.getElementById("comment-folder-name").textContent = `Grupa: ${folder?.name}`;
+              document.getElementById("comment-folder-text").value = btn.dataset.description || "";
+
+              document.getElementById("comment-folder-modal").classList.remove("hidden");
+              document.getElementById("comment-folder-text").focus();
+              document.getElementById("comment-folder-save")._folderId = folderId;
+            });
           });
       }
       document
@@ -851,7 +898,30 @@
       await load();
     });
 
-      load();
+  document.getElementById("comment-folder-cancel")
+    ?.addEventListener("click", () => {
+    document.getElementById("comment-folder-modal").classList.add("hidden");
+  });
+
+  document.getElementById("comment-folder-save")
+    ?.addEventListener("click", async (e) => {
+      const folderId = e.currentTarget._folderId;
+      if (!folderId) return;
+
+      const description = document.getElementById("comment-folder-text").value.trim() || null;
+      await SS.updateFolder(folderId, description);
+
+      document.getElementById("comment-folder-modal").classList.add("hidden");
+      await load();
+    });
+
+  document.getElementById("comment-folder-modal")
+    ?.querySelector(".modal__backdrop")
+    ?.addEventListener("click", () => {
+      document.getElementById("comment-folder-modal").classList.add("hidden");
+    });
+
+  load();
     </script>
   </body>
 </html>

@@ -84,6 +84,28 @@ def remove_receipt(
 
     return {"success": True}
 
+@router.patch("/{folder_id}")
+def update_folder(
+    folder_id: int,
+    payload: dict[str, str | None],
+    session: SessionDep,
+    current_user: CurrentUser,
+) -> Folder:
+    repo = FolderRepository(session)
+
+    folder = repo.update_folder(
+    folder_id=folder_id,
+    user_id=current_user.id,
+    description=payload.get("description"),
+    )
+
+    if folder is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Folder not found",
+        )
+
+    return folder
 
 @router.delete("/{folder_id}")
 def delete_folder(

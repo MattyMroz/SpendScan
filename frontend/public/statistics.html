@@ -92,7 +92,6 @@
     <script src="/static/js/api.js"></script>
     <script src="/static/js/icons.js"></script>
     <script>
-      // Translations object
       const translations = {
         PL: {
           stats_title: "Statystyki wydatków",
@@ -170,7 +169,6 @@
         },
       };
 
-      // Set initial language to Polish
       if (!SS.currentLanguage) {
         SS.currentLanguage = "PL";
         localStorage.setItem("ss_language", "PL");
@@ -185,9 +183,7 @@
 
         document.querySelectorAll("[data-i18n]").forEach(el => {
           const key = el.dataset.i18n;
-          if (t[key]) {
-            el.textContent = t[key];
-          }
+          if (t[key]) el.textContent = t[key];
         });
       }
 
@@ -195,9 +191,9 @@
       SS.paintNav("stats");
       updatePageLanguage();
 
-      // Listen for language changes
       window.addEventListener("languageChange", () => {
         updatePageLanguage();
+        renderStatCards();
       });
 
       const CATEGORY_COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#0ea5e9", "#ec4899", "#14b8a6"];
@@ -212,9 +208,68 @@
         a.classList.remove("hidden");
       }
 
+      let monthlyData = null;
+      let yearlyData = null;
+
+      function renderStatCards() {
+        if (!monthlyData || !yearlyData) return;
+        const t = translations[SS.currentLanguage];
+        const cards = [
+          {
+            label: t.total_yearly,
+            value: fmt(yearlyData.total_spent),
+            icon: "shopping-cart",
+            tone: "blue",
+            sub: yearlyData.date_range_label,
+          },
+          {
+            label: t.this_month,
+            value: fmt(monthlyData.total_spent),
+            icon: "receipt",
+            tone: "green",
+            sub:
+              monthlyData.total_spent_trend == null
+                ? t.no_previous_data
+                : `${monthlyData.total_spent_trend > 0 ? "+" : ""}${monthlyData.total_spent_trend.toFixed(1)}% ${SS.currentLanguage === "PL" ? "vs poprzedni miesiąc" : "vs last month"}`,
+            trend: monthlyData.total_spent_trend == null ? null : monthlyData.total_spent_trend > 0 ? "up" : "down",
+          },
+          {
+            label: t.receipts_year,
+            value: String(yearlyData.receipt_count),
+            icon: "file-text",
+            tone: "purple",
+            sub: t.scanned,
+          },
+          {
+            label: t.daily_average,
+            value: fmt(monthlyData.daily_average),
+            icon: "trending-up",
+            tone: "orange",
+            sub: t.this_month,
+          },
+        ];
+        document.getElementById("stat-cards").innerHTML = cards
+          .map(
+            (c) =>
+              `<div class="stat-card">
+          <div class="stat-card__head">
+            <div class="stat-card__icon stat-card__icon--${c.tone}"><i data-lucide="${c.icon}"></i></div>
+            <span class="stat-card__label">${c.label}</span>
+          </div>
+          <div class="stat-card__value">${c.value}</div>
+          <div class="stat-card__sub ${c.trend ? "stat-card__sub--" + c.trend : ""}">${c.sub}</div>
+        </div>`,
+          )
+          .join("");
+        ssIcons();
+      }
+
       (async () => {
         try {
           const [monthly, yearly] = await Promise.all([SS.getDashboard("monthly"), SS.getDashboard("yearly")]);
+
+          monthlyData = monthly;
+          yearlyData = yearly;
 
           if ((yearly.receipt_count || 0) === 0) {
             document.getElementById("stats-empty").classList.remove("hidden");
@@ -222,55 +277,7 @@
           }
           document.getElementById("stats-body").classList.remove("hidden");
 
-          const t = translations[SS.currentLanguage];
-          const cards = [
-            {
-              label: t.total_yearly,
-              value: fmt(yearly.total_spent),
-              icon: "shopping-cart",
-              tone: "blue",
-              sub: yearly.date_range_label,
-            },
-            {
-              label: t.this_month,
-              value: fmt(monthly.total_spent),
-              icon: "receipt",
-              tone: "green",
-              sub:
-                monthly.total_spent_trend == null
-                  ? t.no_previous_data
-                  : `${monthly.total_spent_trend > 0 ? "+" : ""}${monthly.total_spent_trend.toFixed(1)}% ${SS.currentLanguage === "PL" ? "vs poprzedni miesiąc" : "vs last month"}`,
-              trend: monthly.total_spent_trend == null ? null : monthly.total_spent_trend > 0 ? "up" : "down",
-            },
-            {
-              label: t.receipts_year,
-              value: String(yearly.receipt_count),
-              icon: "file-text",
-              tone: "purple",
-              sub: t.scanned,
-            },
-            {
-              label: t.daily_average,
-              value: fmt(monthly.daily_average),
-              icon: "trending-up",
-              tone: "orange",
-              sub: t.this_month,
-            },
-          ];
-          document.getElementById("stat-cards").innerHTML = cards
-            .map(
-              (c) =>
-                `<div class="stat-card">
-            <div class="stat-card__head">
-              <div class="stat-card__icon stat-card__icon--${c.tone}"><i data-lucide="${c.icon}"></i></div>
-              <span class="stat-card__label">${c.label}</span>
-            </div>
-            <div class="stat-card__value">${c.value}</div>
-            <div class="stat-card__sub ${c.trend ? "stat-card__sub--" + c.trend : ""}">${c.sub}</div>
-          </div>`,
-            )
-            .join("");
-          ssIcons();
+          renderStatCards();
 
           const monthlyAgg = aggregateByMonth(yearly.daily_breakdown || []);
           new Chart(document.getElementById("chart-monthly"), {
@@ -430,13 +437,14 @@
         }
         root.innerHTML = cells.join("");
       }
+
       document.querySelectorAll(".chart-toggle").forEach((checkbox) => {
-  checkbox.addEventListener("change", () => {
-    const panel = document.getElementById(checkbox.dataset.target);
-    if (!panel) return;
-    panel.style.display = checkbox.checked ? "" : "none";
-  });
-});
+        checkbox.addEventListener("change", () => {
+          const panel = document.getElementById(checkbox.dataset.target);
+          if (!panel) return;
+          panel.style.display = checkbox.checked ? "" : "none";
+        });
+      });
     </script>
   </body>
 </html>

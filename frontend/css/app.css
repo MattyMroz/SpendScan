@@ -2282,6 +2282,48 @@ body.dark .rcpt-badge {
   transform: translateY(-1px);
 }
 
+.groups-menu__comment {
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: var(--blue-50);
+  border: 1px solid var(--blue-300);
+  color: var(--blue-600);
+  cursor: pointer;
+  transition: all .15s ease;
+}
+
+.groups-menu__comment:hover {
+  background: var(--blue-100);
+  transform: translateY(-1px);
+}
+
+.groups-menu__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.groups-menu__name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.groups-menu__has-comment {
+  font-size: 13px;
+  flex-shrink: 0;
+  cursor: default;
+}
+
 /* =========================
    KOSZ PARAGONU
    ========================= */
