@@ -432,25 +432,18 @@ def _save_pipeline_result(
 
 
 def _detail_response(detail: ReceiptDetailRecord) -> ReceiptDetailResponse:
-    receipt_id = _required_id(detail.receipt.id, "receipt")
+    receipt = detail.receipt
+    receipt_id = _required_id(receipt.id, "receipt")
     return ReceiptDetailResponse(
         id=receipt_id,
         status=detail.receipt.status,
         merchant_name=detail.receipt.merchant_name,
         receipt_date=detail.receipt.receipt_date,
         currency=detail.receipt.currency,
-        subtotal_amount=cents_to_decimal(
-            detail.receipt.subtotal_amount,
-        ),
-        tax_amount=cents_to_decimal(
-            detail.receipt.tax_amount,
-        ),
-        total_amount=required_cents_to_decimal(
-            detail.receipt.total_amount,
-        ),
-        total_discount_amount=cents_to_decimal(
-            detail.receipt.total_discount_amount,
-        ),
+        subtotal_amount=cents_to_decimal(receipt.subtotal_amount),
+        tax_amount=cents_to_decimal(receipt.tax_amount),
+        total_amount=required_cents_to_decimal(receipt.total_amount),
+        total_discount_amount=cents_to_decimal(receipt.total_discount_amount),
         payment_method=detail.receipt.payment_method,
         description=detail.receipt.description,
         raw_ocr_text=detail.receipt.raw_ocr_text,
@@ -478,15 +471,9 @@ def _detail_response(detail: ReceiptDetailRecord) -> ReceiptDetailResponse:
                 id=_required_id(item.item.id, "receipt item"),
                 product_name=item.item.product_name,
                 quantity=item.item.quantity,
-                unit_price=cents_to_decimal(
-                    item.item.unit_price,
-                ),
-                total_price=required_cents_to_decimal(
-                    item.item.total_price,
-                ),
-                discount_amount=cents_to_decimal(
-                    item.item.discount_amount,
-                ),
+                unit_price=cents_to_decimal(item.item.unit_price),
+                total_price=required_cents_to_decimal(item.item.total_price),
+                discount_amount=cents_to_decimal(item.item.discount_amount),
                 category=item.category_name,
             )
             for item in detail.items
