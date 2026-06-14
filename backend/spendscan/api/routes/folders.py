@@ -84,6 +84,7 @@ def remove_receipt(
 
     return {"success": True}
 
+
 @router.patch("/{folder_id}")
 def update_folder(
     folder_id: int,
@@ -94,9 +95,9 @@ def update_folder(
     repo = FolderRepository(session)
 
     folder = repo.update_folder(
-    folder_id=folder_id,
-    user_id=current_user.id,
-    description=payload.get("description"),
+        folder_id=folder_id,
+        user_id=current_user.id,
+        description=payload.get("description"),
     )
 
     if folder is None:
@@ -106,6 +107,7 @@ def update_folder(
         )
 
     return folder
+
 
 @router.delete("/{folder_id}")
 def delete_folder(
