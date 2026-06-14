@@ -67,7 +67,7 @@ docker run --name spendscan-postgres `
 
 ```powershell
 docker cp backend/spendscan/db/migrations spendscan-postgres:/tmp/migrations
-docker exec spendscan-postgres bash -lc "set -e; for f in /tmp/migrations/*.sql; do echo Running `$f; psql -U postgres -d spendscan -v ON_ERROR_STOP=1 -f `"`$f`"; done"\
+docker exec spendscan-postgres bash -lc "set -e; for f in /tmp/migrations/*.sql; do echo Running `$f; psql -U postgres -d spendscan -v ON_ERROR_STOP=1 -f `"`$f`"; done"
 ```
 
 ### 5. Skonfiguruj `.env`
