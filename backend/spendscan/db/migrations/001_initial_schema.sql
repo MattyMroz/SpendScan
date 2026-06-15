@@ -181,7 +181,7 @@ CREATE TABLE public.receipts (
     description text,
     importance integer DEFAULT 0 NOT NULL,
     created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT receipts_importance_level_check CHECK (((importance_level >= 1) AND (importance_level <= 3))),
+    CONSTRAINT receipts_importance_range CHECK ((importance >= 0) AND (importance <= 3)),
     CONSTRAINT receipts_total_amount_check CHECK ((total_amount >= 0))
 );
 

@@ -66,8 +66,8 @@ docker run --name spendscan-postgres `
 ### 4. Zaladuj schema (1 plik)
 
 ```powershell
-docker cp backend/spendscan/db/schema.sql spendscan-postgres:/tmp/schema.sql
-docker exec spendscan-postgres psql -U postgres -d spendscan -v ON_ERROR_STOP=1 -f /tmp/schema.sql
+docker cp backend/spendscan/db/migrations spendscan-postgres:/tmp/migrations
+docker exec spendscan-postgres bash -lc "set -e; for f in /tmp/migrations/*.sql; do echo Running `$f; psql -U postgres -d spendscan -v ON_ERROR_STOP=1 -f `"`$f`"; done"
 ```
 
 ### 5. Skonfiguruj `.env`

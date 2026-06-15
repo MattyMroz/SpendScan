@@ -105,7 +105,6 @@ ALTER TABLE ONLY public.receipts
     DROP COLUMN IF EXISTS image_path,
     DROP COLUMN IF EXISTS shop_name,
     DROP COLUMN IF EXISTS purchase_date,
-    DROP COLUMN IF EXISTS description,
     DROP COLUMN IF EXISTS importance_level;
 
 --

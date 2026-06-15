@@ -82,6 +82,29 @@ class FolderRepository:
             self._session.delete(link)
             self._session.commit()
 
+    def update_folder(
+        self,
+        *,
+        folder_id: int,
+        user_id: int | None,
+        description: str | None = None,
+    ) -> Folder | None:
+        folder = self._session.get(Folder, folder_id)
+
+        if folder is None:
+            return None
+
+        if user_id is not None and folder.user_id != user_id:
+            return None
+
+        folder.description = description
+
+        self._session.add(folder)
+        self._session.commit()
+        self._session.refresh(folder)
+
+        return folder
+
     def delete_folder(
         self,
         *,
