@@ -13,7 +13,7 @@ from typing import Annotated, Final
 from uuid import uuid4
 
 from fastapi import APIRouter, File, HTTPException, Query, UploadFile, status
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from sqlmodel import Session
 
 from spendscan.api.dependencies import ReceiptPipelineDep, SessionDep, SettingsDep
@@ -51,8 +51,8 @@ class StoredUpload:
 
     original_filename: str
     path: Path
-    relative_path: Path
     content_type: str | None
+    image_data: bytes  # raw bytes, read once after saving to disk
 
 
 @router.post("/ocr", response_model=OcrResponse)
@@ -160,6 +160,9 @@ async def create_receipt(
     except Exception:
         _cleanup_uploads(uploads)
         raise
+    finally:
+        # Always clean up temp files on disk — bytes are already in DB
+        _cleanup_uploads(uploads)
     return _detail_response(detail)
 
 
@@ -190,17 +193,13 @@ async def create_receipt_batch(
             )
             details.append(_detail_response(detail))
     except ConfigurationError as exc:
-        _cleanup_uploads(uploads)
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail=str(exc)) from exc
     except OutputValidationError as exc:
-        _cleanup_uploads(uploads)
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
     except ExternalServiceError as exc:
-        _cleanup_uploads(uploads)
         raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
-    except Exception:
+    finally:
         _cleanup_uploads(uploads)
-        raise
     return ReceiptBatchCreateResponse(receipts=details)
 
 
@@ -280,12 +279,13 @@ def get_receipt(receipt_id: int, session: SessionDep, current_user: CurrentUser)
 
 @router.delete("/{receipt_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_receipt(receipt_id: int, session: SessionDep, current_user: CurrentUser) -> None:
-    """Delete a persisted receipt and its stored upload files."""
+    """Delete a persisted receipt and any legacy stored upload files."""
     if current_user.id is None:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="User id missing")
     detail = ReceiptRepository(session).delete_receipt(receipt_id, user_id=current_user.id)
     if detail is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Receipt not found")
+    # Best-effort cleanup of any legacy on-disk files (new uploads have no stored_path)
     _cleanup_stored_receipt_files(detail)
 
 
@@ -326,8 +326,11 @@ def get_receipt_image(
     session: SessionDep,
     settings: SettingsDep,
     current_user: CurrentUser,
-) -> FileResponse:
-    """Stream a stored receipt image file owned by the current user."""
+) -> Response:
+    """Stream a stored receipt image owned by the current user.
+
+    Serves from DB bytes when available; falls back to disk for legacy records.
+    """
     if current_user.id is None:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="User id missing")
     detail = ReceiptRepository(session).get_detail(receipt_id, user_id=current_user.id)
@@ -336,12 +339,25 @@ def get_receipt_image(
     image = next((img for img in detail.images if img.id == image_id), None)
     if image is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image not found")
-    # stored_path is already relative to project root (workspace/uploads/...).
-    file_path = project_root() / image.stored_path
-    if not file_path.exists():
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File missing on disk")
-    return FileResponse(file_path, media_type=image.content_type or "image/png")
 
+    media_type = image.content_type or "image/png"
+
+    # Primary: serve bytes stored in the database
+    if image.image_data:
+        return Response(content=image.image_data, media_type=media_type)
+
+    # Fallback: serve from disk (legacy records created before migration)
+    if image.stored_path:
+        file_path = project_root() / image.stored_path
+        if file_path.exists():
+            return FileResponse(file_path, media_type=media_type)
+
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Image data not available")
+
+
+# ---------------------------------------------------------------------------
+# Internal helpers
+# ---------------------------------------------------------------------------
 
 async def _save_temp_upload(file: UploadFile) -> Path:
     suffix = Path(file.filename or "receipt.png").suffix or ".png"
@@ -368,12 +384,13 @@ async def _save_uploads(files: list[UploadFile], upload_dir: Path) -> tuple[Stor
                     output_file.write(chunk)
             if target_path.stat().st_size == 0:
                 _raise_empty_upload(original_filename)
+            image_data = target_path.read_bytes()
             uploads.append(
                 StoredUpload(
                     original_filename=original_filename,
                     path=target_path,
-                    relative_path=_relative_repo_path(target_path),
                     content_type=file.content_type,
+                    image_data=image_data,
                 )
             )
         return tuple(uploads)
@@ -419,7 +436,8 @@ def _save_pipeline_result(
         ReceiptImageCreate(
             page_number=result.page_number,
             original_filename=uploads[result.page_number - 1].original_filename,
-            stored_path=uploads[result.page_number - 1].relative_path,
+            stored_path=None,          # no longer saved to disk permanently
+            image_data=uploads[result.page_number - 1].image_data,
             content_type=uploads[result.page_number - 1].content_type,
             ocr_text=result.ocr.text,
             ocr_engine=result.ocr.engine,
@@ -456,7 +474,7 @@ def _detail_response(detail: ReceiptDetailRecord) -> ReceiptDetailResponse:
                 id=_required_id(image.id, "receipt image"),
                 page_number=image.page_number,
                 original_filename=image.original_filename,
-                stored_path=image.stored_path,
+                stored_path=image.stored_path or "",
                 content_type=image.content_type,
                 ocr_text=image.ocr_text,
                 ocr_engine=image.ocr_engine,
@@ -481,21 +499,20 @@ def _detail_response(detail: ReceiptDetailRecord) -> ReceiptDetailResponse:
     )
 
 
-def _relative_repo_path(path: Path) -> Path:
-    try:
-        return path.resolve().relative_to(project_root())
-    except ValueError:
-        return path.resolve()
-
-
 def _cleanup_uploads(uploads: tuple[StoredUpload, ...]) -> None:
-    for upload in uploads:
-        _cleanup_stored_path(upload.relative_path)
+    """Remove the temporary batch directory created during upload processing."""
+    if not uploads:
+        return
+    # All uploads land in the same batch_dir; remove via the first file's parent
+    batch_dir = uploads[0].path.parent
+    _cleanup_directory(batch_dir)
 
 
 def _cleanup_stored_receipt_files(detail: ReceiptDetailRecord) -> None:
+    """Best-effort removal of legacy on-disk image files (stored_path rows)."""
     for image in detail.images:
-        _cleanup_stored_path(Path(image.stored_path))
+        if image.stored_path:
+            _cleanup_stored_path(Path(image.stored_path))
 
 
 def _cleanup_stored_path(path: Path) -> None:
