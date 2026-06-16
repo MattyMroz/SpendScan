@@ -56,7 +56,7 @@ class StoredReceiptImageResponse(BaseModel):
     ocr_engine: str
     ocr_processing_time_ms: float
     image_width: int | None
-    image_height: int | None    
+    image_height: int | None
 
 
 class StoredReceiptItemResponse(BaseModel):
