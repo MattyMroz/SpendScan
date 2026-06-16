@@ -255,7 +255,7 @@ class ReceiptRepository:
                         unit_price=payload.get("unit_price"),
                         total_price=payload.get("total_price"),
                         discount_amount=payload.get("discount_amount"),
-                    )   
+                    )
                 )
 
         self._session.commit()

@@ -7,10 +7,9 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import ClassVar, Final
 
-from sqlalchemy import JSON, Column, DateTime, Integer, Numeric, Text, func
+from sqlalchemy import JSON, Column, DateTime, Integer, LargeBinary, Numeric, Text, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, SQLModel
-from sqlalchemy import JSON, Column, DateTime, Integer, LargeBinary, Numeric, Text, func
 
 QUANTITY_PRECISION: Final[int] = 10
 QUANTITY_SCALE: Final[int] = 2
