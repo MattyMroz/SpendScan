@@ -7,7 +7,7 @@ from datetime import date, datetime
 from decimal import Decimal
 from typing import ClassVar, Final
 
-from sqlalchemy import JSON, Column, DateTime, Integer, Numeric, Text, func
+from sqlalchemy import JSON, Column, DateTime, Integer, LargeBinary, Numeric, Text, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlmodel import Field, SQLModel
 
@@ -101,7 +101,8 @@ class ReceiptImage(SQLModel, table=True):
     receipt_id: int = Field(foreign_key="receipts.id")
     page_number: int
     original_filename: str
-    stored_path: str
+    stored_path: str | None = Field(default=None, sa_column=Column(Text, nullable=True))
+    image_data: bytes | None = Field(default=None, sa_column=Column(LargeBinary, nullable=True))
     content_type: str | None = None
     ocr_text: str = ""
     ocr_engine: str = ""

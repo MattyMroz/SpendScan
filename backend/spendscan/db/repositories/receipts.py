@@ -50,12 +50,13 @@ class ReceiptImageCreate:
 
     page_number: int
     original_filename: str
-    stored_path: Path
+    stored_path: Path | None  # now optional — None when stored in DB
     content_type: str | None
     ocr_text: str
     ocr_engine: str
     ocr_processing_time_ms: float
     image_shape: tuple[int, int]
+    image_data: bytes | None = None  # raw image bytes to store in the DB
 
 
 @dataclass(frozen=True, slots=True)
@@ -128,7 +129,8 @@ class ReceiptRepository:
                     receipt_id=receipt.id,
                     page_number=image.page_number,
                     original_filename=image.original_filename,
-                    stored_path=image.stored_path.as_posix(),
+                    stored_path=image.stored_path.as_posix() if image.stored_path else None,
+                    image_data=image.image_data,
                     content_type=image.content_type,
                     ocr_text=image.ocr_text,
                     ocr_engine=image.ocr_engine,

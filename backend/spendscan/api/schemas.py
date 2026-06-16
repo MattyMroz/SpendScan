@@ -50,7 +50,7 @@ class StoredReceiptImageResponse(BaseModel):
     id: int
     page_number: int
     original_filename: str
-    stored_path: str
+    stored_path: str  # empty string "" for DB-stored images — kept for API compatibility
     content_type: str | None
     ocr_text: str
     ocr_engine: str
