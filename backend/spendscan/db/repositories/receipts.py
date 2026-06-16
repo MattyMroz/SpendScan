@@ -50,8 +50,8 @@ class ReceiptImageCreate:
 
     page_number: int
     original_filename: str
-    stored_path: Path | None          # now optional — None when stored in DB
-    image_data: bytes | None          # raw image bytes to store in the DB
+    stored_path: Path | None  # now optional — None when stored in DB
+    image_data: bytes | None  # raw image bytes to store in the DB
     content_type: str | None
     ocr_text: str
     ocr_engine: str

@@ -359,6 +359,7 @@ def get_receipt_image(
 # Internal helpers
 # ---------------------------------------------------------------------------
 
+
 async def _save_temp_upload(file: UploadFile) -> Path:
     suffix = Path(file.filename or "receipt.png").suffix or ".png"
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temporary_file:
@@ -436,7 +437,7 @@ def _save_pipeline_result(
         ReceiptImageCreate(
             page_number=result.page_number,
             original_filename=uploads[result.page_number - 1].original_filename,
-            stored_path=None,          # no longer saved to disk permanently
+            stored_path=None,  # no longer saved to disk permanently
             image_data=uploads[result.page_number - 1].image_data,
             content_type=uploads[result.page_number - 1].content_type,
             ocr_text=result.ocr.text,
