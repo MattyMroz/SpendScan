@@ -57,7 +57,7 @@ class Settings(BaseSettings):
     llama_build_tag: str | None = DEFAULT_LLAMA_BUILD_TAG
     database_url: SecretStr = SecretStr(DEFAULT_DATABASE_URL)
     upload_dir: Path = Field(default=Path("workspace/uploads/receipts"))
-    jwt_secret: SecretStr = SecretStr("dev-only-change-me")
+    jwt_secret: SecretStr
     jwt_algorithm: str = "HS256"
     jwt_expires_minutes: int = Field(default=60 * 24, gt=0)
 
@@ -120,4 +120,4 @@ class Settings(BaseSettings):
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
     """Load cached application settings."""
-    return Settings()
+    return Settings()  # type: ignore[call-arg]
