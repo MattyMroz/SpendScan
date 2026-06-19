@@ -9,6 +9,9 @@ on:
 permissions:
   contents: read
 
+env:
+  SPENDSCAN_JWT_SECRET: "dummy-secret-for-ci-tests-only"
+
 jobs:
   lint:
     runs-on: ubuntu-latest
