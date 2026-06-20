@@ -285,7 +285,7 @@
       let CURRENT_IMPORTANCE = 0;
 
       async function boot() {
-        SS.guard();
+        if (!(await SS.guard())) return;
         await SS.paintNav("scan");
         updatePageLanguage();
         ssIcons();
@@ -333,11 +333,10 @@
           stack.innerHTML = `<div class="edit__photo-empty">${t.no_image}</div>`;
           return;
         }
-        const token = SS.token();
         stack.innerHTML = images
           .map(
             (img) => `
-        <a class="edit__photo-link" href="/api/v1/receipts/${receiptId}/images/${img.id}?auth=1"
+        <a class="edit__photo-link" href="/api/v1/receipts/${receiptId}/images/${img.id}"
            target="_blank" rel="noopener" data-img-id="${img.id}">
           <img alt="${t.page_alt} ${img.page_number}" class="edit__photo-img"
                data-src="/api/v1/receipts/${receiptId}/images/${img.id}" loading="lazy">
@@ -347,7 +346,7 @@
           .join("");
         stack.querySelectorAll(".edit__photo-img").forEach(async (el) => {
           try {
-            const res = await fetch(el.dataset.src, { headers: { Authorization: `Bearer ${token}` } });
+            const res = await fetch(el.dataset.src, { credentials: "same-origin" });
             if (!res.ok) throw new Error("img fetch fail");
             const blob = await res.blob();
             el.src = URL.createObjectURL(blob);

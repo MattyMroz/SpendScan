@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
-from typing import Final
+from typing import Final, Literal
 
 from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -60,6 +60,9 @@ class Settings(BaseSettings):
     jwt_secret: SecretStr = SecretStr("dev-only-change-me")
     jwt_algorithm: str = "HS256"
     jwt_expires_minutes: int = Field(default=60 * 24, gt=0)
+    auth_cookie_name: str = "ss_access_token"
+    auth_cookie_secure: bool = False
+    auth_cookie_samesite: Literal["lax", "strict", "none"] = "lax"
 
     @field_validator("llama_build_tag", mode="before")
     @classmethod

@@ -160,7 +160,7 @@
 
       async function handleFiles(files) {
         if (!files.length) return;
-        if (!SS.isAuthed()) {
+        if (!(await SS.ensureAuth())) {
           location.href = "/login.html";
           return;
         }
