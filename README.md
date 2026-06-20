@@ -103,9 +103,12 @@ Z telefonu w tej samej sieci Wi-Fi: `http://<IP_LAPTOPA>:8000/` (sprawdz `ipconf
 
 FastAPI mountuje `frontend/public/` jako `StaticFiles` pod `/`. Powody:
 
-- **Jeden origin** — `/api/v1/...` i `/static/...` na tym samym hoscie → zero CORS, naglowki `Authorization` dzialaja od reki
+- **Jeden origin** — `/api/v1/...` i `/static/...` na tym samym hoscie → zero CORS i proste, bezpieczne cookies
 - **Jeden proces do uruchomienia** — `uvicorn` daje frontend + API + OCR + DB client jednoczesnie
-- **Auth** — token JWT w `localStorage`, frontend dodaje `Authorization: Bearer ...` do kazdego calla
+- **Auth** — access token JWT jest w `HttpOnly`, `SameSite=Lax` cookie; frontend dodaje osobny token CSRF do operacji modyfikujacych
+
+Lokalnie aplikacja dziala po HTTP, dlatego `SPENDSCAN_AUTH_COOKIE_SECURE=false` jest ustawieniem developerskim.
+Na produkcji za HTTPS ustaw `SPENDSCAN_AUTH_COOKIE_SECURE=true`.
 
 ## Endpointy API (skrot)
 
@@ -113,8 +116,9 @@ Pelna lista interaktywna na `/docs`. Najwazniejsze:
 
 | Metoda | Sciezka | Co robi |
 |---|---|---|
-| POST | `/api/v1/auth/register` | Rejestracja uzytkownika, zwraca JWT |
-| POST | `/api/v1/auth/login` | Logowanie, zwraca JWT |
+| POST | `/api/v1/auth/register` | Rejestracja uzytkownika, ustawia cookie sesji |
+| POST | `/api/v1/auth/login` | Logowanie, ustawia cookie sesji |
+| POST | `/api/v1/auth/logout` | Wylogowanie, usuwa cookies sesji |
 | GET  | `/api/v1/auth/me` | Profil zalogowanego uzytkownika |
 | POST | `/api/v1/receipts` | Upload zdjec paragonu → OCR → LLM → zapis w DB |
 | POST | `/api/v1/receipts/batch` | Upload wielu paragonow naraz (kazdy = grupa stron) |

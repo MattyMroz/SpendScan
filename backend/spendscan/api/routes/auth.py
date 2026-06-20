@@ -4,17 +4,19 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlmodel import Session
 
 from spendscan.auth import (
+    AuthResponse,
     CurrentUser,
     LoginRequest,
     RegisterRequest,
-    TokenResponse,
     UserResponse,
+    clear_auth_cookies,
     create_access_token,
     hash_password,
+    set_auth_cookies,
     verify_password,
 )
 from spendscan.config import Settings, get_settings
@@ -33,13 +35,14 @@ def _to_user_response(user_id: int, username: str, email: str, created_at: objec
     )
 
 
-@router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/register", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
 def register(
     payload: RegisterRequest,
+    response: Response,
     session: Annotated[Session, Depends(get_session)],
     settings: Annotated[Settings, Depends(get_settings)],
-) -> TokenResponse:
-    """Register a new user and return a JWT access token."""
+) -> AuthResponse:
+    """Register a new user and store a JWT in an HttpOnly cookie."""
     repo = UserRepository(session)
     if repo.get_by_email(payload.email):
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Email already registered")
@@ -53,23 +56,42 @@ def register(
     if user.id is None:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="User id not assigned")
     token = create_access_token(user_id=user.id, settings=settings)
-    return TokenResponse(access_token=token, expires_in=settings.jwt_expires_minutes * 60)
+    set_auth_cookies(response, access_token=token, settings=settings)
+    return AuthResponse(
+        expires_in=settings.jwt_expires_minutes * 60,
+        user=_to_user_response(user.id, user.username, user.email, user.created_at),
+    )
 
 
-@router.post("/login", response_model=TokenResponse)
+@router.post("/login", response_model=AuthResponse)
 def login(
     payload: LoginRequest,
+    response: Response,
     session: Annotated[Session, Depends(get_session)],
     settings: Annotated[Settings, Depends(get_settings)],
-) -> TokenResponse:
-    """Verify credentials and return a JWT access token."""
+) -> AuthResponse:
+    """Verify credentials and store a JWT in an HttpOnly cookie."""
     user = UserRepository(session).get_by_email(payload.email)
     if user is None or not verify_password(payload.password, user.password_hash):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
     if user.id is None:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="User id missing")
     token = create_access_token(user_id=user.id, settings=settings)
-    return TokenResponse(access_token=token, expires_in=settings.jwt_expires_minutes * 60)
+    set_auth_cookies(response, access_token=token, settings=settings)
+    return AuthResponse(
+        expires_in=settings.jwt_expires_minutes * 60,
+        user=_to_user_response(user.id, user.username, user.email, user.created_at),
+    )
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+def logout(
+    response: Response,
+    current_user: CurrentUser,
+    settings: Annotated[Settings, Depends(get_settings)],
+) -> None:
+    """Expire the browser authentication and CSRF cookies."""
+    clear_auth_cookies(response, settings=settings)
 
 
 @router.get("/me", response_model=UserResponse)

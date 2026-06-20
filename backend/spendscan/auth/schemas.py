@@ -22,14 +22,6 @@ class LoginRequest(BaseModel):
     password: str
 
 
-class TokenResponse(BaseModel):
-    """JWT response wrapper."""
-
-    access_token: str
-    token_type: str = "bearer"  # noqa: S105
-    expires_in: int
-
-
 class UserResponse(BaseModel):
     """Public user representation."""
 
@@ -37,3 +29,10 @@ class UserResponse(BaseModel):
     username: str
     email: EmailStr
     created_at: datetime | None
+
+
+class AuthResponse(BaseModel):
+    """Successful browser authentication response without exposing the JWT."""
+
+    expires_in: int
+    user: UserResponse
