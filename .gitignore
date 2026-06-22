@@ -3,6 +3,9 @@ __pycache__/
 *.py[codz]
 *$py.class
 
+# MS Office temporary lock files
+~$*
+
 # C extensions
 *.so
 

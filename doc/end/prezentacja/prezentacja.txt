@@ -1,0 +1,328 @@
+Oto transkrypcja tekstu z nagrania:
+
+Jeśli chodzi o ocenę, to ona będzie wystawiana przez panel opiekunów oraz przez przez osoby, które będą oceniały raporty. Pierwsza to jest minitermowa prezentacja. I teraz tak, generalnie ona trwa 12 minut plus 8 minut pytań. Chcielibyśmy, żeby tak to wyglądało, żeby ta dyskusja była trochę szersza tutaj, tak? Że nie tylko wy dużo mówicie na prezentacji, ale również jest jest jest ta dyskusja. To, co tu widzicie numer, to nie są numery slajdów, to są numery informacji, które byśmy w takiej prezentacji chcieli znaleźć. Uwaga, slajdy tytułowe. Wydaje się trochę śmieszne, ale chcielibyśmy przynajmniej ten slajd tytułowy ujednolicić u wszystkich, aby te logo były, skład grupy i tak dalej, żeby na każdym slajdzie, w każdej grupie można było znaleźć to samo. Jeżeli będziecie mieć akronim projektu czy logotyp projektu, możecie na tym popracować również, jak najbardziej można to zaprezentować. Więc to taka praca, która trochę wiąże zespół, bo pracujecie nad wspólnym logotypem czy jakimś akronimem, więc tak, jak najbardziej tak. Jak nie ma, to nie ma. Natomiast chcielibyśmy, aby to, co tutaj widzicie, no pojawiało się w każdej w każdej prezentacji. Dalej, przypuszczam, że jak pracujecie z opiekunem, to opiekun zna potrzeby tego rozwiązania, kto jest jakby kto jest kluczowym użytkownikiem i wy również. Natomiast pozostali niekoniecznie, którzy będą was słuchać. Stąd też część prezentacji tej wstępnej, myślę, że nawet połowa, powinna dotyczyć tego zagadnienia i problemu, który, który się podejmujecie. Dla kogo to jest? Dlaczego to jest dla nich ważne, dla tych osób, tak? Co dzięki temu rozwiązaniu uzyskają? To jest ta informacja w dwójce. W trójce warto warto też przedstawić alternatywne rozwiązania. Tutaj nazwane to konkurencja, trochę może nie wiem, czy dobrze, ale chodzi o to, że cokolwiek byście nie robili, no nie chce nam się wierzyć, że nie ma alternatywnych rozwiązań. Jak nawet spojrzycie na ten wasz pomysł trochę szerzej, niż niż bardzo wąsko, to pewnie alternatywne rozwiązania się pojawią. Więc warto wynik analizy tych alternatywnych rozwiązań też przedstawić w trakcie prezentacji. Czwórka to proponowane rozwiązanie w nawiązaniu do istniejących potrzeb. Czyli generalnie, jak już przeanalizujecie, dla kogo to jest, jakie to są potrzeby, no to tutaj przedstawiacie propozycję waszego rozwiązania. Pamiętajcie, że w tej prezentacji jesteśmy po majuwce, więc generalnie pewnie wy w implementacji jesteście dalej. Mam taką przynajmniej nadzieję. Ale ten koncept, ta idea tego, jak to powinno wyglądać i dlaczego, chcielibyśmy w tej prezentacji zobaczyć tutaj. Dalej, przyjęty plan realizacji projektu. Tylko pamiętajcie, że to ma być w formie, którą się pokaże na prezentacji, na slajdzie, a nie w Excelu, bo to czasami jest bardzo trudne, później, że tak powiem zlokalizowanie pozycji na Excelu w stosunku do slajdu. Więc w formie takiej, żebyśmy na tym slajdzie widzieli, gdzie jesteście, to nie musi być bardzo szczegółowy harmonogram, taki do którego nie da się do prezentacji. I jak przedstawicie ten plan, no to też chcielibyśmy zobaczyć, w którym miejscu aktualnie jesteście. Taki realny miejsce, nie takie miejsce, że proponujecie rozwiązanie, bo to zakładam, że mogliście wcześniej zrobić, natomiast pokazujecie, w którym miejscu, miejscu jesteście i to jest aktualny stan projektu, w którym miejscu, przyjętego harmonogramu, znajduje się zespół. I teraz uwaga, tu mamy taki element, który możemy sobie no też blisko powiem odhaczyć, pokazać, że że był zrealizowany. Jest to wpływ na środowisko, analiza cyklu życia, pewne aspekty normalizacji projektowania uniwersalnego. Możecie tutaj 1, 2 slajdy poświęcić temu zagadnieniu. Tak jak powiedziałem, nie będziemy rozliczać, bo was, bo to zazwyczaj są projekty, które to jest główny cel tego, ale chcielibyśmy, żebyście chociaż w chwilę nad tym zagadnieniem pochylili i wynik tego pochylenia powinien się pojawić właśnie w tej prezentacji środowiskowej. Jeśli pojawiły się jakieś problemy w trakcie realizacji, warto warto o tym powiedzieć, szczególnie wtedy, jak sobie z nim poradzono, a może nawet nie. Szczególnie wtedy, kiedy sobie z nim nie poradzono i dalej macie z tym problem. Bo jeśli dalej jest jakiś problem, nie wiem, meritoryczny, techniczny, no to ktoś ze słuchających może pomyśleć i doradzić, jak to można rozwiązać, tak? Albo, albo trochę słabiej obejść. Więc warto też takie problemy pokazać, które które się pojawiły i udało wam się z nimi przez ich przez zwyciężyć. To to jest nauka dla innej grupy i dla innych zespołów, albo takimi, którymi się nie udało poradzić w dzisiejszym, no to może ktoś z was zaproponuje, że spróbujcie tego, albo tego rozwiązania. No i oczywiście mamy przestrzeń na inne aspekty według specyfiki projektu. To jest kwestia jakby otwarta, żebyście chcieli, czy coś uwzględnić w tej prezentacji, to jak najbardziej jest to tutaj wskazane. Czyli to jest prezentacja środowiskowa i jej cel to jest przedstawienie waszego zrozumienia projektu, harmonogramu, wpływ na środowisko, aspekty normalizacji projektowania uniwersalnego. Czyli to tak, w miarę wstępna wstępna prezentacja, ale pamiętajcie, że to co mówiłem, to jest pewnie dużo bardziej dalej, niż we wstępie tego projektu. Ale to my jakby wracamy trochę, dwa kroki wte wstecz, aby przedstawić zagadnienia dla pełnego panelu oceniających. Dobra, dalej mamy piątkę, piątka to jest.
+
+
+-Value vs effort
+Powiedzieć skąd value i czyi effort
+-dodac Wybór które pola wydatków maja byc zielone/zolte/czerwone (zakres wydatku)
+-grupowanie bo kategoriach/dodawanie od razu z jakiego sklepu jest paragon,
+-jezeli wykryto upust/przecena/promocja to je sumować i informować o naliczonym upuście
+-Wykończyć kamienie milowe i dodać co mamy zrobić w przyszłości.
+-jak obeszlismy dane przeszkody i czym jest zastępujemy
+-liczba godzin w miesiacu to 53 godziny
+-zapisać nasz techstak i dlaczego go wybraliśmy. Jego wady i zalety. Czy to był dobry wybór.
+-kolejność prezentacji: cel projektu, techstack, ankieta, value vs effort, schemat blokowy dzialajaca makieta
+Maksymalnie 12 min, około 15 slajdów. Nie wiecej.
+-opisać po co jest ten projekt, jak wpływa na przykład na ślad węglowy, wcag, inne rzeczy na które może mieć wpływ. Dlaczego użytkownicy mogą go chcieć.
+Na końcowej prezentacji film z działania aplikacji.
+Na koniec jeszcze ankieta satysfakcji korzystania z produktu oraz czy aplikacja jest przyjazna użytkownikom
+Wykres gantta dotyczący pracy na projektem
+krótkie przedstawienie
+założenia, ślad węglowy, po co dodatkowa energia na paragony, ekologiczne aspekty
+WCAG
+tech stack i dlaczego wybraliśmy akurat to
+ankieta
+value vs effort
+schemat blokowy i schemat gantta
+makieta
+jak te założenia początkowe zmodyfikowaliśmy
+
+max 12 min
+max 15 slajdów
+
+
+na prezentację końcową film
+ankieta post, czyli czy to działa,  czy jest użyteczna itp
+ankieta satysfakcji tzw
+badanie dostępności dla przeciętnego Kowalskiego, czy apka jest przyjazna
+
+
+# SpendScan
+
+> Aplikacja analizująca wydatki na podstawie zdjęć paragonów.
+
+[![CI](https://github.com/MattyMroz/SpendScan/actions/workflows/ci.yml/badge.svg)](https://github.com/MattyMroz/SpendScan/actions/workflows/ci.yml)
+[![Python 3.13+](https://img.shields.io/badge/python-3.13%2B-blue)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+
+## Opis
+
+SpendScan automatyzuje kontrolę wydatków — robisz zdjęcie paragonu, a aplikacja:
+
+1. **Rozpoznaje tekst** (OCR)
+2. **Wyodrębnia produkty i ceny**
+3. **Przypisuje kategorie** (Żywność, Chemia, Elektronika itp.)
+4. **Generuje analizy** — dashboard miesięczny, trendy, alerty budżetowe
+
+## Tech Stack
+
+| Warstwa | Technologia |
+|---------|-------------|
+| **Backend** | Python 3.13+, FastAPI |
+| **Frontend** | TBD |
+| **Baza danych** | SQLite (dev) |
+| **Tooling** | uv, ruff, mypy, pytest, pre-commit |
+| **CI/CD** | GitHub Actions |
+
+## Struktura projektu
+
+```
+SpendScan/
+├── backend/spendscan/    # Backend Python
+│   ├── api/              # FastAPI endpoints
+│   ├── ocr/              # Przetwarzanie obrazu + OCR
+│   ├── analysis/         # Analityka wydatków
+│   ├── models/           # Pydantic models + DB schema
+│   └── db/               # Database layer
+├── frontend/             # Frontend (TBD)
+├── tests/                # Testy (unit + integration)
+├── assets/               # Brand assets (logo, ikona)
+├── doc/                  # Dokumentacja projektu
+└── scripts/              # Pomocnicze skrypty
+```
+
+## Quick Start
+
+### Wymagania
+
+- Python ≥3.13
+- [uv](https://docs.astral.sh/uv/getting-started/installation/)
+
+### Setup
+
+```bash
+# 1. Klonuj repo
+git clone https://github.com/MattyMroz/SpendScan.git
+cd SpendScan
+
+# 2. Zainstaluj zależności
+uv sync
+
+# 3. Zainstaluj pre-commit hooks
+uv run pre-commit install
+
+# 4. Sprawdź że tooling działa
+uv run ruff check .
+uv run mypy backend/
+uv run pytest
+```
+
+### Lokalny test OCR + Gemini
+
+Runtime OCR i modele nie są commitowane. Lokalnie trafiają do `external/`, a robocze paragony i wyniki do
+`workspace/`.
+
+Szczegółowy runbook, fallback Gemma i lista kategorii są w [doc/RECEIPT_PIPELINE_RUNBOOK.md](doc/RECEIPT_PIPELINE_RUNBOOK.md).
+
+1. Skopiuj env i uzupełnij `SPENDSCAN_GEMINI_API_KEY`:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+2. Przygotuj OCR runtime. Komenda automatycznie pobiera Qianfan OCR z Hugging Face oraz pasującą binarkę
+	`llama.cpp`:
+
+```powershell
+uv run python scripts/prepare_ocr_runtime.py
+```
+
+3. Wrzuć paragony PNG do `workspace/input/`. Lokalny zestaw testowy używa nazw:
+
+```text
+workspace/input/receipt_001.png
+workspace/input/receipt_002.png
+workspace/input/receipt_003.png
+```
+
+4. Uruchom pełny pipeline OCR -> Gemini -> JSON:
+
+```powershell
+uv run python scripts/run_receipt_e2e.py
+```
+
+Wyniki zapisują się do `workspace/output/*.json`.
+
+5. Wygeneruj debug PNG: po lewej paragon, po prawej OCR, JSON LLM i podsumowanie:
+
+```powershell
+uv run python scripts/render_receipt_debug.py
+```
+
+PNG zapisują się do `workspace/output/debug/*_debug.png` i rosną pionowo pod długość OCR/JSON.
+
+6. Opcjonalnie odpal realny test integracyjny:
+
+```powershell
+$env:SPENDSCAN_RUN_E2E="1"; uv run pytest tests/integration/test_receipt_e2e.py -m integration
+```
+
+Bez `SPENDSCAN_RUN_E2E=1` test integracyjny jest pomijany, żeby CI i zwykłe `uv run pytest` nie pobierały modeli.
+
+## Workflow
+
+Szczegóły w [CONTRIBUTING.md](CONTRIBUTING.md).
+
+**TL;DR:**
+1. Stwórz branch: `git checkout -b feature/<twoj-nick>-<opis>`
+2. Commituj: `feat(scope): opis` (Conventional Commits)
+3. Push + PR → min 1 review → squash merge
+
+## Zespół
+
+| Osoba | Specjalizacja | Obszar |
+|-------|--------------|--------|
+| Mateusz Mróz | EAIBD | OCR + koordynacja |
+| Piotr Marczak | EAIBD | Baza danych |
+| Jakub Bryła | EAIBD | Architektura + analiza danych |
+| Igor Typiński | Inżynieria Oprogramowania | API + frontend |
+| Mateusz Słoń | Technologie Internetowe | Frontend + API |
+
+## Licencja
+
+[MIT](LICENSE)
+
+
+# Karta opisowa projektu
+
+> **Politechnika Łódzka** — Wydział Elektrotechniki, Elektroniki, Informatyki i Automatyki
+>
+> **Opiekun:** dr hab. inż. Ewa Korzeniewska, prof. PŁ
+>
+> **Projekt kompetencyjny** [02 96 6174 01], semestr VI — studia inżynierskie INFORMATYKA, WEEIA
+
+**Zagadnienie opracowane przy współudziale studentów:** TAK/NIE\*
+
+---
+
+## 1. Tytuł projektu
+
+**SpendScan** – aplikacja analizująca wydatki na podstawie zdjęć paragonów
+
+---
+
+## 2. Opiekun projektu, jednostka
+
+| Pole | Wartość |
+|------|---------|
+| **Imię i nazwisko** | Ewa Korzeniewska |
+| **Jednostka** | Instytut Systemów Inżynierii Elektrycznej I26 |
+
+---
+
+## 3. Skrócony opis projektu
+
+Celem projektu jest stworzenie aplikacji umożliwiającej:
+
+- Skanowanie paragonów przy użyciu aparatu
+- Automatyczne rozpoznawanie tekstu (OCR)
+- Wyodrębnianie produktów i cen
+- Przypisywanie produktów do kategorii
+- Generowanie miesięcznych analiz wydatków
+
+Projekt łączy przetwarzanie obrazu, analizę tekstu, przetwarzanie danych, wizualizację danych i predykcję trendów.
+
+Wiele osób nie kontroluje swoich wydatków — nie wie ile realnie wydaje na jedzenie, chemię czy rozrywkę, i nie chce ręcznie wpisywać danych do aplikacji finansowych. Projekt automatyzuje ten proces poprzez analizę zdjęć paragonu. Produkty są przypisywane do kategorii (np. Żywność, Chemia, Elektronika, Ubrania) metodą słownika słów kluczowych lub za pomocą prostego modelu klasyfikacyjnego, a następnie dane są analizowane i prezentowane użytkownikowi w przejrzysty sposób.
+
+### Dashboard miesięczny
+
+- Suma miesięczna wydatków
+- Wykres kołowy kategorii
+- Wydatki w sklepach (Biedronka, Lidl, Dino itd.)
+- Średni wydatek dzienny
+- Historia zakupów
+
+### Trendy
+
+- Czy wydajesz więcej niż w poprzednim miesiącu
+- Na co wydajesz najwięcej
+- Alert: „Wydałeś 40% budżetu na jedzenie"
+
+---
+
+## 4. Przewidywane kompetencje IT
+
+| Kompetencja | Wybrano |
+|-------------|:-------:|
+| Algorytmy / struktura danych | |
+| Architektura komputerów | |
+| Baza danych | |
+| Bezpieczeństwo danych | |
+| Chmura obliczeniowa | |
+| Grafika komputerowa i wizualizacja | |
+| **Inżynieria oprogramowania** | ✅ |
+| Komunikacja człowiek-komputer | |
+| Kryptografia | |
+| Programowanie obiektowe (np. Java, C++, C#) | |
+| **Programowanie skryptowe (np. Python)** | ✅ |
+| Programowanie systemów wbudowanych | |
+| **Projektowanie aplikacji mobilnych** | ✅ |
+| Projektowanie aplikacji webowych | |
+| **Przetwarzanie i analiza sygnałów / obrazów** | ✅ |
+| Rzeczywistość wirtualna / rozszerzona | |
+| Sieci komputerowe | |
+| Systemy czasu rzeczywistego | |
+| Sztuczna inteligencja / uczenie maszynowe | |
+| Technologie Big Data | |
+
+---
+
+## 5. Lista studentów
+
+| Imię i nazwisko | Nr albumu | Specjalizacja |
+|-----------------|-----------|---------------|
+| Piotr Marczak | 251184 | Eksploracja, Analiza i Bazy Danych |
+| Jakub Bryła | 251130 | Eksploracja, Analiza i Bazy Danych |
+| Mateusz Mróz | 251190 | Eksploracja, Analiza i Bazy Danych |
+| Igor Typiński | 251237 | Inżynieria Oprogramowania |
+| Mateusz Słoń | 251221 | Technologie Internetowe |
+
+
+To jest szywny paln
+
+robie prezenacjie 12-15 slajdó potrzbne mi są nagówki co mam robic
+
+tak zwane sekcjie
+
+i jaki oraz czy co ma się na nim znalesć
+
+nie pisz długisz tekstów to ma być minimalisy dfritp rezeracji jak czesz mozęsz nawet przykalda zrobic
+
+ale tak miniamlisczynie
+
+
+PLAN PREZENTACJI ŚRÓDOKRESOWEJ
+Czas prezentacji 12 minut bezwzględnie respektowany
+plus 8 minut sesja pytań i odpowiedzi.
+Każdy członek Zespołu uczestniczy aktywnie
+w prezentacji oraz w sesji pytań i odpowiedzi.
+1. Slajd tytułowy: logo PŁ i Wydziału, temat projektu, numer i skład grupy, opiekun
+(opiekunowie) + symbol jednostki; jeśli są: logo i akronim projektu.
+2.
+Potrzeba rozwiązania, określenie głównych interesariuszy projektu, docelowych
+użytkowników – rozumianych jako podmiot użytkujący lub w kontekście systemu docelowego;
+3. Alternatywne rozwiązania, tzw. konkurencja;
+4. Proponowane rozwiązanie w nawiązaniu do istniejących potrzeb;
+5. Przyjęty plan realizacji projektu – harmonogram, w formie możliwej do przedstawienia
+podczas prezentacji
+6. Aktualny stan projektu, w którym miejscu przyjętego harmonogramu, znajduje się zespół;
+7. Wpływ na środowisko (analiza cyklu życia), aspekty normalizacji
+8. Problemy w dotychczasowej realizacji, jak sobie z nimi poradzono;
+9. Inne aspekty wg specyfiki projektu.
+
+
+
+CO JEST POTRZBNE?
+
+INFORACJIE CO MA BYĆ NA DANYM SLAJDZIE?
+NAGŁOWKI / PODZIAŁ NA SEKCJIE - CO TAM POWINNO BYĆ
+PLAN WSTĘY Z OMÓWIERNIEM
+
+ZROBILISMY ANNKIETĘ I MAMY WYNIKI JAK COŚ
+
+
+
+Zespół nr 8: SpendScan – aplikacja analizująca wydatki na podstawie zdjęć paragonów (Opiekun: EK) to jest nasz pałen nazwa
+jakie inforajie jesze potrzebujesz?
+C:\Users\MattyMroz\Desktop\PROJECTS\SpendScan tu jest projekt jach cesz poszukajć
