@@ -54,15 +54,39 @@ def _asset_name(build_tag: str, os_name: str, arch: str, backend: BackendType) -
 
 
 class BinaryResolver:
-    """Resolve, download, and cache llama-server binaries."""
+    """Resolve, download, and cache platform-specific llama-server binaries.
+
+    Detects the current OS and GPU backend (CUDA > Vulkan > CPU) and
+    downloads the matching prebuilt binary from the llama.cpp GitHub
+    releases page when not already cached.
+
+    Attributes:
+        cache_dir: Root directory for versioned binary caches.  Each
+            build tag gets its own subdirectory.
+    """
 
     __slots__ = ("cache_dir",)
 
     def __init__(self, cache_dir: Path | None = None) -> None:
+        """Initialize the resolver with an optional cache directory.
+
+        Args:
+            cache_dir: Directory used to cache downloaded binaries.
+                Falls back to ``<project_root>/external/bin/llama`` when
+                ``None``.
+        """
         self.cache_dir = cache_dir or project_root() / _DEFAULT_CACHE_DIR
 
     def fetch_latest_tag(self) -> str:
-        """Fetch latest llama.cpp release tag from GitHub."""
+        """Fetch the latest llama.cpp release tag from the GitHub API.
+
+        Returns:
+            Release tag string, e.g. ``"b5437"``.
+
+        Raises:
+            BinaryDownloadError: If the request fails or the response does
+                not contain a valid ``tag_name``.
+        """
         try:
             response = httpx.get(
                 _RELEASES_API,
@@ -82,7 +106,18 @@ class BinaryResolver:
         return tag
 
     def ensure_binary(self, build_tag: str) -> Path:
-        """Download a specific llama-server build when missing."""
+        """Return the path to a llama-server binary, downloading it when absent.
+
+        Args:
+            build_tag: llama.cpp release tag to download (e.g. ``"b5437"``).
+
+        Returns:
+            Path to the executable binary.
+
+        Raises:
+            BinaryDownloadError: If the download fails or the binary is not
+                found in the extracted archive.
+        """
         binary_path = self._binary_path(build_tag)
         if binary_path.exists():
             return binary_path
@@ -98,7 +133,18 @@ class BinaryResolver:
         return binary_path
 
     def resolve_cached_binary(self, build_tag: str) -> Path:
-        """Resolve a prepared llama-server binary without network access."""
+        """Return the path to a cached binary without any network access.
+
+        Args:
+            build_tag: llama.cpp release tag to look up.
+
+        Returns:
+            Path to the cached executable.
+
+        Raises:
+            BinaryDownloadError: If the binary for ``build_tag`` is not
+                present in the cache directory.
+        """
         binary_path = self._binary_path(build_tag)
         if binary_path.exists():
             return binary_path
@@ -106,7 +152,13 @@ class BinaryResolver:
         raise BinaryDownloadError(msg)
 
     def detect_platform(self) -> PlatformInfo:
-        """Detect current platform and preferred llama.cpp backend."""
+        """Detect the current OS, CPU architecture, and preferred compute backend.
+
+        Backend selection priority: CUDA > Vulkan > CPU.
+
+        Returns:
+            ``PlatformInfo`` describing the current environment.
+        """
         os_name = sys.platform
         arch = platform.machine().lower()
         if arch in {"amd64", "x86_64"}:

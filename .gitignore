@@ -200,6 +200,7 @@ cython_debug/
 .github/prompts/
 .github/instructions/
 .github/copilot-instructions.md
+.claude/
 AGENTS.md
 knowledge/
 temp/

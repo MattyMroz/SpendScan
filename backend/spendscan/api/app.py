@@ -1,4 +1,13 @@
-"""FastAPI application factory."""
+"""FastAPI application factory for SpendScan.
+
+Creates and configures the FastAPI application with middleware, routers,
+static file mounts, and the OCR lifespan manager.
+
+Typical usage:
+
+    app = create_app()          # dev/test — picks up settings automatically
+    app = create_app(settings)  # inject custom settings (e.g. in tests)
+"""
 
 from __future__ import annotations
 
@@ -32,11 +41,26 @@ DATABASE_UNAVAILABLE_MESSAGE = (
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915
-    """Create configured SpendScan FastAPI app."""
+    """Create and return a fully configured SpendScan FastAPI application.
+
+    Wires together the OCR lifespan manager, CORS middleware, request logger,
+    all API routers, and optional frontend static file mounts.
+
+    Args:
+        settings: Application settings. Resolved from environment if None.
+
+    Returns:
+        Configured FastAPI application instance ready to serve.
+    """
     resolved_settings = settings or get_settings()
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+        """Manage OCR engine lifecycle: preload on startup, clean up on shutdown.
+
+        Yields:
+            Control back to FastAPI while the server is running.
+        """
         ocr = OcrService(PaddleOcrConfig.from_settings(resolved_settings))
         app.state.ocr_service = ocr
         request_logger.info("Preloading PaddleOCR-VL llama-server (this may take ~30s)...")
@@ -67,6 +91,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915
 
     @app.exception_handler(OperationalError)
     async def handle_database_operational_error(_: Request, exc: OperationalError) -> JSONResponse:
+        """Return 503 with a user-friendly message when the database is unreachable."""
         request_logger.warning("Database unavailable: %s", exc)
         return JSONResponse(
             status_code=503,
@@ -75,6 +100,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915
 
     @app.middleware("http")
     async def log_requests(request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
+        """Log method, path, status code, and elapsed time for every HTTP request."""
         start = time.perf_counter()
         request_logger.info("HTTP start %s %s", request.method, request.url.path)
         try:
@@ -107,6 +133,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:  # noqa: PLR0915
 
     @app.middleware("http")
     async def disable_static_cache(request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
+        """Set Cache-Control: no-store on static assets and HTML files to prevent stale frontend."""
         response = await call_next(request)
         if request.url.path.startswith(("/static/", "/assets/")) or request.url.path.endswith(".html"):
             response.headers["Cache-Control"] = "no-store"

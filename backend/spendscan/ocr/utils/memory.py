@@ -1,4 +1,8 @@
-"""Small GPU memory helpers used by OCR retry logic."""
+"""GPU memory helpers used by the OCR OOM retry logic.
+
+Provides utilities to free CUDA caches and pick a smaller image dimension
+when inference fails with an out-of-memory error.
+"""
 
 from __future__ import annotations
 
@@ -8,7 +12,16 @@ import importlib
 
 
 def get_fallback_dimension(current_dim: int, fallback_sequence: tuple[int, ...]) -> int | None:
-    """Return the next smaller fallback dimension."""
+    """Return the next smaller dimension from a fallback sequence.
+
+    Args:
+        current_dim: Current longest image edge in pixels.
+        fallback_sequence: Ordered sequence of candidate smaller dimensions.
+
+    Returns:
+        The first dimension in ``fallback_sequence`` that is strictly smaller
+        than ``current_dim``, or ``None`` if none qualify.
+    """
     for dimension in fallback_sequence:
         if dimension < current_dim:
             return dimension

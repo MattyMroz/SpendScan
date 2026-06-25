@@ -1,3 +1,5 @@
+"""Folder management endpoints for organising receipts into named groups."""
+
 from fastapi import APIRouter, HTTPException
 
 from spendscan.api.dependencies import SessionDep
@@ -13,6 +15,7 @@ def list_folders(
     session: SessionDep,
     current_user: CurrentUser,
 ) -> list[Folder]:
+    """Return all folders owned by the authenticated user."""
     repo = FolderRepository(session)
 
     if current_user.id is None:
@@ -32,6 +35,7 @@ def create_folder(
     session: SessionDep,
     current_user: CurrentUser,
 ) -> Folder:
+    """Create a new named folder for the authenticated user."""
     repo = FolderRepository(session)
 
     if current_user.id is None:
@@ -54,6 +58,7 @@ def assign_receipt(
     session: SessionDep,
     current_user: CurrentUser,
 ) -> FolderReceipt:
+    """Add a receipt to an existing folder."""
     repo = FolderRepository(session)
 
     try:
@@ -75,6 +80,7 @@ def remove_receipt(
     session: SessionDep,
     current_user: CurrentUser,
 ) -> dict[str, bool]:
+    """Remove a receipt from a folder without deleting the receipt itself."""
     repo = FolderRepository(session)
 
     repo.remove_receipt(
@@ -92,6 +98,7 @@ def update_folder(
     session: SessionDep,
     current_user: CurrentUser,
 ) -> Folder:
+    """Update mutable fields (e.g. description) of an existing folder."""
     repo = FolderRepository(session)
 
     folder = repo.update_folder(
@@ -115,6 +122,7 @@ def delete_folder(
     session: SessionDep,
     current_user: CurrentUser,
 ) -> dict[str, bool]:
+    """Delete a folder and its receipt associations (receipts themselves are kept)."""
     repo = FolderRepository(session)
 
     repo.delete_folder(

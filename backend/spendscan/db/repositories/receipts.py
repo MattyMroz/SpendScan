@@ -1,4 +1,9 @@
-"""Receipt persistence helpers."""
+"""Receipt persistence helpers.
+
+Provides ReceiptRepository for all CRUD operations on Receipt aggregates
+(receipt + images + items) and a set of conversion utilities between
+Decimal currency values and integer cents.
+"""
 
 from __future__ import annotations
 
@@ -46,7 +51,19 @@ def required_cents_to_decimal(value: int) -> Decimal:
 
 @dataclass(frozen=True, slots=True)
 class ReceiptImageCreate:
-    """Data needed to persist one receipt image page."""
+    """Data needed to persist one receipt image page.
+
+    Attributes:
+        page_number: 1-based page index within the receipt.
+        original_filename: Client-provided filename at upload time.
+        stored_path: On-disk path; None when bytes are stored in the DB.
+        content_type: MIME type reported by the client.
+        ocr_text: OCR output for this page.
+        ocr_engine: Identifier of the OCR engine that produced ocr_text.
+        ocr_processing_time_ms: Wall-clock OCR duration in milliseconds.
+        image_shape: ``(height, width)`` tuple from the decoded image array.
+        image_data: Raw image bytes; None when the file is on disk.
+    """
 
     page_number: int
     original_filename: str
@@ -61,7 +78,12 @@ class ReceiptImageCreate:
 
 @dataclass(frozen=True, slots=True)
 class ReceiptItemRecord:
-    """Persisted receipt item with optional category name."""
+    """Persisted receipt item with optional category name.
+
+    Attributes:
+        item: The ORM ReceiptItem row.
+        category_name: Resolved category label; None if uncategorised.
+    """
 
     item: ReceiptItem
     category_name: str | None
@@ -69,7 +91,13 @@ class ReceiptItemRecord:
 
 @dataclass(frozen=True, slots=True)
 class ReceiptDetailRecord:
-    """Persisted receipt aggregate."""
+    """Persisted receipt aggregate combining header, images, and items.
+
+    Attributes:
+        receipt: The top-level Receipt ORM row.
+        images: Ordered tuple of ReceiptImage rows (one per page).
+        items: Tuple of ReceiptItemRecord for each extracted line item.
+    """
 
     receipt: Receipt
     images: tuple[ReceiptImage, ...]
@@ -77,9 +105,22 @@ class ReceiptDetailRecord:
 
 
 class ReceiptRepository:
-    """Database access for receipt demo workflows."""
+    """Database access for receipt CRUD and analysis workflows.
+
+    All write operations work through SQLModel sessions with explicit
+    flush-then-commit to ensure primary keys are available before
+    inserting child rows.
+
+    Attributes:
+        _session: Active SQLModel/SQLAlchemy session injected at construction.
+    """
 
     def __init__(self, session: Session) -> None:
+        """Initialise the repository with an active database session.
+
+        Args:
+            session: SQLModel session used for all database operations.
+        """
         self._session = session
 
     def ensure_demo_user(self) -> User:
@@ -281,6 +322,17 @@ class ReceiptRepository:
         return results
 
     def _get_or_create_category(self, name: str | None) -> Category | None:
+        """Return an existing category matching name, or create and return a new one.
+
+        Normalises the name to lowercase before lookup. Returns None when
+        name is empty or whitespace-only.
+
+        Args:
+            name: Raw category label from the LLM analysis result.
+
+        Returns:
+            Persisted Category row, or None if name is blank.
+        """
         normalized_name = (name or "").strip().lower()
         if not normalized_name:
             return None
@@ -309,6 +361,18 @@ class ReceiptRepository:
 
 
 def _analysis_from_detail(detail: ReceiptDetailRecord) -> ReceiptAnalysisResult:
+    """Convert a persisted ReceiptDetailRecord back to an analysis schema.
+
+    Converts cent values to Decimal and maps ORM rows to the LLM output
+    schema so the dashboard can treat stored and freshly-analysed receipts
+    uniformly.
+
+    Args:
+        detail: Aggregate of ORM rows for one receipt.
+
+    Returns:
+        ReceiptAnalysisResult populated from the stored data.
+    """
     receipt = detail.receipt
 
     items = [

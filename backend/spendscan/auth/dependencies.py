@@ -20,6 +20,7 @@ from .tokens import decode_access_token
 
 _oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login", auto_error=False)
 _SAFE_METHODS = frozenset({"GET", "HEAD", "OPTIONS", "TRACE"})
+"""HTTP methods that do not mutate state and therefore skip CSRF validation."""
 
 
 def get_current_user(
@@ -28,7 +29,26 @@ def get_current_user(
     session: Annotated[Session, Depends(get_session)],
     settings: Annotated[Settings, Depends(get_settings)],
 ) -> User:
-    """Resolve a user from an HttpOnly cookie or a backward-compatible Bearer token."""
+    """Resolve a user from an HttpOnly cookie or a backward-compatible Bearer token.
+
+    Token resolution order: Bearer header first, then the HttpOnly auth cookie.
+    For cookie-authenticated mutating requests (not in ``_SAFE_METHODS``) the
+    double-submit CSRF check is enforced: the ``X-CSRF-Token`` header must
+    match the ``ss_csrf_token`` cookie via a constant-time comparison.
+
+    Args:
+        request: Incoming FastAPI request used to read cookies and headers.
+        bearer_token: Optional Bearer token extracted by the OAuth2 scheme.
+        session: SQLModel database session injected by FastAPI.
+        settings: Application settings supplying the cookie name and JWT config.
+
+    Returns:
+        Authenticated ``User`` model instance.
+
+    Raises:
+        HTTPException: 401 if no valid token is present or the JWT is invalid.
+        HTTPException: 403 if the CSRF check fails on a mutating cookie-auth request.
+    """
     credentials_error = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Invalid or missing authentication token",

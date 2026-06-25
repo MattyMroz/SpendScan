@@ -62,7 +62,30 @@ _DOWNLOAD_CHUNK_BYTES: Final[int] = 1024 * 1024
 
 @dataclass(slots=True)
 class PaddleOcrConfig:
-    """Configuration for the PaddleOCR-VL engine."""
+    """Configuration for the PaddleOCR-VL 1.5 engine.
+
+    Attributes:
+        device: Compute device — ``"cuda"`` for GPU, ``"cpu"`` for CPU-only.
+            Setting ``"cpu"`` automatically forces ``n_gpu_layers`` to 0.
+        model_dir: Directory that holds the GGUF model and mmproj files.
+            Downloaded from Hugging Face on first use when present.
+        llama_cache_dir: Directory where versioned llama-server binaries are
+            cached.  Falls back to the application default when ``None``.
+        llama_build_tag: llama.cpp GitHub release tag to use (e.g.
+            ``"b5437"``).  The latest tag is fetched when ``None``.
+        max_image_dimension: Longest image edge in pixels before the image
+            is downscaled.  Lower values reduce VRAM at the cost of accuracy.
+        max_tokens: Maximum number of tokens the model may generate per
+            request.
+        temperature: Sampling temperature; 0.0 produces deterministic output.
+        repeat_penalty: Penalty applied to repeated tokens.
+        repeat_last_n: Number of recent tokens considered for repeat penalty;
+            ``-1`` uses the full context.
+        n_gpu_layers: Number of model layers offloaded to GPU; ``-1`` offloads
+            all layers.
+        n_ctx: Model context window size in tokens.
+        default_prompt: Task trigger token sent to the model before the image.
+    """
 
     device: Literal["cuda", "cpu"] = "cuda"
     model_dir: Path | None = None
@@ -93,15 +116,33 @@ class PaddleOcrConfig:
 
 
 class PaddleModelResolver:
-    """Download and resolve PaddleOCR-VL GGUF files from Hugging Face."""
+    """Download and resolve PaddleOCR-VL GGUF files from Hugging Face.
+
+    Attributes:
+        model_dir: Local directory used to store the downloaded GGUF files.
+    """
 
     __slots__ = ("model_dir",)
 
     def __init__(self, model_dir: Path) -> None:
+        """Initialize the resolver for a specific model directory.
+
+        Args:
+            model_dir: Directory where GGUF model and mmproj files are stored.
+        """
         self.model_dir = model_dir
 
     def ensure_files(self) -> Path:
-        """Ensure the model and mmproj files exist locally."""
+        """Ensure the model and mmproj files exist locally.
+
+        Downloads any missing files from Hugging Face before returning.
+
+        Returns:
+            Path to the directory containing both GGUF files.
+
+        Raises:
+            OcrConfigError: If a file cannot be downloaded from Hugging Face.
+        """
         self.model_dir.mkdir(parents=True, exist_ok=True)
         for filename in required_paddle_files():
             destination = self.model_dir / filename
@@ -138,11 +179,25 @@ def paddle_download_url(filename: str) -> str:
 
 
 class PaddleOcrEngine:
-    """PaddleOCR-VL 1.5 engine backed by llama-server."""
+    """PaddleOCR-VL 1.5 engine backed by a managed llama-server subprocess.
+
+    Downloads GGUF model weights on first use, starts llama-server, and
+    communicates with it over the OpenAI-compatible HTTP API.  OOM errors
+    trigger automatic image downscaling and retry.
+
+    Attributes:
+        config: Active engine configuration.
+    """
 
     __slots__ = ("_client", "_model_dir", "_server", "config")
 
     def __init__(self, config: PaddleOcrConfig | None = None) -> None:
+        """Initialize the engine with optional configuration.
+
+        Args:
+            config: Engine configuration. Loaded from application settings
+                when ``None``.
+        """
         self.config = config or PaddleOcrConfig.from_settings()
         self._server: LlamaServerManager | None = None
         self._client: LlamaClient | None = None
@@ -174,7 +229,20 @@ class PaddleOcrEngine:
             cleanup_gpu_memory()
 
     def recognize(self, image: ImageInput, **kwargs: Any) -> OcrResult:
-        """Extract receipt text from an image."""
+        """Extract text from a receipt image.
+
+        Validates and resizes the image, sends it to llama-server, and
+        retries with a smaller dimension on GPU out-of-memory errors.
+
+        Args:
+            image: Image to process — file path, numpy array, or PIL image.
+            **kwargs: Optional overrides: ``prompt`` (str), ``max_dimension``
+                (int).
+
+        Returns:
+            OCR result with extracted text.  On failure, returns a result
+            with ``error`` set rather than raising.
+        """
         if not self.is_available:
             self.initialize()
 

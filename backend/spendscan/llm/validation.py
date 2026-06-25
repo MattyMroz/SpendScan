@@ -1,4 +1,10 @@
-"""Validation helpers for Gemini receipt JSON."""
+"""Validation helpers for Gemini receipt JSON output.
+
+Provides ReceiptOutputValidator, which parses raw LLM text, applies
+JSON repair heuristics, validates the payload against Pydantic schemas,
+deduplicates items and discounts, and appends mismatch warnings when
+totals do not balance within configured tolerances.
+"""
 
 from __future__ import annotations
 
@@ -17,15 +23,44 @@ from spendscan.errors import OutputValidationError
 from .schemas import ReceiptAnalysisResult, ReceiptDiscount, ReceiptItem
 
 _JSON_FENCE_PATTERN: Final[re.Pattern[str]] = re.compile(r"```(?:json)?\s*(.*?)\s*```", re.DOTALL)
+"""Regex that strips optional Markdown code fences from LLM JSON output."""
+
 _TOTAL_MISMATCH_TOLERANCE: Final[Decimal] = Decimal("0.05")
+"""Maximum allowed absolute difference between summed item totals and receipt total."""
+
 _DISCOUNT_MISMATCH_TOLERANCE: Final[Decimal] = Decimal("0.05")
+"""Maximum allowed absolute difference between summed discounts and total_discount_amount."""
 
 
 class ReceiptOutputValidator:
-    """Parse and validate raw LLM receipt output."""
+    """Parse and validate raw LLM receipt output.
+
+    Applies a three-stage JSON repair pipeline, validates the resulting
+    payload against ReceiptAnalysisResult, removes duplicate rows, and
+    appends human-readable warnings for total/discount mismatches.
+    """
 
     def validate(self, raw_text: str, *, raw_ocr_text: str) -> ReceiptAnalysisResult:
-        """Validate raw JSON text into a receipt analysis result."""
+        """Parse, repair, and validate raw Gemini output into a receipt result.
+
+        Attempts plain JSON parsing first. On failure, tries removing stray
+        backslashes and then stripping all invalid escape sequences before
+        giving up. Always injects raw_ocr_text into the payload so the field
+        reflects exactly what was sent to the model.
+
+        Args:
+            raw_text: Raw text response from the Gemini API.
+            raw_ocr_text: Original OCR transcript forwarded from the caller;
+                injected verbatim into the result's raw_ocr_text field.
+
+        Returns:
+            Validated, deduplicated ReceiptAnalysisResult with any mismatch
+            warnings appended.
+
+        Raises:
+            OutputValidationError: If JSON is irreparable or does not match
+                the receipt schema.
+        """
         extracted = _extract_json(raw_text)
         try:
             payload = json.loads(extracted)
@@ -80,6 +115,13 @@ class ReceiptOutputValidator:
 
 
 def _discount_total_for_comparison(result: ReceiptAnalysisResult) -> Decimal:
+    """Compute the discount total to compare against total_discount_amount.
+
+    Uses item-level discounts[] entries (those with item_name) when present,
+    falling back to per-item discount_amount fields, then to aggregate
+    discounts[] entries. This hierarchy mirrors how the LLM is instructed
+    to report discounts in the system prompt.
+    """
     item_level_discount_total = sum(
         (discount.amount for discount in result.discounts if discount.item_name),
         Decimal("0"),
@@ -98,6 +140,11 @@ def _discount_total_for_comparison(result: ReceiptAnalysisResult) -> Decimal:
 
 
 def _deduplicated_result(result: ReceiptAnalysisResult) -> ReceiptAnalysisResult:
+    """Return a copy of result with duplicate items, discounts, and warnings removed.
+
+    Also drops aggregate discount entries that merely mirror item-level
+    discounts already reported individually to avoid double-counting.
+    """
     item_level_discounts = [discount for discount in result.discounts if discount.item_name]
     discounts = _deduplicated_discounts(result)
     if item_level_discounts and result.total_discount_amount is not None:
@@ -117,6 +164,7 @@ def _deduplicated_result(result: ReceiptAnalysisResult) -> ReceiptAnalysisResult
 
 
 def _deduplicated_items(result: ReceiptAnalysisResult) -> list[ReceiptItem]:
+    """Return result.items with exact duplicate rows removed, preserving order."""
     seen: set[tuple[object, ...]] = set()
     items = []
     for item in result.items:
@@ -136,6 +184,7 @@ def _deduplicated_items(result: ReceiptAnalysisResult) -> list[ReceiptItem]:
 
 
 def _deduplicated_discounts(result: ReceiptAnalysisResult) -> list[ReceiptDiscount]:
+    """Return result.discounts with exact duplicate entries removed, preserving order."""
     seen: set[tuple[object, ...]] = set()
     discounts = []
     for discount in result.discounts:
@@ -152,6 +201,7 @@ def _deduplicated_discounts(result: ReceiptAnalysisResult) -> list[ReceiptDiscou
 
 
 def _deduplicated_strings(values: list[str]) -> list[str]:
+    """Return values with case-insensitive duplicates removed, preserving order."""
     seen: set[str] = set()
     results: list[str] = []
     for value in values:
@@ -164,10 +214,16 @@ def _deduplicated_strings(values: list[str]) -> list[str]:
 
 
 def _normalized_text(value: object) -> str:
+    """Return a lowercased, whitespace-collapsed string for deduplication keys."""
     return " ".join(str(value or "").casefold().split())
 
 
 def _extract_json(raw_text: str) -> str:
+    """Extract the first JSON object from raw_text, stripping Markdown fences.
+
+    Prefers a fenced code block if present. Falls back to slicing between
+    the first ``{`` and last ``}`` in the string.
+    """
     text = raw_text.strip()
     fence_match = _JSON_FENCE_PATTERN.search(text)
     if fence_match:
@@ -181,7 +237,10 @@ def _extract_json(raw_text: str) -> str:
 
 
 _VALID_JSON_ESCAPES: Final[frozenset[str]] = frozenset('"\\/bfnrt')
+"""Characters that may follow a backslash in a valid JSON string escape."""
+
 _HEX_DIGITS: Final[frozenset[str]] = frozenset("0123456789abcdefABCDEF")
+"""Hex digit set used to validate \\uXXXX Unicode escape sequences."""
 
 
 def _escape_stray_backslashes(text: str) -> str:

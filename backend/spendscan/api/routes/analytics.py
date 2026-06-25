@@ -45,6 +45,15 @@ def dashboard(
 
 
 def _period_bounds(period_type: PeriodType, reference_date: date) -> tuple[date, date]:
+    """Return the inclusive start and end dates for the period containing reference_date.
+
+    Args:
+        period_type: Granularity of the period.
+        reference_date: Any date within the desired period.
+
+    Returns:
+        Tuple of (start, end) dates, both inclusive.
+    """
     if period_type == "daily":
         return reference_date, reference_date
     if period_type == "all_time":
@@ -64,6 +73,17 @@ def _period_bounds(period_type: PeriodType, reference_date: date) -> tuple[date,
 
 
 def _previous_period_bounds(period_type: PeriodType, current_start: date) -> tuple[date, date]:
+    """Return the inclusive start and end dates for the period immediately before the current one.
+
+    Used to compute period-over-period deltas on the dashboard.
+
+    Args:
+        period_type: Granularity of the period.
+        current_start: First day of the current period.
+
+    Returns:
+        Tuple of (start, end) dates for the previous period, both inclusive.
+    """
     if period_type == "daily":
         prev = current_start - timedelta(days=1)
         return prev, prev
@@ -83,10 +103,20 @@ def _previous_period_bounds(period_type: PeriodType, current_start: date) -> tup
 
 
 def _next_month(value: date) -> date:
+    """Return the first day of the month following value."""
     return _add_months(value, 1)
 
 
 def _add_months(value: date, months: int) -> date:
+    """Return a new date shifted by the given number of months, always on the 1st.
+
+    Args:
+        value: Source date (day is ignored; result is always day=1).
+        months: Number of months to add (may be negative).
+
+    Returns:
+        First day of the resulting month.
+    """
     month_index = value.month - 1 + months
     year = value.year + month_index // 12
     month = month_index % 12 + 1

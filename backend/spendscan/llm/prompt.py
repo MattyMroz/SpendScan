@@ -1,4 +1,8 @@
-"""Gemini prompt for receipt parsing."""
+"""Gemini prompts for receipt parsing.
+
+Defines SYSTEM_PROMPT (the engine instructions sent as the system message)
+and build_receipt_prompt (the per-request user turn that injects OCR text).
+"""
 
 from __future__ import annotations
 
@@ -76,10 +80,21 @@ Rules:
   services, other.
 - raw_ocr_text must equal the OCR transcript from the user prompt exactly.
 """.strip()
+"""System instructions sent to Gemini as the fixed system message for every receipt request."""
 
 
 def build_receipt_prompt(ocr_text: str) -> str:
-    """Build user prompt for receipt JSON extraction."""
+    """Build the user-turn prompt for receipt JSON extraction.
+
+    Wraps the raw OCR transcript in a structured workflow instruction so the
+    model knows to cross-reference the attached image(s) before outputting JSON.
+
+    Args:
+        ocr_text: Raw OCR transcript produced by the upstream OCR engine.
+
+    Returns:
+        Formatted prompt string ready to be sent as the user message.
+    """
     transcript = ocr_text.strip()
     return f"""
 Analyze the attached receipt image(s) and this OCR transcript.
