@@ -27,6 +27,7 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 def _to_user_response(user_id: int, username: str, email: str, created_at: object) -> UserResponse:
+    """Build a UserResponse from individual user fields."""
     return UserResponse(
         id=user_id,
         username=username,

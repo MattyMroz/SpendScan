@@ -3,6 +3,9 @@ __pycache__/
 *.py[codz]
 *$py.class
 
+# MS Office temporary lock files
+~$*
+
 # C extensions
 *.so
 
@@ -197,6 +200,7 @@ cython_debug/
 .github/prompts/
 .github/instructions/
 .github/copilot-instructions.md
+.claude/
 AGENTS.md
 knowledge/
 temp/

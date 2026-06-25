@@ -11,7 +11,11 @@ ChatRole = Literal["user", "assistant", "system", "tool"]
 
 
 class BackendType(Enum):
-    """Native llama.cpp compute backend."""
+    """Native llama.cpp compute backend.
+
+    Controls which prebuilt binary variant is downloaded and which
+    hardware acceleration flags are passed to llama-server.
+    """
 
     CUDA = "cuda"
     VULKAN = "vulkan"
@@ -28,7 +32,15 @@ BACKEND_PRIORITY: Final[tuple[BackendType, ...]] = (
 
 @dataclass(frozen=True, slots=True)
 class PlatformInfo:
-    """Detected platform and preferred llama.cpp backend."""
+    """Detected platform and preferred llama.cpp compute backend.
+
+    Attributes:
+        os: Platform identifier (``sys.platform``), e.g. ``"win32"``.
+        arch: Normalized CPU architecture, e.g. ``"x86_64"`` or ``"arm64"``.
+        backend: Selected compute backend for llama.cpp.
+        cuda_version: NVIDIA driver version string, or ``None`` when CUDA is
+            not available.
+    """
 
     os: str
     arch: str
@@ -38,7 +50,15 @@ class PlatformInfo:
 
 @dataclass(frozen=True, slots=True)
 class ContentPart:
-    """Single OpenAI-compatible multimodal content part."""
+    """Single content part in an OpenAI-compatible multimodal message.
+
+    Attributes:
+        type: Part type — ``"text"`` for plain text or ``"image_url"`` for an
+            image encoded as a data URI.
+        text: Text content; present when ``type`` is ``"text"``.
+        image_url: Mapping with a ``"url"`` key containing the data URI;
+            present when ``type`` is ``"image_url"``.
+    """
 
     type: ContentType
     text: str | None = None
@@ -56,7 +76,13 @@ class ContentPart:
 
 @dataclass(frozen=True, slots=True)
 class ChatMessage:
-    """Single OpenAI-compatible chat message."""
+    """Single message in an OpenAI-compatible chat conversation.
+
+    Attributes:
+        role: Conversation role, e.g. ``"user"`` or ``"assistant"``.
+        content: Message body — either a plain text string or a list of
+            multimodal content parts.
+    """
 
     role: ChatRole
     content: str | list[ContentPart]
@@ -70,7 +96,15 @@ class ChatMessage:
 
 @dataclass(frozen=True, slots=True)
 class ChatCompletion:
-    """Parsed response from llama-server chat completions."""
+    """Parsed response from a llama-server chat completion request.
+
+    Attributes:
+        content: Generated text from the model.
+        finish_reason: Stop reason reported by the server (e.g. ``"stop"``
+            or ``"length"``).
+        usage: Token usage counters keyed by ``"prompt_tokens"``,
+            ``"completion_tokens"``, and ``"total_tokens"``.
+    """
 
     content: str
     finish_reason: str = ""

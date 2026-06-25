@@ -1,4 +1,7 @@
-"""User persistence."""
+"""User persistence helpers.
+
+Provides UserRepository for looking up and creating User records.
+"""
 
 from __future__ import annotations
 
@@ -8,9 +11,18 @@ from spendscan.models import User
 
 
 class UserRepository:
-    """Database access for users."""
+    """Database access for user lookup and creation.
+
+    Attributes:
+        _session: Active SQLModel/SQLAlchemy session injected at construction.
+    """
 
     def __init__(self, session: Session) -> None:
+        """Initialise the repository with an active database session.
+
+        Args:
+            session: SQLModel session used for all database operations.
+        """
         self._session = session
 
     def create_user(self, *, username: str, email: str, password_hash: str) -> User:

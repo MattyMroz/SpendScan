@@ -1,3 +1,9 @@
+"""Database engine and session factory for SpendScan.
+
+Exposes a module-level ``engine`` built from application settings and a
+``get_session`` dependency suitable for FastAPI ``Depends``.
+"""
+
 from collections.abc import Generator
 
 from sqlalchemy import Engine
@@ -21,5 +27,12 @@ engine = create_database_engine()
 
 
 def get_session() -> Generator[Session]:
+    """Yield a SQLModel session and close it when the request is done.
+
+    Intended for use as a FastAPI dependency via ``Depends(get_session)``.
+
+    Yields:
+        Active database session bound to the module-level engine.
+    """
     with Session(engine) as session:
         yield session

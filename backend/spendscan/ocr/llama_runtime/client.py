@@ -40,11 +40,25 @@ def _parse_completion(data: dict[str, object]) -> ChatCompletion:
 
 
 class LlamaClient:
-    """Typed wrapper around a running llama-server instance."""
+    """Typed HTTP client for a running llama-server instance.
+
+    Provides health-check and chat-completion methods over the
+    OpenAI-compatible REST API exposed by llama-server.
+
+    Attributes:
+        base_url: Base URL of the llama-server instance (no trailing slash).
+    """
 
     __slots__ = ("_client", "base_url")
 
     def __init__(self, base_url: str, *, timeout: float = 120.0) -> None:
+        """Initialize the client pointed at a llama-server base URL.
+
+        Args:
+            base_url: Base URL of the server, e.g. ``"http://127.0.0.1:8080"``.
+            timeout: Read/write timeout in seconds for inference requests.
+                The connection timeout is fixed at 10 seconds.
+        """
         self.base_url = base_url.rstrip("/")
         self._client = httpx.Client(
             base_url=self.base_url,
@@ -72,7 +86,24 @@ class LlamaClient:
         repeat_penalty: float | None = None,
         repeat_last_n: int | None = None,
     ) -> ChatCompletion:
-        """Send a chat completion request to llama-server."""
+        """Send a chat completion request and return the parsed response.
+
+        Args:
+            messages: Ordered list of messages forming the conversation.
+            max_tokens: Maximum number of tokens to generate.
+            temperature: Sampling temperature; 0.0 yields deterministic output.
+            repeat_penalty: Penalty factor for repeated tokens.  Omitted from
+                the request payload when ``None``.
+            repeat_last_n: Lookback window for repeat penalty; ``-1`` covers
+                the full context.  Omitted from the payload when ``None``.
+
+        Returns:
+            Parsed chat completion with generated content and usage stats.
+
+        Raises:
+            LlamaRuntimeError: If the HTTP request fails or the server returns
+                a non-2xx status code.
+        """
         payload: dict[str, object] = {
             "messages": [message.to_dict() for message in messages],
             "max_tokens": max_tokens,

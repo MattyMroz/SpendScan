@@ -1,0 +1,132 @@
+/* Keep the default Material layout for the sidebars and footer (do NOT add padding that
+   would make the sticky sidebars overflow). Just a little breathing room under content. */
+.md-content {
+  padding-bottom: 1.5rem;
+}
+
+/* The right table-of-contents and the left nav must be self-contained sticky boxes that
+   scroll INTERNALLY - never a giant box that overflows the page. Pin them to the viewport
+   height and let their own scrollwrap handle overflow. */
+.md-sidebar {
+  position: sticky;
+  top: 2.4rem;
+  height: 0;
+}
+.md-sidebar__scrollwrap {
+  max-height: calc(100vh - 4rem);
+  overflow-y: auto;
+}
+
+/* In the right-hand table of contents, hide entries that are plain attributes, so the TOC
+   keeps modules, classes and methods (useful navigation) but drops the hundreds of
+   attribute rows that made it an oversized box. The attributes are still fully documented
+   on the page itself - only their TOC entries are hidden. Hide the whole list item so no
+   empty bullet/space remains. */
+.md-nav--secondary .md-nav__item:has(> .md-nav__link code.doc-symbol-attribute) {
+  display: none;
+}
+/* Fallback for browsers without :has() - hide at least the link. */
+.md-nav--secondary .md-nav__link code.doc-symbol-attribute {
+  /* marker class kept for the rule above; if :has() is unsupported the entry stays. */
+}
+
+/* ----------------------------------------------------------------------------
+   More color: a richer palette across headings, nav, code and API symbols.
+   ---------------------------------------------------------------------------- */
+
+:root {
+  --ss-blue: #1565c0;
+  --ss-cyan: #00897b;
+  --ss-purple: #6a1b9a;
+  --ss-orange: #ef6c00;
+  --ss-pink: #c2185b;
+  --ss-green: #2e7d32;
+}
+
+/* Force the nested sections in the left nav to stay expanded, so the whole tree is
+   visible at once (navigation.expand only auto-expands on wide screens). */
+.md-nav__item--nested > .md-nav {
+  display: block !important;
+}
+.md-nav__item--nested > .md-nav__toggle ~ .md-nav {
+  display: block !important;
+}
+
+/* Section labels (nested groups) in the left nav: colored bar + bold, like a tree root. */
+.md-nav__item--section > .md-nav__link,
+.md-nav__item--nested > .md-nav__link {
+  font-weight: 700;
+  color: var(--ss-blue);
+  border-left: 3px solid var(--ss-blue);
+  padding-left: 0.5rem;
+  margin-top: 0.4rem;
+}
+
+/* Indent + color the child links so the hierarchy reads as a tree. */
+.md-nav__item--nested .md-nav .md-nav__link {
+  border-left: 2px solid rgba(21, 101, 192, 0.25);
+  padding-left: 0.6rem;
+  font-weight: 400;
+  color: inherit;
+}
+.md-nav__item--nested .md-nav .md-nav__link--active {
+  color: var(--ss-blue);
+  font-weight: 700;
+  border-left-color: var(--ss-orange);
+}
+
+/* Cycle accent colors across the nested nav levels for a colorful tree. */
+.md-nav .md-nav .md-nav__link:hover {
+  color: var(--ss-cyan);
+}
+
+/* Page headings in color */
+.md-typeset h1 {
+  color: var(--ss-blue);
+}
+.md-typeset h2 {
+  color: var(--ss-purple);
+  border-bottom: 2px solid rgba(106, 27, 154, 0.18);
+  padding-bottom: 0.2rem;
+}
+.md-typeset h3 {
+  color: var(--ss-cyan);
+}
+.md-typeset h4 {
+  color: var(--ss-orange);
+}
+
+/* API reference: color-code the symbol kinds (class / function / attribute / module)
+   so each entry's type is obvious at a glance. */
+.md-typeset .doc-class > .doc-heading code,
+.md-typeset code.doc-symbol-class {
+  background: rgba(106, 27, 154, 0.12);
+  color: var(--ss-purple);
+}
+.md-typeset code.doc-symbol-function,
+.md-typeset code.doc-symbol-method {
+  background: rgba(46, 125, 50, 0.12);
+  color: var(--ss-green);
+}
+.md-typeset code.doc-symbol-attribute {
+  background: rgba(239, 108, 0, 0.12);
+  color: var(--ss-orange);
+}
+.md-typeset code.doc-symbol-module {
+  background: rgba(21, 101, 192, 0.12);
+  color: var(--ss-blue);
+}
+
+/* Tables (parameter / returns sections) get a colored header row. */
+.md-typeset table:not([class]) th {
+  background: var(--ss-blue);
+  color: #fff;
+}
+
+/* Admonitions / notes a touch more colorful is already handled by Material;
+   give inline code a soft tint for contrast. */
+.md-typeset :not(pre) > code {
+  color: var(--ss-pink);
+}
+
+/* Dark mode has been removed from this documentation - the site is light-only. */

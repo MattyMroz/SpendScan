@@ -22,7 +22,15 @@ _HEALTH_POLL_INTERVAL_SEC: Final[float] = 0.5
 
 
 class LlamaServerManager:
-    """Start, health-check, and stop a llama-server subprocess."""
+    """Lifecycle manager for a llama-server subprocess.
+
+    Starts the server with the specified model and mmproj files, waits
+    for the health endpoint to become available, and terminates the
+    process on ``stop`` or interpreter shutdown (via ``atexit``).
+
+    Attributes:
+        config: Runtime configuration used when spawning the server.
+    """
 
     __slots__ = ("_binary_resolver", "_client", "_port", "_process", "config")
 
@@ -32,6 +40,14 @@ class LlamaServerManager:
         *,
         binary_resolver: BinaryResolver | None = None,
     ) -> None:
+        """Initialize the manager with optional runtime config and resolver.
+
+        Args:
+            config: llama-server process configuration. Uses defaults
+                when ``None``.
+            binary_resolver: Resolver used to locate the server binary.
+                Creates a default ``BinaryResolver`` when ``None``.
+        """
         self.config = config or LlamaRuntimeConfig()
         self._binary_resolver = binary_resolver or BinaryResolver()
         self._process: subprocess.Popen[str] | None = None
@@ -50,14 +66,37 @@ class LlamaServerManager:
 
     @property
     def client(self) -> LlamaClient:
-        """Return connected HTTP client."""
+        """Connected HTTP client for the running server.
+
+        Raises:
+            ServerStartError: If ``start`` has not been called yet.
+        """
         if self._client is None:
             msg = "Server not started; call start() first"
             raise ServerStartError(msg)
         return self._client
 
     def start(self, model_path: str | Path, *, mmproj_path: str | Path, build_tag: str) -> LlamaClient:
-        """Start llama-server using a prepared cached binary."""
+        """Start llama-server and wait for it to become healthy.
+
+        Resolves the cached binary for ``build_tag``, spawns the subprocess,
+        registers ``stop`` with ``atexit``, and polls the ``/health`` endpoint
+        until the server is ready.
+
+        Args:
+            model_path: Path to the GGUF language model file.
+            mmproj_path: Path to the GGUF vision encoder (mmproj) file.
+            build_tag: llama.cpp release tag identifying the binary to use.
+
+        Returns:
+            Configured ``LlamaClient`` connected to the running server.
+
+        Raises:
+            ServerStartError: If the binary cannot be found, the subprocess
+                fails to start, or the process exits before becoming healthy.
+            HealthCheckError: If the server does not become healthy within
+                ``config.startup_timeout`` seconds.
+        """
         if self.is_running:
             return self.client
 
@@ -84,7 +123,11 @@ class LlamaServerManager:
         return self._client
 
     def stop(self) -> None:
-        """Stop llama-server if it is running."""
+        """Stop llama-server and close the HTTP client.
+
+        Sends ``SIGTERM`` first; escalates to ``SIGKILL`` after 10 seconds.
+        Safe to call multiple times or when the server was never started.
+        """
         if self._process is None:
             return
 
@@ -106,7 +149,18 @@ class LlamaServerManager:
 
     @contextmanager
     def serve(self, model_path: str | Path, *, mmproj_path: str | Path, build_tag: str) -> Generator[LlamaClient]:
-        """Start a server for a context manager scope."""
+        """Start a server for the duration of a ``with`` block.
+
+        Calls ``start`` on entry and ``stop`` on exit, even on exception.
+
+        Args:
+            model_path: Path to the GGUF language model file.
+            mmproj_path: Path to the GGUF vision encoder file.
+            build_tag: llama.cpp release tag identifying the binary to use.
+
+        Yields:
+            Connected ``LlamaClient`` ready for inference.
+        """
         client = self.start(model_path, mmproj_path=mmproj_path, build_tag=build_tag)
         try:
             yield client

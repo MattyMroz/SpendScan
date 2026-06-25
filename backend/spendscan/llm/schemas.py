@@ -1,4 +1,9 @@
-"""Pydantic schemas for receipt analysis."""
+"""Pydantic schemas for receipt analysis.
+
+Defines the structured data models that the LLM output is validated against:
+ReceiptItem, ReceiptDiscount, ReceiptAnalysisResult, and ReceiptPipelineResult.
+All monetary values are stored as Decimal to preserve precision.
+"""
 
 from __future__ import annotations
 
@@ -9,7 +14,16 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class ReceiptItem(BaseModel):
-    """Single item extracted from a receipt."""
+    """Single line item extracted from a receipt.
+
+    Attributes:
+        name: Product name as printed (ASCII only per LLM rules).
+        quantity: Number of units; None when not printed.
+        unit_price: Price per unit; None when not printed.
+        total_price: Final paid amount for this line after any discount.
+        discount_amount: Per-item discount applied to this line; None if absent.
+        category: Normalized product category label; None when unclassifiable.
+    """
 
     model_config = ConfigDict(extra="forbid")
 
@@ -22,7 +36,14 @@ class ReceiptItem(BaseModel):
 
 
 class ReceiptDiscount(BaseModel):
-    """Discount extracted from a receipt."""
+    """Discount entry extracted from a receipt.
+
+    Attributes:
+        description: Label as printed on the receipt (e.g. "OPUSTY LACZNIE").
+        amount: Discount value as a positive decimal.
+        item_name: Product name when the discount is tied to a specific item;
+            None for aggregate discounts.
+    """
 
     model_config = ConfigDict(extra="forbid")
 
@@ -32,7 +53,22 @@ class ReceiptDiscount(BaseModel):
 
 
 class ReceiptAnalysisResult(BaseModel):
-    """Structured receipt analysis returned by the LLM."""
+    """Structured receipt analysis returned by the LLM.
+
+    Attributes:
+        merchant_name: Store or merchant name; None if not visible.
+        receipt_date: Transaction date; None if not visible.
+        currency: ISO 4217 currency code (3 characters). Defaults to "PLN".
+        subtotal_amount: Pre-tax subtotal; None if not printed.
+        tax_amount: Total VAT or sales tax; None if not printed.
+        total_amount: Final amount paid (required; 0 when unreadable).
+        total_discount_amount: Sum of all discounts shown on receipt; None if absent.
+        payment_method: Payment method label (e.g. "card", "cash"); None if absent.
+        items: Ordered list of line items parsed from the receipt.
+        discounts: Discount entries (aggregate or per-item).
+        warnings: Human-readable notes about parsing uncertainties or mismatches.
+        raw_ocr_text: Verbatim OCR transcript that was sent to the LLM.
+    """
 
     model_config = ConfigDict(extra="forbid")
 
@@ -51,7 +87,14 @@ class ReceiptAnalysisResult(BaseModel):
 
 
 class ReceiptPipelineResult(BaseModel):
-    """Combined OCR and LLM result for an uploaded receipt."""
+    """Combined OCR and LLM analysis result for an uploaded receipt.
+
+    Attributes:
+        ocr_text: Raw text produced by the OCR engine.
+        ocr_engine: Identifier of the OCR engine used (e.g. "paddleocr-vl").
+        ocr_processing_time_ms: OCR stage duration in milliseconds.
+        analysis: Structured receipt data extracted by the LLM.
+    """
 
     model_config = ConfigDict(extra="forbid")
     ocr_text: str

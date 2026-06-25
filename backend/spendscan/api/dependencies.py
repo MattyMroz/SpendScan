@@ -1,4 +1,12 @@
-"""FastAPI dependencies."""
+"""FastAPI dependency providers and annotated dependency aliases.
+
+Exports injectable provider functions and their ``Annotated`` shorthand types
+for use as FastAPI path-operation dependencies:
+
+- ``SettingsDep`` — application settings singleton.
+- ``SessionDep`` — SQLModel database session per request.
+- ``ReceiptPipelineDep`` — receipt pipeline reusing the shared OCR engine.
+"""
 
 from __future__ import annotations
 

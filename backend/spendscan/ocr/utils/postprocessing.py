@@ -1,4 +1,8 @@
-"""OCR output cleaning utilities."""
+"""OCR output cleaning utilities.
+
+Removes LLM special tokens, trims degenerate repeated suffixes produced by
+PaddleOCR-VL, and normalizes whitespace to produce clean, line-split text.
+"""
 
 from __future__ import annotations
 
@@ -26,7 +30,20 @@ _SPECIAL_TOKEN_PATTERN: Final[re.Pattern[str]] = re.compile(
 
 
 def trim_repeated_ocr_suffix(text: str) -> str:
-    """Trim degenerate repeated tail from PaddleOCR-VL output."""
+    """Trim a degenerate repeated suffix from PaddleOCR-VL raw output.
+
+    PaddleOCR-VL occasionally enters a repetition loop at the end of
+    generation.  This function detects when the last N non-whitespace
+    characters form a repeated unit and truncates at the start of the
+    repeated region.
+
+    Args:
+        text: Raw model output that may contain a repeated tail.
+
+    Returns:
+        Text with the repeated suffix removed, or the original text when
+        no repetition pattern is detected.
+    """
     chars = [(i, c) for i, c in enumerate(text) if not c.isspace()]
     n = len(chars)
     if n < _REPEAT_MIN_TOTAL_CHARS:
@@ -49,7 +66,21 @@ def trim_repeated_ocr_suffix(text: str) -> str:
 
 
 def parse_ocr_output(raw_text: str) -> tuple[str, list[str]]:
-    """Clean OCR output and split it into non-empty lines."""
+    """Clean raw OCR model output and split it into non-empty lines.
+
+    Applies the following transformations in order:
+    removes LLM special tokens, trims repeated suffixes, normalizes
+    line endings, collapses horizontal whitespace runs, collapses
+    triple-or-more blank lines, and strips leading/trailing whitespace.
+
+    Args:
+        raw_text: Raw text returned by the llama-server chat endpoint.
+
+    Returns:
+        Tuple of:
+            - Cleaned full text with lines joined by ``\\n``.
+            - List of individual non-empty stripped lines.
+    """
     cleaned = _SPECIAL_TOKEN_PATTERN.sub("", raw_text)
     cleaned = trim_repeated_ocr_suffix(cleaned)
     cleaned = cleaned.replace("\r\n", "\n").replace("\r", "\n")

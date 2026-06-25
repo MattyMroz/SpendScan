@@ -24,7 +24,29 @@ def validate_and_resize_image(
     min_dimension: int = DEFAULT_MIN_IMAGE_DIMENSION,
     convert_rgb: bool = True,
 ) -> tuple[Image.Image, tuple[int, int], bool]:
-    """Validate an image and resize it when the longest edge is too large."""
+    """Validate an image and proportionally resize it when oversized.
+
+    Converts any supported input type to a PIL image, checks minimum
+    dimensions, optionally converts to RGB, and downscales the image
+    when its longest edge exceeds ``max_dimension``.
+
+    Args:
+        image: Source image — file path, numpy array, or PIL image.
+        max_dimension: Maximum allowed longest edge in pixels.
+        min_dimension: Minimum required edge size in pixels.
+        convert_rgb: Convert the image to RGB mode before returning.
+
+    Returns:
+        Tuple of:
+            - Processed PIL image (resized if necessary).
+            - Original (height, width) before any resizing.
+            - ``True`` if the image was downscaled, ``False`` otherwise.
+
+    Raises:
+        FileNotFoundError: If a path-based input does not exist.
+        ValueError: If the image is smaller than ``min_dimension`` or has
+            an unsupported numpy array shape.
+    """
     pil_image = convert_to_pil(image)
     original_shape = (pil_image.height, pil_image.width)
     _validate_minimum_size(pil_image, min_dimension)
@@ -36,7 +58,20 @@ def validate_and_resize_image(
 
 
 def convert_to_pil(image: ImageInput) -> Image.Image:
-    """Convert a supported image input into a loaded PIL image."""
+    """Convert a supported image input into a fully loaded PIL image.
+
+    Args:
+        image: Source image — file path string or ``Path``, numpy uint8
+            array (HxW, HxWx3, or HxWx4), or an existing PIL image.
+
+    Returns:
+        Loaded PIL image.  For path inputs the file is fully read into
+        memory so the returned image is safe to use after the file closes.
+
+    Raises:
+        FileNotFoundError: If a path-based input does not exist on disk.
+        ValueError: If a numpy array has an unsupported shape.
+    """
     if isinstance(image, str | Path):
         image_path = Path(image)
         if not image_path.exists():

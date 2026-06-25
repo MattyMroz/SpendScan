@@ -1,4 +1,9 @@
-"""API response schemas."""
+"""Pydantic response schemas for the SpendScan REST API.
+
+All schemas use ``extra="forbid"`` to reject unexpected fields and keep the
+API surface explicit.  Input schemas (request bodies) are co-located here for
+convenience when they are tightly coupled to a single endpoint.
+"""
 
 from __future__ import annotations
 
@@ -11,7 +16,13 @@ from spendscan.llm import ReceiptPipelineResult
 
 
 class OcrLineResponse(BaseModel):
-    """OCR line returned by the API."""
+    """Single OCR text line returned by the debug endpoint.
+
+    Attributes:
+        text: Recognised text content of the line.
+        confidence: Recognition confidence score, 0.0-1.0.
+        bbox: Bounding box as (x1, y1, x2, y2) pixel coordinates, or None.
+    """
 
     model_config = ConfigDict(extra="forbid")
     text: str
@@ -20,7 +31,16 @@ class OcrLineResponse(BaseModel):
 
 
 class OcrResponse(BaseModel):
-    """OCR debug endpoint response."""
+    """Full OCR result returned by the /receipts/ocr debug endpoint.
+
+    Attributes:
+        text: Concatenated text from all recognised lines.
+        lines: Per-line OCR results with confidence scores.
+        engine: Identifier of the OCR engine used (e.g. ``"paddleocr"``).
+        processing_time_ms: Wall-clock time spent on OCR in milliseconds.
+        image_shape: Source image dimensions as (height, width) in pixels.
+        error: Engine error message, or None on success.
+    """
 
     model_config = ConfigDict(extra="forbid")
     text: str
@@ -32,7 +52,12 @@ class OcrResponse(BaseModel):
 
 
 class ReadinessResponse(BaseModel):
-    """Health readiness response."""
+    """Health readiness response for the /health/ready endpoint.
+
+    Attributes:
+        ready: True only when all dependency checks pass.
+        checks: Per-dependency check results keyed by check name.
+    """
 
     model_config = ConfigDict(extra="forbid")
     ready: bool
@@ -44,7 +69,20 @@ class ReceiptAnalyzeResponse(ReceiptPipelineResult):
 
 
 class StoredReceiptImageResponse(BaseModel):
-    """Persisted receipt image page response."""
+    """Persisted receipt image page returned as part of a receipt detail response.
+
+    Attributes:
+        id: Database primary key of the image record.
+        page_number: 1-based index within the multi-page receipt.
+        original_filename: Client-supplied filename at upload time.
+        stored_path: Legacy disk path, or empty string for DB-stored images.
+        content_type: MIME type of the original upload (e.g. ``"image/png"``).
+        ocr_text: Raw OCR text extracted from this page.
+        ocr_engine: Identifier of the OCR engine used.
+        ocr_processing_time_ms: OCR wall-clock time in milliseconds.
+        image_width: Image width in pixels, or None if unknown.
+        image_height: Image height in pixels, or None if unknown.
+    """
 
     model_config = ConfigDict(extra="forbid")
     id: int
@@ -60,7 +98,17 @@ class StoredReceiptImageResponse(BaseModel):
 
 
 class StoredReceiptItemResponse(BaseModel):
-    """Persisted receipt item response."""
+    """Single line item from a persisted receipt.
+
+    Attributes:
+        id: Database primary key of the item record.
+        product_name: Name or description of the purchased product.
+        quantity: Number of units purchased, or None if not parsed.
+        unit_price: Price per unit, or None if not parsed.
+        total_price: Total line amount (quantity x unit_price or explicit value).
+        discount_amount: Discount applied to this line, or None.
+        category: Inferred product category, or None.
+    """
 
     model_config = ConfigDict(extra="forbid")
     id: int
@@ -73,7 +121,22 @@ class StoredReceiptItemResponse(BaseModel):
 
 
 class ReceiptListItemResponse(BaseModel):
-    """Persisted receipt list item response."""
+    """Summary row for a persisted receipt returned by the list endpoint.
+
+    Attributes:
+        id: Database primary key.
+        status: Processing status (e.g. ``"success"``, ``"error"``).
+        merchant_name: Name of the merchant, or None if not extracted.
+        receipt_date: Date on the receipt, or None if not extracted.
+        currency: ISO 4217 currency code (e.g. ``"PLN"``).
+        total_amount: Total receipt amount.
+        importance: User-assigned importance level, 0-3.
+        image_count: Number of image pages attached to the receipt.
+        item_count: Number of line items on the receipt.
+        created_at: Timestamp when the record was persisted.
+        description: Optional user note.
+        folder_ids: IDs of folders this receipt belongs to.
+    """
 
     model_config = ConfigDict(extra="forbid")
 
@@ -95,7 +158,28 @@ class ReceiptListItemResponse(BaseModel):
 
 
 class ReceiptDetailResponse(BaseModel):
-    """Persisted receipt detail response."""
+    """Full detail of a persisted receipt including images and line items.
+
+    Attributes:
+        id: Database primary key.
+        status: Processing status (e.g. ``"success"``, ``"error"``).
+        merchant_name: Name of the merchant, or None if not extracted.
+        receipt_date: Date on the receipt, or None if not extracted.
+        currency: ISO 4217 currency code.
+        subtotal_amount: Pre-tax subtotal, or None if not extracted.
+        tax_amount: Tax amount, or None if not extracted.
+        total_amount: Final total amount.
+        total_discount_amount: Aggregate discount applied, or None.
+        payment_method: Payment method string, or None.
+        description: Optional user note.
+        raw_ocr_text: Full concatenated OCR output from all pages.
+        warnings: Non-fatal extraction warnings produced by the pipeline.
+        error: Fatal extraction error message, or None on success.
+        importance: User-assigned importance level, 0-3.
+        created_at: Timestamp when the record was persisted.
+        images: Ordered list of receipt image pages.
+        items: Parsed line items from the receipt.
+    """
 
     model_config = ConfigDict(extra="forbid")
     id: int
@@ -119,7 +203,16 @@ class ReceiptDetailResponse(BaseModel):
 
 
 class ReceiptItemUpdate(BaseModel):
-    """Editable fields of a receipt item."""
+    """Editable fields of a receipt line item sent in a PATCH request.
+
+    Attributes:
+        id: Existing item primary key for updates, or None to create a new item.
+        product_name: Name or description of the purchased product.
+        quantity: Number of units, or None.
+        unit_price: Price per unit, or None.
+        total_price: Total line amount (required).
+        discount_amount: Discount applied to this line, or None.
+    """
 
     model_config = ConfigDict(extra="forbid")
     id: int | None = None
@@ -131,7 +224,20 @@ class ReceiptItemUpdate(BaseModel):
 
 
 class ReceiptUpdateRequest(BaseModel):
-    """Editable fields of a saved receipt."""
+    """Request body for PATCH /receipts/{id}.
+
+    All fields are optional; only provided fields are updated.
+
+    Attributes:
+        merchant_name: Override for the merchant name.
+        receipt_date: Override for the receipt date.
+        currency: ISO 4217 currency code override.
+        total_amount: Override for the total amount.
+        payment_method: Override for the payment method.
+        description: User note to attach to the receipt.
+        importance: Importance level 0-3, or None to leave unchanged.
+        items: Replacement list of line items, or None to leave unchanged.
+    """
 
     model_config = ConfigDict(extra="forbid")
     merchant_name: str | None = None

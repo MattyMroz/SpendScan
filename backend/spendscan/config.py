@@ -31,7 +31,37 @@ def project_root() -> Path:
 
 
 class Settings(BaseSettings):
-    """Runtime settings for OCR and receipt analysis."""
+    """Runtime settings for OCR and receipt analysis.
+
+    Loaded from environment variables with the ``SPENDSCAN_`` prefix and
+    from an optional ``.env`` file. Extra environment keys are silently
+    ignored.
+
+    Attributes:
+        api_prefix: URL prefix for all API routes.
+        gemini_api_key: Primary Gemini API key (secret).
+        gemini_api_key_backup: Backup Gemini API key (secret).
+        gemini_model: Primary Gemini model identifier.
+        gemini_fallback_model: Fallback model when the primary is unavailable.
+        gemini_gemma_fallback_model: Last-resort Gemma model identifier.
+        gemini_temperature: Sampling temperature; 0.0 = deterministic.
+        gemini_max_output_tokens: Maximum tokens in a single Gemini response.
+        gemini_thinking_budget: Token budget for extended thinking; 0 disables it.
+        gemini_retry_attempts: Number of retry attempts on transient errors.
+        gemini_retry_delay_seconds: Initial delay between retries in seconds.
+        gemini_timeout_seconds: Per-request timeout for Gemini calls in seconds.
+        paddle_model_dir: Path to PaddleOCR-VL model weights (repo-relative or absolute).
+        llama_cache_dir: Path to llama.cpp binary cache (repo-relative or absolute).
+        llama_build_tag: Pinned llama.cpp build tag; blank env value resets to default.
+        database_url: PostgreSQL connection URL (secret).
+        upload_dir: Directory for uploaded receipt images (repo-relative or absolute).
+        jwt_secret: Secret key used to sign JWTs (secret).
+        jwt_algorithm: JWT signing algorithm.
+        jwt_expires_minutes: JWT lifetime in minutes.
+        auth_cookie_name: Name of the HttpOnly authentication cookie.
+        auth_cookie_secure: Whether the auth cookie requires HTTPS.
+        auth_cookie_samesite: SameSite policy for the auth cookie.
+    """
 
     model_config = SettingsConfigDict(
         env_prefix="SPENDSCAN_",

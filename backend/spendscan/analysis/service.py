@@ -17,7 +17,12 @@ from spendscan.llm.schemas import ReceiptAnalysisResult
 
 
 class AnalysisService:
-    """Service for calculating spending statistics and trends."""
+    """Calculate spending statistics and trends from receipt data.
+
+    Stateless service — all inputs are passed per call with no persistent
+    state. Computes totals, category breakdowns, shop rankings, daily
+    spend series, period-over-period trends, and optional budget utilization.
+    """
 
     def generate_dashboard(
         self,
@@ -30,8 +35,34 @@ class AnalysisService:
         current_subscriptions: list[SubscriptionSpend] | None = None,
         previous_subscriptions: list[SubscriptionSpend] | None = None,
     ) -> DashboardResponse:
-        """
-        Calculates dashboard statistics from a list of receipts for any time period.
+        """Calculate dashboard statistics from receipts for any time period.
+
+        Combines receipt totals with subscription amounts, computes per-category
+        and per-shop breakdowns, calculates period-over-period trends, and
+        optionally tracks budget utilization per category.
+
+        Returns an empty dashboard (zeroed totals, empty lists) when there is
+        no spending in the current period or days_in_period is not positive.
+
+        Args:
+            current_receipts: Receipts belonging to the current period.
+            previous_receipts: Receipts from the previous comparable period,
+                used to calculate trend percentages.
+            date_range_label: Human-readable label describing the date range,
+                e.g. "Jan 2025" or "Last 7 days".
+            period_type: Granularity of the period for display purposes.
+            days_in_period: Number of calendar days in the current period,
+                used to compute the daily average.
+            category_budgets: Optional per-category spending limits. Keys must
+                match the category strings found on receipt items.
+            current_subscriptions: Recurring subscriptions counted in the
+                current period totals and category sums.
+            previous_subscriptions: Recurring subscriptions for the previous
+                period, used in trend calculation.
+
+        Returns:
+            DashboardResponse with aggregated totals, breakdowns, trends,
+            and daily spend series.
         """
         curr_subs = current_subscriptions or []
         prev_subs = previous_subscriptions or []

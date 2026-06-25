@@ -1,4 +1,10 @@
-"""SQLModel database table models."""
+"""SQLModel ORM table definitions for the SpendScan database.
+
+Defines all persistent entities: User, Category, Folder, Receipt,
+ReceiptImage, ReceiptItem, Subscription, Budget, FolderReceipt, and
+BudgetReceipt. Monetary values are stored as integer cents; quantities
+use a fixed-precision Decimal column.
+"""
 
 from __future__ import annotations
 
@@ -36,7 +42,15 @@ def timestamp_column() -> Column[datetime]:
 
 
 class User(SQLModel, table=True):
-    """User database table."""
+    """Registered application user.
+
+    Attributes:
+        id: Auto-assigned primary key.
+        username: Unique display name.
+        email: Unique email address used for login.
+        password_hash: Bcrypt hash of the user's password.
+        created_at: Server-assigned creation timestamp.
+    """
 
     __tablename__: ClassVar[str] = "users"
 
@@ -48,7 +62,12 @@ class User(SQLModel, table=True):
 
 
 class Category(SQLModel, table=True):
-    """Category database table."""
+    """Expense category used to classify receipt items and subscriptions.
+
+    Attributes:
+        id: Auto-assigned primary key.
+        name: Unique, normalised (lowercase) category label.
+    """
 
     __tablename__: ClassVar[str] = "categories"
 
@@ -57,7 +76,15 @@ class Category(SQLModel, table=True):
 
 
 class Folder(SQLModel, table=True):
-    """Folder database table."""
+    """User-defined grouping that can contain multiple receipts.
+
+    Attributes:
+        id: Auto-assigned primary key.
+        user_id: Owner of this folder (FK → users).
+        name: Display name of the folder.
+        description: Optional free-text description.
+        created_at: Server-assigned creation timestamp.
+    """
 
     __tablename__: ClassVar[str] = "folders"
 
@@ -69,7 +96,25 @@ class Folder(SQLModel, table=True):
 
 
 class Receipt(SQLModel, table=True):
-    """Analyzed receipt database table."""
+    """Analysed receipt produced by the OCR/LLM pipeline.
+
+    Monetary fields (subtotal_amount, tax_amount, total_amount,
+    total_discount_amount) are stored as integer cents.
+
+    Attributes:
+        id: Auto-assigned primary key.
+        user_id: Owner of this receipt (FK → users).
+        status: Processing status, e.g. ``"completed"``.
+        merchant_name: Store or vendor name extracted from the receipt.
+        receipt_date: Date printed on the receipt.
+        currency: ISO 4217 currency code, default ``"PLN"``.
+        total_amount: Grand total in cents (always present).
+        payment_method: Payment method string from the receipt.
+        raw_ocr_text: Concatenated OCR output from all pages.
+        warnings: Non-fatal pipeline warnings collected during analysis.
+        importance: User-assigned importance level, 0-3.
+        created_at: Server-assigned creation timestamp.
+    """
 
     __tablename__: ClassVar[str] = "receipts"
 
@@ -93,7 +138,27 @@ class Receipt(SQLModel, table=True):
 
 
 class ReceiptImage(SQLModel, table=True):
-    """Single uploaded image/page belonging to a receipt."""
+    """Single uploaded image page belonging to a receipt.
+
+    Each multi-page receipt upload produces one ReceiptImage per page.
+    The raw bytes may be stored either on-disk (stored_path) or inline
+    in the database (image_data).
+
+    Attributes:
+        id: Auto-assigned primary key.
+        receipt_id: Parent receipt (FK → receipts).
+        page_number: 1-based page index within the receipt.
+        original_filename: Client-provided filename at upload time.
+        stored_path: POSIX path to the file if stored on disk; None otherwise.
+        image_data: Raw image bytes when stored inline in the DB.
+        content_type: MIME type reported by the client.
+        ocr_text: OCR output for this specific page.
+        ocr_engine: Identifier of the OCR engine used.
+        ocr_processing_time_ms: Wall-clock OCR duration in milliseconds.
+        image_width: Pixel width of the image, if known.
+        image_height: Pixel height of the image, if known.
+        created_at: Server-assigned creation timestamp.
+    """
 
     __tablename__: ClassVar[str] = "receipt_images"
 
@@ -113,7 +178,21 @@ class ReceiptImage(SQLModel, table=True):
 
 
 class ReceiptItem(SQLModel, table=True):
-    """Single item extracted from a saved receipt."""
+    """Single line item extracted from a receipt by the LLM pipeline.
+
+    Monetary values (unit_price, total_price, discount_amount) are stored
+    as integer cents.
+
+    Attributes:
+        id: Auto-assigned primary key.
+        receipt_id: Parent receipt (FK → receipts).
+        product_name: Name of the purchased product.
+        quantity: Item quantity; supports fractional amounts.
+        unit_price: Price per unit in cents.
+        total_price: Line total in cents (quantity x unit_price after discounts).
+        discount_amount: Per-line discount in cents.
+        category_id: Optional category (FK → categories).
+    """
 
     __tablename__: ClassVar[str] = "receipt_items"
 
@@ -128,7 +207,19 @@ class ReceiptItem(SQLModel, table=True):
 
 
 class Subscription(SQLModel, table=True):
-    """Subscription database table."""
+    """Recurring subscription tracked by the user.
+
+    Attributes:
+        id: Auto-assigned primary key.
+        user_id: Owner of the subscription (FK → users).
+        name: Human-readable subscription name.
+        amount: Recurring charge in cents.
+        billing_cycle: Billing frequency string, e.g. ``"monthly"``.
+        next_payment_date: Date of the upcoming charge.
+        category_id: Optional expense category (FK → categories).
+        is_active: 1 if active, 0 if cancelled.
+        created_at: Server-assigned creation timestamp.
+    """
 
     __tablename__: ClassVar[str] = "subscriptions"
 
@@ -144,7 +235,20 @@ class Subscription(SQLModel, table=True):
 
 
 class Budget(SQLModel, table=True):
-    """Budget database table."""
+    """Spending budget with configurable period and alert threshold.
+
+    Attributes:
+        id: Auto-assigned primary key.
+        user_id: Owner of the budget (FK → users).
+        name: Human-readable budget name.
+        description: Optional free-text description.
+        category_id: Optional category this budget applies to (FK → categories).
+        amount_limit: Maximum allowed spend in cents for the period.
+        period_type: Period granularity, e.g. ``"monthly"`` or ``"yearly"``.
+        alert_threshold_percent: Spend percentage that triggers an alert (default 80).
+        is_active: 1 if active, 0 if archived.
+        created_at: Server-assigned creation timestamp.
+    """
 
     __tablename__: ClassVar[str] = "budgets"
 
@@ -161,7 +265,14 @@ class Budget(SQLModel, table=True):
 
 
 class FolderReceipt(SQLModel, table=True):
-    """Folder receipt relation table."""
+    """Many-to-many link between a folder and a receipt.
+
+    Attributes:
+        id: Auto-assigned primary key.
+        folder_id: FK → folders.
+        receipt_id: FK → receipts.
+        created_at: Server-assigned creation timestamp.
+    """
 
     __tablename__: ClassVar[str] = "folder_receipts"
 
@@ -172,7 +283,14 @@ class FolderReceipt(SQLModel, table=True):
 
 
 class BudgetReceipt(SQLModel, table=True):
-    """Budget receipt relation table."""
+    """Many-to-many link between a budget and a receipt.
+
+    Attributes:
+        id: Auto-assigned primary key.
+        budget_id: FK → budgets.
+        receipt_id: FK → receipts.
+        created_at: Server-assigned creation timestamp.
+    """
 
     __tablename__: ClassVar[str] = "budget_receipts"
 

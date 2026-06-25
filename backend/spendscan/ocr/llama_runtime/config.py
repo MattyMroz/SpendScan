@@ -26,7 +26,22 @@ DEFAULT_CONTEXT_LENGTH: Final[int] = 4096
 
 @dataclass(slots=True)
 class LlamaRuntimeConfig:
-    """Configuration for a managed llama-server process."""
+    """Configuration for a managed llama-server process.
+
+    Attributes:
+        host: Network interface for llama-server to bind to.
+        port: Port number; ``0`` instructs the OS to assign a free port.
+        startup_timeout: Maximum seconds to wait for the server to become
+            healthy after launch.
+        health_timeout: Timeout in seconds for a single ``/health`` poll
+            request.
+        n_gpu_layers: Number of model layers to offload to GPU; ``-1``
+            offloads all layers.
+        n_ctx: Model context window size in tokens.
+        flash_attn: Enable Flash Attention for reduced VRAM usage.
+        verbose: Pipe server stdout/stderr to the parent process when
+            ``True``; suppress output when ``False``.
+    """
 
     host: str = DEFAULT_SERVER_HOST
     port: int = DEFAULT_SERVER_PORT

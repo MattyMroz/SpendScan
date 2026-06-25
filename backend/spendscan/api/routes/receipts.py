@@ -47,7 +47,14 @@ ReceiptUploads = Annotated[list[UploadFile], File(...)]
 
 @dataclass(frozen=True, slots=True)
 class StoredUpload:
-    """File saved from an API upload."""
+    """File saved from an API upload, held in memory for the duration of a request.
+
+    Attributes:
+        original_filename: Client-supplied filename at upload time.
+        path: Temporary on-disk path used for pipeline processing.
+        content_type: MIME type reported by the client, or None.
+        image_data: Raw image bytes read once after writing to disk.
+    """
 
     original_filename: str
     path: Path
@@ -361,6 +368,14 @@ def get_receipt_image(
 
 
 async def _save_temp_upload(file: UploadFile) -> Path:
+    """Stream an upload to a temporary file and return its path.
+
+    Args:
+        file: FastAPI upload file object.
+
+    Returns:
+        Path to the newly created temporary file.
+    """
     suffix = Path(file.filename or "receipt.png").suffix or ".png"
     with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as temporary_file:
         while chunk := await file.read(_UPLOAD_CHUNK_BYTES):
@@ -369,6 +384,22 @@ async def _save_temp_upload(file: UploadFile) -> Path:
 
 
 async def _save_uploads(files: list[UploadFile], upload_dir: Path) -> tuple[StoredUpload, ...]:
+    """Save a list of uploads into a unique batch subdirectory and read their bytes.
+
+    Creates a UUID-named subdirectory under upload_dir and writes each file
+    to it sequentially. On any error the batch directory is removed before
+    re-raising.
+
+    Args:
+        files: FastAPI upload file objects to persist.
+        upload_dir: Base directory for batch subdirectories.
+
+    Returns:
+        Tuple of StoredUpload instances in the same order as files.
+
+    Raises:
+        HTTPException: 400 if files is empty or any individual file is empty.
+    """
     if not files:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="At least one file is required")
 
@@ -404,6 +435,21 @@ async def _save_uploads(files: list[UploadFile], upload_dir: Path) -> tuple[Stor
 
 
 def _group_uploads_by_receipt(uploads: tuple[StoredUpload, ...]) -> tuple[tuple[StoredUpload, ...], ...]:
+    """Group uploads into per-receipt tuples using the paired-receipt naming convention.
+
+    Files whose stem matches ``<name>_<page>`` (e.g. ``receipt_001_1.png``,
+    ``receipt_001_2.png``) are grouped together in page order under the shared
+    receipt name.  Files that do not match are treated as standalone receipts.
+
+    Args:
+        uploads: All uploads from a batch request.
+
+    Returns:
+        Tuple of upload groups; each inner tuple contains the pages of one receipt.
+
+    Raises:
+        HTTPException: 400 if the same page number appears twice in a group.
+    """
     paired_groups: dict[str, dict[int, StoredUpload]] = {}
     standalone_groups: list[tuple[StoredUpload, ...]] = []
     for upload in uploads:
@@ -433,6 +479,20 @@ def _save_pipeline_result(
     pipeline_result: MultiImageReceiptPipelineResult,
     user_id: int,
 ) -> ReceiptDetailRecord:
+    """Persist a pipeline result and its image pages to the database.
+
+    Builds ReceiptImageCreate records from the pipeline output and the
+    in-memory image bytes, then delegates to the repository.
+
+    Args:
+        session: Active SQLModel session.
+        uploads: Ordered upload objects whose bytes are stored in the DB.
+        pipeline_result: OCR + extraction result for all pages.
+        user_id: Owner of the new receipt record.
+
+    Returns:
+        ReceiptDetailRecord with the newly assigned database IDs.
+    """
     images = tuple(
         ReceiptImageCreate(
             page_number=result.page_number,
@@ -451,6 +511,17 @@ def _save_pipeline_result(
 
 
 def _detail_response(detail: ReceiptDetailRecord) -> ReceiptDetailResponse:
+    """Convert a ReceiptDetailRecord from the repository into a ReceiptDetailResponse.
+
+    Args:
+        detail: Repository record containing the receipt, images, and items.
+
+    Returns:
+        Serialisable API response with all monetary amounts as Decimal.
+
+    Raises:
+        RuntimeError: If any persisted entity is missing a database ID.
+    """
     receipt = detail.receipt
     receipt_id = _required_id(receipt.id, "receipt")
     return ReceiptDetailResponse(
@@ -517,6 +588,7 @@ def _cleanup_stored_receipt_files(detail: ReceiptDetailRecord) -> None:
 
 
 def _cleanup_stored_path(path: Path) -> None:
+    """Delete a legacy on-disk image file and remove its directory if now empty."""
     resolved_path = path if path.is_absolute() else project_root() / path
     with contextlib.suppress(OSError):
         resolved_path.unlink(missing_ok=True)
@@ -527,20 +599,35 @@ def _cleanup_stored_path(path: Path) -> None:
 
 
 def _cleanup_directory(path: Path) -> None:
+    """Recursively delete a directory, silencing OS errors."""
     with contextlib.suppress(OSError):
         shutil.rmtree(path)
 
 
 def _raise_empty_upload(filename: str) -> None:
+    """Raise a 400 HTTPException indicating that the uploaded file has no content."""
     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"{filename} is empty")
 
 
 def _cleanup_temp_file(path: Path) -> None:
+    """Delete a single temporary file, silencing OS errors."""
     with contextlib.suppress(OSError):
         path.unlink(missing_ok=True)
 
 
 def _required_id(value: int | None, entity_name: str) -> int:
+    """Return value as a non-None int, raising RuntimeError if it is None.
+
+    Args:
+        value: Database primary key that should have been assigned on persist.
+        entity_name: Human-readable name used in the error message.
+
+    Returns:
+        The integer primary key.
+
+    Raises:
+        RuntimeError: If value is None, indicating a persistence bug.
+    """
     if value is None:
         msg = f"Persisted {entity_name} is missing an id"
         raise RuntimeError(msg)
